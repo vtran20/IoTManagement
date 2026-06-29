@@ -1,0 +1,76 @@
+---
+name: iot-utilities-saas
+description: Use when working in the IoTManagement repository on smart utilities SaaS architecture, planning, implementation, dashboard UI, NestJS REST APIs, simulated meters, ingestion, alerts, reports, mobile app planning, project rules, or design-spec updates.
+---
+
+# IoT Utilities SaaS
+
+## Overview
+
+Use this skill to keep work in the IoTManagement repository aligned with the approved smart water and electric utilities SaaS design. It reinforces the required Superpowers workflow, architecture defaults, tenant-safety rules, and dashboard expectations.
+
+## First Steps
+
+Before acting:
+
+1. Read `AGENTS.md`.
+2. Read `docs/superpowers/specs/2026-06-29-iot-utilities-saas-design.md`.
+3. Check `git status --short`.
+4. Choose the applicable Superpowers skill before changing files.
+
+## Required Superpowers Routing
+
+- Product, architecture, API, UI, data model, automation, or behavior changes: use `superpowers:brainstorming`.
+- Approved design to implementation plan: use `superpowers:writing-plans`.
+- Feature, bug fix, refactor, or behavior change implementation: use `superpowers:test-driven-development`.
+- Failed tests, broken behavior, integration issues, or surprising results: use `superpowers:systematic-debugging`.
+- Completion claims: use `superpowers:verification-before-completion`.
+- Substantial implementation handoff: use `superpowers:requesting-code-review`.
+- Review feedback: use `superpowers:receiving-code-review`.
+
+Do not implement production code before design and planning checkpoints are satisfied, unless the user explicitly asks for a throwaway experiment.
+
+## Architecture Defaults
+
+- Use a TypeScript monorepo.
+- Backend: NestJS REST API under `/api/v1`.
+- Dashboard: Next.js, Tailwind CSS, shadcn/ui, TanStack Query, TanStack Table, and Recharts.
+- Future mobile: Expo React Native.
+- Database: PostgreSQL first; TimescaleDB later if reading volume requires it.
+- Jobs: Redis and BullMQ.
+- Device path: simulated meters first; real devices later through the same normalized ingestion contract.
+
+## Domain Guardrails
+
+- Scope customer data by `organizationId`.
+- Support owner, manager, viewer, and future tenant roles.
+- Support unit-level meters and building-level shared meters.
+- Keep raw meter readings immutable after ingestion.
+- Make reading ingestion idempotent by meter and measured timestamp.
+- Normalize all protocols into `MeterReading`; keep MQTT, gateway, Modbus, LoRaWAN, Zigbee, Wi-Fi, and cellular details out of dashboard-facing code.
+- Separate user auth from device/gateway credentials.
+
+## API Guardrails
+
+- Validate all request bodies with DTO schemas.
+- Derive organization scope from authenticated membership whenever possible.
+- Add OpenAPI documentation for REST endpoints.
+- Shape dashboard endpoints around product questions: usage, cost, alerts, device health, rankings, and trends.
+- Add tests for tenant isolation, ingestion validation, duplicate handling, and alert evaluation.
+
+## Dashboard Guardrails
+
+- Build the real working dashboard as the first screen after login.
+- Keep the interface operational, calm, dense, and easy to scan.
+- Include loading, empty, error, and stale-data states.
+- Use tables for units, meters, alerts, and reports.
+- Use charts for utility usage, cost, anomalies, comparisons, and trends.
+
+## Completion Checklist
+
+Before reporting success:
+
+- Confirm the relevant Superpowers verification step was used.
+- Run focused tests or explain why tests are not available yet.
+- Check `git status --short`.
+- Mention changed files and verification performed.

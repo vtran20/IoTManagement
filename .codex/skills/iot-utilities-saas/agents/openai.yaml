@@ -1,0 +1,4 @@
+interface:
+  display_name: "IoT Utilities SaaS"
+  short_description: "Project workflow for the smart utilities SaaS."
+  default_prompt: "Use this when working on the IoT utilities SaaS project."
