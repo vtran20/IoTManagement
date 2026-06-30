@@ -736,26 +736,26 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write failing test for app shell navigation.
-- [ ] Implement app shell navigation.
-- [ ] Write failing test for login success and login error states.
-- [ ] Implement login page.
-- [ ] Write failing test for overview loading, empty, error, and success states.
-- [ ] Implement overview page.
-- [ ] Write failing test for buildings table.
-- [ ] Implement buildings page.
-- [ ] Write failing test for building detail.
-- [ ] Implement building detail page.
-- [ ] Write failing test for units table filtering.
-- [ ] Implement units page.
-- [ ] Write failing test for meters health display.
-- [ ] Implement meters page.
-- [ ] Write failing test for alert acknowledgement.
-- [ ] Implement alerts page.
-- [ ] Write failing test for reports monthly usage display.
-- [ ] Implement reports page.
-- [ ] Write failing test for settings rate update.
-- [ ] Implement settings page.
+- [x] Write failing test for app shell navigation.
+- [x] Implement app shell navigation.
+- [x] Write failing test for login success and login error states.
+- [x] Implement login page.
+- [x] Write failing test for overview loading, empty, error, and success states.
+- [x] Implement overview page.
+- [x] Write failing test for buildings table.
+- [x] Implement buildings page.
+- [x] Write failing test for building detail.
+- [x] Implement building detail page.
+- [x] Write failing test for units table filtering.
+- [x] Implement units page.
+- [x] Write failing test for meters health display.
+- [x] Implement meters page.
+- [x] Write failing test for alert acknowledgement.
+- [x] Implement alerts page.
+- [x] Write failing test for reports monthly usage display.
+- [x] Implement reports page.
+- [x] Write failing test for settings rate update.
+- [x] Implement settings page.
 
 **Required tests:**
 
