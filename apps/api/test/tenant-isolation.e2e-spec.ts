@@ -65,6 +65,10 @@ describe("Tenant boundary API", () => {
       error: {
         code: "TENANT_ACCESS_DENIED",
         message: "Organization is outside the authenticated tenant scope",
+        method: "GET",
+        path: "/api/v1/organizations/org_south",
+        statusCode: 403,
+        timestamp: expect.any(String),
       },
     });
   });
@@ -82,6 +86,10 @@ describe("Tenant boundary API", () => {
       error: {
         code: "ROLE_FORBIDDEN",
         message: "This action requires one of these roles: owner, manager",
+        method: "POST",
+        path: "/api/v1/memberships",
+        statusCode: 403,
+        timestamp: expect.any(String),
       },
     });
   });

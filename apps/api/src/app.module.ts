@@ -4,9 +4,12 @@ import { APP_FILTER } from "@nestjs/core";
 import { AlertsModule } from "./alerts/alerts.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuthModule } from "./auth/auth.module";
-import { ApiErrorFilter } from "./common/errors/api-error.filter";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { StructuredLogger } from "./common/logging/logger";
+import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { HealthController } from "./health/health.controller";
+import { HealthService } from "./health/health.service";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetersModule } from "./meters/meters.module";
 import { PersistenceModule } from "./persistence/persistence.module";
@@ -20,6 +23,7 @@ import { TenantsModule } from "./tenants/tenants.module";
   controllers: [HealthController],
   imports: [
     PersistenceModule,
+    RateLimitModule,
     AuthModule,
     TenantsModule,
     PortfolioModule,
@@ -35,8 +39,10 @@ import { TenantsModule } from "./tenants/tenants.module";
   providers: [
     {
       provide: APP_FILTER,
-      useClass: ApiErrorFilter,
+      useClass: HttpExceptionFilter,
     },
+    HealthService,
+    StructuredLogger,
   ],
 })
 export class AppModule {}

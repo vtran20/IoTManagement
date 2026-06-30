@@ -45,6 +45,10 @@ describe("Auth API", () => {
       error: {
         code: "INVALID_CREDENTIALS",
         message: "Email or password is incorrect",
+        method: "POST",
+        path: "/api/v1/auth/login",
+        statusCode: 401,
+        timestamp: expect.any(String),
       },
     });
   });

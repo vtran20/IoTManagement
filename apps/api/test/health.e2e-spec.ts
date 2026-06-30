@@ -26,8 +26,13 @@ describe("GET /api/v1/health", () => {
       .get("/api/v1/health")
       .expect(200)
       .expect({
-        status: "ok",
+        dependencies: {
+          api: { status: "ok" },
+          postgres: { status: "ok" },
+          redis: { status: "ok" },
+        },
         service: "iot-management-api",
+        status: "ok",
       });
   });
 });

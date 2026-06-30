@@ -22,6 +22,11 @@ import type {
 export interface HealthResponse {
   status: "ok";
   service: string;
+  dependencies?: {
+    api: { status: "ok" };
+    postgres: { status: "ok" | "degraded" };
+    redis: { status: "ok" | "degraded" };
+  };
 }
 
 export interface ApiErrorDetail {
@@ -34,6 +39,10 @@ export interface ApiErrorResponse {
     code: string;
     message: string;
     details?: ApiErrorDetail[];
+    method?: string;
+    path?: string;
+    statusCode?: number;
+    timestamp?: ISODateTime;
   };
 }
 

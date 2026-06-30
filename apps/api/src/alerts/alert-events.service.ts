@@ -1,5 +1,6 @@
 import type { ListAlertsQuery } from "@iot-management/types";
 import { Inject, Injectable } from "@nestjs/common";
+import { StructuredLogger } from "../common/logging/logger";
 import { RequestContext } from "../common/request-context";
 import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
@@ -15,6 +16,8 @@ export class AlertEventsService {
     private readonly persistence: InMemoryPersistenceService,
     @Inject(AlertEvaluatorService)
     private readonly evaluator: AlertEvaluatorService,
+    @Inject(StructuredLogger)
+    private readonly logger: StructuredLogger,
   ) {}
 
   list(context: RequestContext, query: ListAlertsQuery = {}) {
@@ -49,6 +52,7 @@ export class AlertEventsService {
     if (!event) {
       throw tenantResourceNotFound("Alert");
     }
+    this.logLifecycle(context, alertId, "acknowledged");
     return event;
   }
 
@@ -64,6 +68,21 @@ export class AlertEventsService {
     if (!event) {
       throw tenantResourceNotFound("Alert");
     }
+    this.logLifecycle(context, alertId, "resolved");
     return event;
+  }
+
+  private logLifecycle(
+    context: RequestContext,
+    alertId: string,
+    action: "acknowledged" | "resolved",
+  ) {
+    this.logger.info("Alert lifecycle changed", {
+      action,
+      alertId,
+      event: "alert.lifecycle",
+      organizationId: context.organization.id,
+      userId: context.user.id,
+    });
   }
 }

@@ -1,13 +1,16 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Inject } from "@nestjs/common";
 import type { HealthResponse } from "@iot-management/types";
+import { HealthService } from "./health.service";
 
 @Controller("health")
 export class HealthController {
+  constructor(
+    @Inject(HealthService)
+    private readonly healthService: HealthService,
+  ) {}
+
   @Get()
   getHealth(): HealthResponse {
-    return {
-      status: "ok",
-      service: "iot-management-api",
-    };
+    return this.healthService.getHealth();
   }
 }
