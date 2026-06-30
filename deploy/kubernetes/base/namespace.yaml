@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iot-management
+  labels:
+    app.kubernetes.io/part-of: iot-management
+    app.kubernetes.io/managed-by: kustomize

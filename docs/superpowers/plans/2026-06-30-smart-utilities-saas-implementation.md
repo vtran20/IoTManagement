@@ -242,6 +242,14 @@ Standard API error shape:
 - `.env.example`
 - `docker-compose.yml`
 - `deploy/kubernetes/README.md`
+- `deploy/kubernetes/base/namespace.yaml`
+- `deploy/kubernetes/base/configmap.yaml`
+- `deploy/kubernetes/base/postgres.yaml`
+- `deploy/kubernetes/base/redis.yaml`
+- `deploy/kubernetes/base/kustomization.yaml`
+- `deploy/kubernetes/overlays/local/local-secret.yaml`
+- `deploy/kubernetes/overlays/local/kustomization.yaml`
+- `docs/deployment/local-kubernetes-rancher-desktop.md`
 - `packages/config/package.json`
 - `packages/config/tsconfig/base.json`
 - `packages/types/package.json`
@@ -262,6 +270,8 @@ Standard API error shape:
 - [ ] Create workspace files and package scripts.
 - [ ] Add Docker Compose services named `postgres` and `redis` for local developer dependencies.
 - [ ] Add `deploy/kubernetes/README.md` describing the future kind/minikube validation path.
+- [ ] Add Rancher Desktop local Kubernetes manifests for PostgreSQL and Redis.
+- [ ] Validate local Kubernetes manifests with `kubectl apply --dry-run=client -k deploy/kubernetes/overlays/local`.
 - [ ] Scaffold NestJS API with a health endpoint at `GET /api/v1/health`.
 - [ ] Scaffold Next.js dashboard with a first screen that points to the working dashboard shell.
 - [ ] Add unit, integration, and end-to-end test commands.
@@ -290,6 +300,7 @@ docker compose up -d postgres redis
 - Dashboard smoke test passes.
 - Lint and typecheck pass.
 - Local database and Redis can start with Docker Compose.
+- Local database and Redis can start in Rancher Desktop Kubernetes; PostgreSQL uses ephemeral `emptyDir` storage for local testing so it does not depend on local-path PVC provisioning.
 - Kubernetes deployment work is deferred to Phase 12, but the directory convention is reserved.
 
 ## Phase 2: Shared Domain Contracts
