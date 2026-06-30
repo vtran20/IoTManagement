@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status update, 2026-06-30:** This original MVP roadmap is superseded for current implementation by `docs/superpowers/plans/2026-06-30-smart-utilities-saas-core-product-completion.md`. Phase 13 mobile work and Phase 14 real-device integration are deferred until the core SaaS product is production-shaped.
+
 **Goal:** Build a phased, testable smart water and electric utilities SaaS for apartment and building owners, starting with simulated meter data and a production-shaped REST API.
 
 **Architecture:** Use a TypeScript monorepo with a NestJS modular-monolith REST API, a Next.js operational dashboard, shared domain types, PostgreSQL persistence, Redis/BullMQ background jobs, and Kubernetes as the target runtime. Simulated meters must send data through the same normalized ingestion contract that future real devices will use.
