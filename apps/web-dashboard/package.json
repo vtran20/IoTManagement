@@ -15,14 +15,14 @@
   "dependencies": {
     "@iot-management/api-client": "workspace:*",
     "@iot-management/types": "workspace:*",
-    "next": "^15.1.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
+    "@playwright/test": "1.61.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "vitest": "^2.1.8"
   }
 }
