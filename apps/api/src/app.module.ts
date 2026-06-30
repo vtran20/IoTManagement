@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { Module } from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
+import { AlertsModule } from "./alerts/alerts.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuthModule } from "./auth/auth.module";
 import { ApiErrorFilter } from "./common/errors/api-error.filter";
@@ -27,6 +28,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     AnalyticsModule,
     DashboardModule,
     JobsModule,
+    AlertsModule,
   ],
   providers: [
     {

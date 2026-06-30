@@ -1,4 +1,8 @@
 import type {
+  AlertEvent,
+  AlertRule,
+  AlertSeverity,
+  AlertStatus,
   Building,
   Floor,
   Membership,
@@ -25,6 +29,8 @@ export interface StoredUser extends User {
 export class InMemoryPersistenceService {
   private counters = {
     building: 1,
+    alertEvent: 1,
+    alertRule: 1,
     floor: 1,
     meter: 1,
     reading: 1,
@@ -123,6 +129,8 @@ export class InMemoryPersistenceService {
   private readonly meters: Meter[] = [];
   private readonly readings: MeterReading[] = [];
   private readonly usageAggregates: UsageAggregate[] = [];
+  private readonly alertRules: AlertRule[] = [];
+  private readonly alertEvents: AlertEvent[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -486,6 +494,132 @@ export class InMemoryPersistenceService {
           ? left.meterId.localeCompare(right.meterId)
           : left.periodStart.localeCompare(right.periodStart),
       );
+  }
+
+  createAlertRule(
+    input: Omit<AlertRule, "enabled" | "id"> & {
+      enabled?: boolean;
+    },
+  ): AlertRule {
+    const rule: AlertRule = {
+      ...input,
+      enabled: input.enabled ?? true,
+      id: this.nextId("alertRule", input.name),
+    };
+    this.alertRules.push(rule);
+    return rule;
+  }
+
+  listAlertRules(input: { organizationId: string }): AlertRule[] {
+    return this.alertRules.filter(
+      (rule) => rule.organizationId === input.organizationId,
+    );
+  }
+
+  findAlertRuleById(
+    organizationId: string,
+    ruleId: string,
+  ): AlertRule | undefined {
+    return this.alertRules.find(
+      (rule) => rule.organizationId === organizationId && rule.id === ruleId,
+    );
+  }
+
+  updateAlertRule(
+    organizationId: string,
+    ruleId: string,
+    input: Partial<
+      Pick<
+        AlertRule,
+        | "enabled"
+        | "name"
+        | "scopeId"
+        | "threshold"
+        | "utilityType"
+        | "windowMinutes"
+      >
+    >,
+  ): AlertRule | undefined {
+    const rule = this.findAlertRuleById(organizationId, ruleId);
+    if (!rule) {
+      return undefined;
+    }
+    Object.assign(rule, input);
+    return rule;
+  }
+
+  createAlertEvent(input: {
+    message: string;
+    organizationId: string;
+    ruleId?: string;
+    severity: AlertSeverity;
+    title: string;
+    triggeredAt: string;
+  }): AlertEvent {
+    const event: AlertEvent = {
+      id: this.nextId("alertEvent", input.ruleId ?? input.title),
+      message: input.message,
+      organizationId: input.organizationId,
+      ruleId: input.ruleId,
+      severity: input.severity,
+      status: "open",
+      title: input.title,
+      triggeredAt: input.triggeredAt,
+    };
+    this.alertEvents.push(event);
+    return event;
+  }
+
+  listAlertEvents(input: {
+    organizationId: string;
+    severity?: AlertSeverity;
+    status?: AlertStatus;
+  }): AlertEvent[] {
+    return this.alertEvents
+      .filter(
+        (event) =>
+          event.organizationId === input.organizationId &&
+          (!input.status || event.status === input.status) &&
+          (!input.severity || event.severity === input.severity),
+      )
+      .sort((left, right) => right.triggeredAt.localeCompare(left.triggeredAt));
+  }
+
+  findAlertEventById(
+    organizationId: string,
+    alertId: string,
+  ): AlertEvent | undefined {
+    return this.alertEvents.find(
+      (event) =>
+        event.organizationId === organizationId && event.id === alertId,
+    );
+  }
+
+  findOpenAlertForRule(
+    organizationId: string,
+    ruleId: string,
+  ): AlertEvent | undefined {
+    return this.alertEvents.find(
+      (event) =>
+        event.organizationId === organizationId &&
+        event.ruleId === ruleId &&
+        event.status !== "resolved",
+    );
+  }
+
+  updateAlertEvent(
+    organizationId: string,
+    alertId: string,
+    input: Partial<
+      Pick<AlertEvent, "acknowledgedAt" | "resolvedAt" | "status">
+    >,
+  ): AlertEvent | undefined {
+    const event = this.findAlertEventById(organizationId, alertId);
+    if (!event) {
+      return undefined;
+    }
+    Object.assign(event, input);
+    return event;
   }
 
   private createUser(id: string, email: string, name: string): StoredUser {

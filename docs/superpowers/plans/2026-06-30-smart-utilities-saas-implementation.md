@@ -663,20 +663,20 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write failing alert rule create/list/update tests.
-- [ ] Implement alert rule CRUD.
-- [ ] Write failing high-usage evaluator test.
-- [ ] Implement high-usage evaluator.
-- [ ] Write failing leak-suspected evaluator test.
-- [ ] Implement leak-suspected evaluator.
-- [ ] Write failing stale-device evaluator test.
-- [ ] Implement stale-device evaluator.
-- [ ] Write failing outage-suspected evaluator test.
-- [ ] Implement outage-suspected evaluator.
-- [ ] Write failing alert acknowledgement test.
-- [ ] Implement acknowledgement.
-- [ ] Write failing alert resolution test.
-- [ ] Implement resolution.
+- [x] Write failing alert rule create/list/update tests.
+- [x] Implement alert rule CRUD.
+- [x] Write failing high-usage evaluator test.
+- [x] Implement high-usage evaluator.
+- [x] Write failing leak-suspected evaluator test.
+- [x] Implement leak-suspected evaluator.
+- [x] Write failing stale-device evaluator test.
+- [x] Implement stale-device evaluator.
+- [x] Write failing outage-suspected evaluator test.
+- [x] Implement outage-suspected evaluator.
+- [x] Write failing alert acknowledgement test.
+- [x] Implement acknowledgement.
+- [x] Write failing alert resolution test.
+- [x] Implement resolution.
 
 **Required tests:**
 

@@ -4,6 +4,7 @@ import type {
   ListUsageQuery,
 } from "@iot-management/types";
 import { Inject, Injectable } from "@nestjs/common";
+import { AlertEventsService } from "../alerts/alert-events.service";
 import { UsageQueryService } from "../analytics/usage-query.service";
 
 @Injectable()
@@ -11,6 +12,8 @@ export class DashboardService {
   constructor(
     @Inject(UsageQueryService)
     private readonly usageQuery: UsageQueryService,
+    @Inject(AlertEventsService)
+    private readonly alertEvents: AlertEventsService,
   ) {}
 
   summary(organizationId: string): DashboardSummaryResponse {
@@ -19,6 +22,12 @@ export class DashboardService {
       periodType: "hour",
     }).items;
     const deviceHealth = this.usageQuery.getDeviceHealth({ organizationId });
+    const openAlerts = this.alertEvents.list(
+      {
+        organization: { id: organizationId },
+      } as Parameters<AlertEventsService["list"]>[0],
+      { status: "open" },
+    ).items;
 
     const utilitySummaries = [
       ...new Set(trends.map((item) => item.utilityType)),
@@ -39,12 +48,14 @@ export class DashboardService {
       });
 
     return {
-      criticalAlertCount: 0,
+      criticalAlertCount: openAlerts.filter(
+        (alert) => alert.severity === "critical",
+      ).length,
       generatedAt: new Date().toISOString(),
       offlineMeterCount: deviceHealth.meters.filter(
         (meter) => meter.status === "offline",
       ).length,
-      openAlertCount: 0,
+      openAlertCount: openAlerts.length,
       organizationId,
       staleMeterCount: deviceHealth.meters.filter(
         (meter) => meter.status === "stale",
@@ -79,6 +90,17 @@ export class DashboardService {
 
   deviceHealth(organizationId: string) {
     return this.usageQuery.getDeviceHealth({ organizationId });
+  }
+
+  alerts(organizationId: string) {
+    return {
+      alerts: this.alertEvents.list(
+        {
+          organization: { id: organizationId },
+        } as Parameters<AlertEventsService["list"]>[0],
+        {},
+      ).items,
+    };
   }
 }
 

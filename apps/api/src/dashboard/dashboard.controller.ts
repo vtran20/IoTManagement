@@ -53,4 +53,9 @@ export class DashboardController {
   deviceHealth(@Req() request: RequestWithContext) {
     return this.dashboardService.deviceHealth(request.context!.organization.id);
   }
+
+  @Get("alerts")
+  alerts(@Req() request: RequestWithContext) {
+    return this.dashboardService.alerts(request.context!.organization.id);
+  }
 }

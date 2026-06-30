@@ -8,6 +8,7 @@ import type {
   CreateUnitRequest,
   DeviceHealthResponse,
   DashboardSummaryResponse,
+  DashboardAlertsResponse,
   BuildingBreakdownItem,
   UnitRankingItem,
   UsageTrendPoint,
@@ -48,8 +49,17 @@ export function createEndpoints(client: ApiClient) {
         client.post<AlertEventResponse>(`/alerts/${alertId}/acknowledge`),
       createRule: (body: CreateAlertRuleRequest) =>
         client.post<AlertRuleResponse>("/alerts/rules", { body }),
+      evaluate: (body?: { now?: string }) =>
+        client.post<{ createdCount: number; events: AlertEventResponse[] }>(
+          "/alerts/evaluate",
+          { body },
+        ),
       list: (query?: ListAlertsQuery) =>
         client.get<PageResponse<AlertEventResponse>>("/alerts", { query }),
+      listRules: () =>
+        client.get<PageResponse<AlertRuleResponse>>("/alerts/rules"),
+      resolve: (alertId: string) =>
+        client.post<AlertEventResponse>(`/alerts/${alertId}/resolve`),
       updateRule: (ruleId: string, body: UpdateAlertRuleRequest) =>
         client.patch<AlertRuleResponse>(`/alerts/rules/${ruleId}`, { body }),
     },
@@ -75,6 +85,7 @@ export function createEndpoints(client: ApiClient) {
         ),
       deviceHealth: () =>
         client.get<DeviceHealthResponse>("/dashboard/device-health"),
+      alerts: () => client.get<DashboardAlertsResponse>("/dashboard/alerts"),
       summary: () => client.get<DashboardSummaryResponse>("/dashboard/summary"),
       trends: (query?: ListUsageQuery) =>
         client.get<PageResponse<UsageTrendPoint>>("/dashboard/trends", {
