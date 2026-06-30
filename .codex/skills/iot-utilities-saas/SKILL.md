@@ -38,6 +38,7 @@ Do not implement production code before design and planning checkpoints are sati
 - Future mobile: Expo React Native.
 - Database: PostgreSQL first; TimescaleDB later if reading volume requires it.
 - Jobs: Redis and BullMQ.
+- Deployment: Kubernetes with Kustomize base/overlay manifests for API, dashboard, workers, migration Jobs, Services, Ingress, Secrets, ConfigMaps, health probes, and autoscaling-ready manifests.
 - Device path: simulated meters first; real devices later through the same normalized ingestion contract.
 
 ## Domain Guardrails

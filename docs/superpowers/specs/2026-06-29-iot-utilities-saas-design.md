@@ -109,18 +109,48 @@ Initial jobs:
 - Mark devices stale when they stop sending readings.
 - Generate scheduled reports later.
 
+### Kubernetes Deployment
+
+Use Kubernetes as the target deployment platform. Local development can still use Docker Compose for PostgreSQL and Redis, but non-production and production environments should run containerized workloads on Kubernetes.
+
+Kubernetes workloads:
+
+- API deployment: NestJS REST API pods.
+- Web deployment: Next.js dashboard pods.
+- Worker deployment: BullMQ workers for simulation, aggregation, alert evaluation, stale-device checks, and reports.
+- Migration job: one-shot database migration Job that runs before API rollout.
+- Optional scheduled jobs: CronJobs for report generation, device stale checks, and periodic maintenance.
+
+Kubernetes platform components:
+
+- Services for internal API, web, PostgreSQL, and Redis connectivity.
+- Ingress for external HTTPS access to the dashboard and API.
+- ConfigMaps for non-secret runtime configuration.
+- Secrets for database credentials, Redis credentials, JWT/session secrets, and future device-ingestion credentials.
+- Readiness and liveness probes for API and web pods.
+- Resource requests and limits for all workloads.
+- Horizontal Pod Autoscalers for API, web, and workers once traffic patterns are known.
+- NetworkPolicies to restrict database and Redis access to approved workloads.
+
+Recommended environment progression:
+
+1. Local development: Docker Compose for PostgreSQL and Redis, local API and web dev servers.
+2. Local Kubernetes validation: kind or minikube with the same manifests used by non-production.
+3. Non-production: managed Kubernetes namespace with external managed PostgreSQL and Redis preferred.
+4. Production: managed Kubernetes with managed PostgreSQL, managed Redis, TLS ingress, backup/restore, monitoring, and alerting.
+
 ## Architecture
 
 The MVP uses a modular monolith backend with clean domain boundaries. This is simpler than microservices and easier to build, while still leaving clear extraction paths later.
 
 ```text
-Simulated meters
-  -> REST ingestion API
-    -> validation and tenant/device lookup
-      -> raw meter readings in PostgreSQL
-        -> aggregation jobs
-          -> dashboard API
-            -> Next.js dashboard
+Kubernetes ingress
+  -> Next.js dashboard service
+  -> NestJS REST API service
+      -> validation and tenant/device lookup
+      -> PostgreSQL raw readings and app data
+      -> Redis/BullMQ queues
+          -> worker pods for simulation, aggregation, alerts, and reports
 ```
 
 Backend modules:
@@ -518,6 +548,10 @@ Reliability practices:
 - Add health checks for API, database, and Redis.
 - Track stale devices using last reading time.
 - Add database migrations from the beginning.
+- Use Kubernetes readiness probes so traffic is only sent to ready API and web pods.
+- Use Kubernetes liveness probes to restart unhealthy API, web, and worker pods.
+- Run migrations through Kubernetes Jobs, not ad hoc shell commands against production.
+- Store secrets in Kubernetes Secrets or an external secret manager, never in ConfigMaps.
 
 ## Testing Strategy
 
@@ -567,7 +601,20 @@ Simulation:
 - Monthly usage reports.
 - Cost estimate model.
 
-### Phase 4: Mobile App
+### Phase 4: Kubernetes Productionization
+
+- Container images for API, web dashboard, and workers.
+- Kustomize base and environment overlays for Kubernetes manifests.
+- Helm chart can be considered later if packaging requirements grow.
+- Migration Job.
+- Services and Ingress.
+- ConfigMaps and Secrets.
+- Health probes, resource requests, and resource limits.
+- Local kind/minikube validation.
+- Non-production namespace deployment.
+- Production deployment runbook.
+
+### Phase 5: Mobile App
 
 - Expo app.
 - Shared API client.
@@ -575,7 +622,7 @@ Simulation:
 - Alert notifications and acknowledgement.
 - Basic usage and device health screens.
 
-### Phase 5: Real Device Integration
+### Phase 6: Real Device Integration
 
 - Device registry and credentials.
 - Gateway ingestion.
@@ -592,6 +639,7 @@ Simulation:
 - Use Next.js and shadcn/ui for a professional SaaS dashboard.
 - Use Expo later for the management and alert mobile app.
 - Keep all device-specific protocols behind a normalized meter reading contract.
+- Use Kubernetes as the target runtime for non-production and production deployments.
 
 ## Default Implementation Assumptions
 
@@ -602,3 +650,4 @@ Use these defaults unless the product direction changes:
 - MVP authentication: include real authentication and organization membership from the beginning.
 - Meter assignment: support both unit-level meters and building-level shared meters.
 - Device source: simulated meters first, with the ingestion API shaped for future real devices.
+- Deployment platform: Kubernetes, with Docker Compose retained for local developer dependencies.

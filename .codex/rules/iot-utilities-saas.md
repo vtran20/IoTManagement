@@ -21,6 +21,7 @@ Use this rule file for quick project alignment before planning or implementation
 - Simulated meters use the same ingestion path as future real devices.
 - PostgreSQL is the first database; TimescaleDB is a later scaling option.
 - Redis and BullMQ handle async simulation, aggregation, alerting, and reporting jobs.
+- Kubernetes is the target deployment platform for API, dashboard, workers, migration Jobs, ingress, Secrets, ConfigMaps, and runtime health checks; use Kustomize base/overlay manifests by default.
 
 ## Product Commitments
 

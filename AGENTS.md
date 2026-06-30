@@ -35,6 +35,7 @@ Use these defaults unless the user approves a design update:
 - Future mobile app: Expo React Native.
 - Database: PostgreSQL first, with TimescaleDB considered later for high-volume readings.
 - Background jobs: Redis and BullMQ.
+- Deployment target: Kubernetes with Kustomize base/overlay manifests, containerized API, dashboard, worker, migration Job, ConfigMaps, Secrets, Services, Ingress, health probes, and autoscaling-ready manifests.
 - Device strategy: simulated meter data first, real devices later through the same normalized ingestion contract.
 
 ## Domain Rules

@@ -4,9 +4,9 @@
 
 **Goal:** Build a phased, testable smart water and electric utilities SaaS for apartment and building owners, starting with simulated meter data and a production-shaped REST API.
 
-**Architecture:** Use a TypeScript monorepo with a NestJS modular-monolith REST API, a Next.js operational dashboard, shared domain types, PostgreSQL persistence, and Redis/BullMQ background jobs. Simulated meters must send data through the same normalized ingestion contract that future real devices will use.
+**Architecture:** Use a TypeScript monorepo with a NestJS modular-monolith REST API, a Next.js operational dashboard, shared domain types, PostgreSQL persistence, Redis/BullMQ background jobs, and Kubernetes as the target runtime. Simulated meters must send data through the same normalized ingestion contract that future real devices will use.
 
-**Tech Stack:** TypeScript, pnpm workspaces, NestJS, Next.js, Tailwind CSS, shadcn/ui, TanStack Query, TanStack Table, Recharts, PostgreSQL, Prisma or TypeORM, Redis, BullMQ, Jest or Vitest, Playwright.
+**Tech Stack:** TypeScript, pnpm workspaces, NestJS, Next.js, Tailwind CSS, shadcn/ui, TanStack Query, TanStack Table, Recharts, PostgreSQL, Prisma or TypeORM, Redis, BullMQ, Kubernetes, Kustomize, Docker, Jest or Vitest, Playwright.
 
 ---
 
@@ -66,6 +66,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:e2e
+kubectl apply --dry-run=client -k deploy/kubernetes/overlays/local
 ```
 
 ## Repository Structure
@@ -240,6 +241,7 @@ Standard API error shape:
 - `.gitignore`
 - `.env.example`
 - `docker-compose.yml`
+- `deploy/kubernetes/README.md`
 - `packages/config/package.json`
 - `packages/config/tsconfig/base.json`
 - `packages/types/package.json`
@@ -258,7 +260,8 @@ Standard API error shape:
 **Implementation tasks:**
 
 - [ ] Create workspace files and package scripts.
-- [ ] Add Docker Compose services named `postgres` and `redis`.
+- [ ] Add Docker Compose services named `postgres` and `redis` for local developer dependencies.
+- [ ] Add `deploy/kubernetes/README.md` describing the future kind/minikube validation path.
 - [ ] Scaffold NestJS API with a health endpoint at `GET /api/v1/health`.
 - [ ] Scaffold Next.js dashboard with a first screen that points to the working dashboard shell.
 - [ ] Add unit, integration, and end-to-end test commands.
@@ -287,6 +290,7 @@ docker compose up -d postgres redis
 - Dashboard smoke test passes.
 - Lint and typecheck pass.
 - Local database and Redis can start with Docker Compose.
+- Kubernetes deployment work is deferred to Phase 12, but the directory convention is reserved.
 
 ## Phase 2: Shared Domain Contracts
 
@@ -850,9 +854,9 @@ docker compose up -d postgres redis
 - Security regression suite passes.
 - Operational health endpoint can support deployment monitoring.
 
-## Phase 12: Deployment Readiness
+## Phase 12: Kubernetes Deployment Readiness
 
-**Goal:** Prepare the SaaS for a repeatable non-production deployment.
+**Goal:** Prepare the SaaS for repeatable Kubernetes deployment in local validation, non-production, and production-like environments.
 
 **Deliverables:**
 
@@ -860,13 +864,43 @@ docker compose up -d postgres redis
 - Production build scripts.
 - Database migration command.
 - Seed command for demo environments.
-- Deployment notes.
+- Container images for API, web dashboard, and worker workloads.
+- Kubernetes manifests using Kustomize base and environment overlays.
+- Kubernetes migration Job.
+- Kubernetes Deployments for API, web, and workers.
+- Kubernetes Services for API and web.
+- Kubernetes Ingress for external HTTPS routing.
+- ConfigMaps for non-secret settings.
+- Secrets for database, Redis, JWT/session, and future device-ingestion credentials.
+- Readiness and liveness probes.
+- Resource requests and limits.
+- Optional Horizontal Pod Autoscaler manifests.
+- NetworkPolicy manifests limiting database and Redis access.
+- Local kind or minikube validation documentation.
+- Non-production deployment notes.
 
 **Files to create or modify:**
 
 - `.env.example`
+- `apps/api/Dockerfile`
+- `apps/web-dashboard/Dockerfile`
+- `deploy/kubernetes/base/api-deployment.yaml`
+- `deploy/kubernetes/base/api-service.yaml`
+- `deploy/kubernetes/base/web-deployment.yaml`
+- `deploy/kubernetes/base/web-service.yaml`
+- `deploy/kubernetes/base/worker-deployment.yaml`
+- `deploy/kubernetes/base/migration-job.yaml`
+- `deploy/kubernetes/base/configmap.yaml`
+- `deploy/kubernetes/base/secret.example.yaml`
+- `deploy/kubernetes/base/ingress.yaml`
+- `deploy/kubernetes/base/networkpolicy.yaml`
+- `deploy/kubernetes/base/kustomization.yaml`
+- `deploy/kubernetes/overlays/local/kustomization.yaml`
+- `deploy/kubernetes/overlays/non-production/kustomization.yaml`
+- `deploy/kubernetes/overlays/production/kustomization.yaml`
 - `docs/deployment/local.md`
 - `docs/deployment/non-production.md`
+- `docs/deployment/kubernetes.md`
 - `apps/api/src/config/env.schema.ts`
 - `apps/api/test/env-config.spec.ts`
 - `package.json`
@@ -877,19 +911,40 @@ docker compose up -d postgres redis
 - [ ] Implement environment validation.
 - [ ] Add production build scripts.
 - [ ] Add migration command documentation.
-- [ ] Add local deployment instructions.
-- [ ] Add non-production deployment instructions.
+- [ ] Add API Dockerfile.
+- [ ] Add web dashboard Dockerfile.
+- [ ] Add worker container startup command.
+- [ ] Add Kubernetes ConfigMap and example Secret manifests.
+- [ ] Add Kubernetes API Deployment and Service manifests.
+- [ ] Add Kubernetes web Deployment and Service manifests.
+- [ ] Add Kubernetes worker Deployment manifest.
+- [ ] Add Kubernetes migration Job manifest.
+- [ ] Add Kubernetes Ingress manifest.
+- [ ] Add readiness and liveness probes for API and web.
+- [ ] Add worker liveness strategy based on process health and queue connectivity.
+- [ ] Add resource requests and limits.
+- [ ] Add NetworkPolicy manifest restricting PostgreSQL and Redis access.
+- [ ] Add local kind or minikube deployment instructions.
+- [ ] Add non-production Kubernetes deployment instructions.
+- [ ] Add production Kubernetes runbook notes.
 
 **Required tests:**
 
 - Missing required environment variables fail fast.
 - Invalid environment values fail fast.
 - Production build command succeeds.
+- API container image builds.
+- Web container image builds.
+- Kubernetes manifests pass client-side dry-run validation.
+- Kubernetes manifests pass server-side validation in kind or minikube before non-production use.
+- Migration Job is idempotent and safe to rerun.
 
 **Exit criteria:**
 
 - A new developer can run the project locally from docs.
-- A non-production environment can be deployed repeatably.
+- A local Kubernetes cluster can validate manifests with kind or minikube.
+- A non-production Kubernetes environment can be deployed repeatably.
+- Deployment docs explain ConfigMaps, Secrets, migrations, ingress, health probes, and rollback.
 
 ## Phase 13: Mobile App Foundation
 
@@ -1038,7 +1093,7 @@ A phase is done only when:
 9. Phase 9: Web dashboard MVP.
 10. Phase 10: Reports and operational polish.
 11. Phase 11: Security, reliability, and observability hardening.
-12. Phase 12: Deployment readiness.
+12. Phase 12: Kubernetes deployment readiness.
 13. Phase 13: Mobile app foundation.
 14. Phase 14: Real device integration readiness.
 
