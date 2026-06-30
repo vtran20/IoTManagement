@@ -601,26 +601,26 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write failing test for interval usage from cumulative readings.
-- [ ] Implement cumulative-to-usage calculation.
-- [ ] Write failing test for hourly aggregation.
-- [ ] Implement hourly aggregation.
-- [ ] Write failing test for daily aggregation.
-- [ ] Implement daily aggregation.
-- [ ] Write failing test for monthly aggregation.
-- [ ] Implement monthly aggregation.
-- [ ] Write failing test for cost estimates.
-- [ ] Implement configurable cost estimate logic.
-- [ ] Write failing dashboard summary endpoint test.
-- [ ] Implement dashboard summary endpoint.
-- [ ] Write failing trends endpoint test.
-- [ ] Implement trends endpoint.
-- [ ] Write failing building breakdown endpoint test.
-- [ ] Implement building breakdown endpoint.
-- [ ] Write failing unit rankings endpoint test.
-- [ ] Implement unit rankings endpoint.
-- [ ] Write failing device health endpoint test.
-- [ ] Implement device health endpoint.
+- [x] Write failing test for interval usage from cumulative readings.
+- [x] Implement cumulative-to-usage calculation.
+- [x] Write failing test for hourly aggregation.
+- [x] Implement hourly aggregation.
+- [x] Write failing test for daily aggregation.
+- [x] Implement daily aggregation.
+- [x] Write failing test for monthly aggregation.
+- [x] Implement monthly aggregation.
+- [x] Write failing test for cost estimates.
+- [x] Implement configurable cost estimate logic.
+- [x] Write failing dashboard summary endpoint test.
+- [x] Implement dashboard summary endpoint.
+- [x] Write failing trends endpoint test.
+- [x] Implement trends endpoint.
+- [x] Write failing building breakdown endpoint test.
+- [x] Implement building breakdown endpoint.
+- [x] Write failing unit rankings endpoint test.
+- [x] Implement unit rankings endpoint.
+- [x] Write failing device health endpoint test.
+- [x] Implement device health endpoint.
 
 **Required tests:**
 

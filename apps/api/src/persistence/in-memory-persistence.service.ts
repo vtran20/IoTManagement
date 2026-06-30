@@ -11,6 +11,7 @@ import type {
   Unit,
   User,
   UserRole,
+  UsageAggregate,
   UtilityType,
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
@@ -27,6 +28,7 @@ export class InMemoryPersistenceService {
     floor: 1,
     meter: 1,
     reading: 1,
+    usageAggregate: 1,
     unit: 1,
   };
 
@@ -120,6 +122,7 @@ export class InMemoryPersistenceService {
 
   private readonly meters: Meter[] = [];
   private readonly readings: MeterReading[] = [];
+  private readonly usageAggregates: UsageAggregate[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -421,6 +424,68 @@ export class InMemoryPersistenceService {
           (!input.to || reading.measuredAt <= input.to),
       )
       .sort((left, right) => left.measuredAt.localeCompare(right.measuredAt));
+  }
+
+  createUsageAggregate(
+    input: Omit<UsageAggregate, "costEstimate" | "id"> & {
+      costEstimate?: number;
+    },
+  ): UsageAggregate {
+    const aggregate: UsageAggregate = {
+      ...input,
+      id: this.nextId("usageAggregate", input.meterId),
+    };
+    this.usageAggregates.push(aggregate);
+    return aggregate;
+  }
+
+  replaceUsageAggregates(input: {
+    aggregates: Array<Omit<UsageAggregate, "id">>;
+    organizationId: string;
+    periodType: UsageAggregate["periodType"];
+  }): UsageAggregate[] {
+    for (let index = this.usageAggregates.length - 1; index >= 0; index -= 1) {
+      const aggregate = this.usageAggregates[index]!;
+      if (
+        aggregate.organizationId === input.organizationId &&
+        aggregate.periodType === input.periodType
+      ) {
+        this.usageAggregates.splice(index, 1);
+      }
+    }
+
+    return input.aggregates.map((aggregate) =>
+      this.createUsageAggregate(aggregate),
+    );
+  }
+
+  listUsageAggregates(input: {
+    buildingId?: string;
+    from?: string;
+    meterId?: string;
+    organizationId: string;
+    periodType?: UsageAggregate["periodType"];
+    to?: string;
+    unitId?: string;
+    utilityType?: UtilityType;
+  }): UsageAggregate[] {
+    return this.usageAggregates
+      .filter(
+        (aggregate) =>
+          aggregate.organizationId === input.organizationId &&
+          (!input.buildingId || aggregate.buildingId === input.buildingId) &&
+          (!input.unitId || aggregate.unitId === input.unitId) &&
+          (!input.meterId || aggregate.meterId === input.meterId) &&
+          (!input.periodType || aggregate.periodType === input.periodType) &&
+          (!input.utilityType || aggregate.utilityType === input.utilityType) &&
+          (!input.from || aggregate.periodStart >= input.from) &&
+          (!input.to || aggregate.periodEnd <= input.to),
+      )
+      .sort((left, right) =>
+        left.periodStart === right.periodStart
+          ? left.meterId.localeCompare(right.meterId)
+          : left.periodStart.localeCompare(right.periodStart),
+      );
   }
 
   private createUser(id: string, email: string, name: string): StoredUser {

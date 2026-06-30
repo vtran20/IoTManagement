@@ -6,7 +6,11 @@ import type {
   CreateMeterRequest,
   CreateReportRequest,
   CreateUnitRequest,
+  DeviceHealthResponse,
   DashboardSummaryResponse,
+  BuildingBreakdownItem,
+  UnitRankingItem,
+  UsageTrendPoint,
   HealthResponse,
   IngestReadingRequest,
   IngestReadingResponse,
@@ -16,6 +20,7 @@ import type {
   ListReadingsQuery,
   ListReportsQuery,
   ListUnitsQuery,
+  ListUsageQuery,
   LoginRequest,
   LoginResponse,
   MeterResponse,
@@ -63,7 +68,22 @@ export function createEndpoints(client: ApiClient) {
         client.patch<BuildingResponse>(`/buildings/${buildingId}`, { body }),
     },
     dashboard: {
+      buildings: (query?: ListUsageQuery) =>
+        client.get<PageResponse<BuildingBreakdownItem>>(
+          "/dashboard/buildings",
+          { query },
+        ),
+      deviceHealth: () =>
+        client.get<DeviceHealthResponse>("/dashboard/device-health"),
       summary: () => client.get<DashboardSummaryResponse>("/dashboard/summary"),
+      trends: (query?: ListUsageQuery) =>
+        client.get<PageResponse<UsageTrendPoint>>("/dashboard/trends", {
+          query,
+        }),
+      units: (query?: ListUsageQuery) =>
+        client.get<PageResponse<UnitRankingItem>>("/dashboard/units", {
+          query,
+        }),
     },
     floors: {
       create: (body: CreateFloorRequest) =>
