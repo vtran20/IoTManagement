@@ -1,8 +1,11 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { LoginResponse } from "@iot-management/types";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { signToken, verifyToken } from "./token";
 import { verifyPassword } from "./password";
 import { LoginDto } from "./dto/login.dto";
@@ -10,11 +13,11 @@ import { LoginDto } from "./dto/login.dto";
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  login(dto: LoginDto): LoginResponse {
+  async login(dto: LoginDto): Promise<LoginResponse> {
     if (!dto.email || !dto.password) {
       throw new ApiError(
         "VALIDATION_FAILED",
@@ -23,7 +26,7 @@ export class AuthService {
       );
     }
 
-    const user = this.persistence.findUserByEmail(dto.email);
+    const user = await this.persistence.findUserByEmail(dto.email);
     if (!user || !verifyPassword(dto.password, user.passwordHash)) {
       throw new ApiError(
         "INVALID_CREDENTIALS",
@@ -32,7 +35,9 @@ export class AuthService {
       );
     }
 
-    const membership = this.persistence.findPrimaryMembershipForUser(user.id);
+    const membership = await this.persistence.findPrimaryMembershipForUser(
+      user.id,
+    );
     if (!membership) {
       throw new ApiError(
         "NO_MEMBERSHIP",
@@ -55,7 +60,7 @@ export class AuthService {
     };
   }
 
-  authenticateToken(token: string): RequestContext {
+  async authenticateToken(token: string): Promise<RequestContext> {
     const payload = verifyToken(token);
     if (!payload) {
       throw new ApiError(
@@ -65,12 +70,12 @@ export class AuthService {
       );
     }
 
-    const user = this.persistence.findUserById(payload.userId);
-    const membership = this.persistence.findPrimaryMembershipForUser(
+    const user = await this.persistence.findUserById(payload.userId);
+    const membership = await this.persistence.findPrimaryMembershipForUser(
       payload.userId,
     );
     const organization = membership
-      ? this.persistence.findOrganizationById(membership.organizationId)
+      ? await this.persistence.findOrganizationById(membership.organizationId)
       : undefined;
 
     if (

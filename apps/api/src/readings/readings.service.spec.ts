@@ -8,8 +8,8 @@ describe("ReadingValidationService", () => {
     new InMemoryPersistenceService(),
   );
 
-  it("rejects units that do not match the meter utility type", () => {
-    expect(() =>
+  it("rejects units that do not match the meter utility type", async () => {
+    await expect(
       service.validate({
         meter: {
           id: "meter_1",
@@ -27,6 +27,6 @@ describe("ReadingValidationService", () => {
         utilityType: "water",
         value: 1,
       }),
-    ).toThrow(ApiError);
+    ).rejects.toThrow(ApiError);
   });
 });

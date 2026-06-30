@@ -5,7 +5,10 @@ import type {
 } from "@iot-management/types";
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 
 const compatibleUnits: Record<Meter["utilityType"], ReadingUnit[]> = {
   electric: ["kwh"],
@@ -15,11 +18,11 @@ const compatibleUnits: Record<Meter["utilityType"], ReadingUnit[]> = {
 @Injectable()
 export class ReadingValidationService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  validate(input: IngestReadingRequest & { meter: Meter }) {
+  async validate(input: IngestReadingRequest & { meter: Meter }) {
     if (input.value < 0) {
       throw new ApiError(
         "INVALID_READING_VALUE",
@@ -62,7 +65,7 @@ export class ReadingValidationService {
       );
     }
 
-    const building = this.persistence.findBuildingById(
+    const building = await this.persistence.findBuildingById(
       input.meter.organizationId,
       input.meter.buildingId,
     );

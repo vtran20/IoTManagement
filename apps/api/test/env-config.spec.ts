@@ -29,6 +29,7 @@ describe("validateApiEnv", () => {
   it("returns normalized values and development defaults", () => {
     expect(validateApiEnv({ NODE_ENV: "development" })).toEqual({
       apiPort: 3001,
+      databaseSchema: "public",
       databaseUrl:
         "postgresql://iot_local:iot_local_password@localhost:5432/iot_management",
       jwtSessionSecret: "local-development-session-secret",

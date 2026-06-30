@@ -20,13 +20,14 @@ import type {
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
+import type { PersistenceService } from "./persistence.service";
 
 export interface StoredUser extends User {
   passwordHash: string;
 }
 
 @Injectable()
-export class InMemoryPersistenceService {
+export class InMemoryPersistenceService implements PersistenceService {
   private counters = {
     building: 1,
     alertEvent: 1,

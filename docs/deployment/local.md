@@ -64,10 +64,27 @@ Open:
 http://127.0.0.1:3000/login
 ```
 
+## Local Database Commands
+
+When using Rancher Desktop Kubernetes, port-forward PostgreSQL before running local API migration, seed, or e2e commands from the host:
+
+```bash
+kubectl -n iot-management port-forward svc/postgres 5432:5432
+```
+
+In another terminal:
+
+```bash
+DATABASE_URL=postgresql://iot_local:iot_local_password@127.0.0.1:5432/iot_management pnpm --filter @iot-management/api db:migrate
+DATABASE_URL=postgresql://iot_local:iot_local_password@127.0.0.1:5432/iot_management pnpm --filter @iot-management/api seed:demo
+```
+
+`db:migrate` creates `schema_migrations` automatically, applies pending SQL files in lexical order, stores SHA-256 checksums, skips already-applied matching migrations, and fails if an applied migration file changes.
+
 ## Manual Phase 12 Verification
 
 1. `pnpm build` succeeds.
-2. `pnpm db:migrate` prints `migration-assets-validated`.
+2. `pnpm db:migrate` prints `migrations-complete`.
 3. `pnpm seed:demo` prints `demo-seed-complete`.
 4. `kubectl apply --dry-run=client -k deploy/kubernetes/overlays/local` succeeds.
 5. API and web images build with `pnpm docker:build:api` and `pnpm docker:build:web`.

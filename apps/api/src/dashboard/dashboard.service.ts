@@ -16,17 +16,23 @@ export class DashboardService {
     private readonly alertEvents: AlertEventsService,
   ) {}
 
-  summary(organizationId: string): DashboardSummaryResponse {
-    const trends = this.usageQuery.getTrends({
+  async summary(organizationId: string): Promise<DashboardSummaryResponse> {
+    const trends = (
+      await this.usageQuery.getTrends({
+        organizationId,
+        periodType: "hour",
+      })
+    ).items;
+    const deviceHealth = await this.usageQuery.getDeviceHealth({
       organizationId,
-      periodType: "hour",
-    }).items;
-    const deviceHealth = this.usageQuery.getDeviceHealth({ organizationId });
-    const openAlerts = this.alertEvents.list(
-      {
-        organization: { id: organizationId },
-      } as Parameters<AlertEventsService["list"]>[0],
-      { status: "open" },
+    });
+    const openAlerts = (
+      await this.alertEvents.list(
+        {
+          organization: { id: organizationId },
+        } as Parameters<AlertEventsService["list"]>[0],
+        { status: "open" },
+      )
     ).items;
 
     const utilitySummaries = [
@@ -92,13 +98,15 @@ export class DashboardService {
     return this.usageQuery.getDeviceHealth({ organizationId });
   }
 
-  alerts(organizationId: string) {
+  async alerts(organizationId: string) {
     return {
-      alerts: this.alertEvents.list(
-        {
-          organization: { id: organizationId },
-        } as Parameters<AlertEventsService["list"]>[0],
-        {},
+      alerts: (
+        await this.alertEvents.list(
+          {
+            organization: { id: organizationId },
+          } as Parameters<AlertEventsService["list"]>[0],
+          {},
+        )
       ).items,
     };
   }

@@ -13,7 +13,7 @@ import { RequestWithContext } from "../request-context";
 export class AuthGuard implements CanActivate {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithContext>();
     const authorization = request.headers.authorization;
     const token = authorization?.startsWith("Bearer ")
@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
       );
     }
 
-    request.context = this.authService.authenticateToken(token);
+    request.context = await this.authService.authenticateToken(token);
     return true;
   }
 }

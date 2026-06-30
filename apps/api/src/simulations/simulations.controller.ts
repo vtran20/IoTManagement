@@ -27,23 +27,23 @@ export class SimulationsController {
 
   @Post("demo-seed")
   @Roles("owner", "manager")
-  demoSeed(
+  async demoSeed(
     @Req() request: RequestWithContext,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = this.demoSeedService.seed(request.context!);
+    const result = await this.demoSeedService.seed(request.context!);
     response.status(result.acceptedReadingCount > 0 ? 201 : 200);
     return result;
   }
 
   @Post("run")
   @Roles("owner", "manager")
-  run(
+  async run(
     @Req() request: RequestWithContext,
     @Body() dto: RunSimulationDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = this.simulationsService.run(request.context!, dto);
+    const result = await this.simulationsService.run(request.context!, dto);
     response.status(result.acceptedCount > 0 ? 201 : 200);
     return result;
   }

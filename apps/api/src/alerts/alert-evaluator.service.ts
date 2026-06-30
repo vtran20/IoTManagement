@@ -6,7 +6,10 @@ import type {
   UsageAggregate,
 } from "@iot-management/types";
 import { Inject, Injectable } from "@nestjs/common";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 
 export interface EvaluateAlertsInput {
   now?: string;
@@ -21,25 +24,30 @@ export interface EvaluateAlertsResponse {
 @Injectable()
 export class AlertEvaluatorService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  evaluate(input: EvaluateAlertsInput): EvaluateAlertsResponse {
+  async evaluate(input: EvaluateAlertsInput): Promise<EvaluateAlertsResponse> {
     const now = input.now ?? new Date().toISOString();
     const events: AlertEvent[] = [];
-    const rules = this.persistence
-      .listAlertRules({ organizationId: input.organizationId })
-      .filter((rule) => rule.enabled);
+    const rules = (
+      await this.persistence.listAlertRules({
+        organizationId: input.organizationId,
+      })
+    ).filter((rule) => rule.enabled);
 
     for (const rule of rules) {
       if (
-        this.persistence.findOpenAlertForRule(input.organizationId, rule.id)
+        await this.persistence.findOpenAlertForRule(
+          input.organizationId,
+          rule.id,
+        )
       ) {
         continue;
       }
 
-      const event = this.evaluateRule(input.organizationId, rule, now);
+      const event = await this.evaluateRule(input.organizationId, rule, now);
       if (event) {
         events.push(event);
       }
@@ -48,26 +56,26 @@ export class AlertEvaluatorService {
     return { createdCount: events.length, events };
   }
 
-  private evaluateRule(
+  private async evaluateRule(
     organizationId: string,
     rule: AlertRule,
     now: string,
-  ): AlertEvent | undefined {
+  ): Promise<AlertEvent | undefined> {
     if (rule.conditionType === "high_usage") {
-      return this.evaluateHighUsage(organizationId, rule, now);
+      return await this.evaluateHighUsage(organizationId, rule, now);
     }
     if (rule.conditionType === "leak_suspected") {
-      return this.evaluateLeak(organizationId, rule, now);
+      return await this.evaluateLeak(organizationId, rule, now);
     }
     if (rule.conditionType === "stale_device") {
-      return this.evaluateDeviceCondition(
+      return await this.evaluateDeviceCondition(
         organizationId,
         rule,
         now,
         "stale_device",
       );
     }
-    return this.evaluateDeviceCondition(
+    return await this.evaluateDeviceCondition(
       organizationId,
       rule,
       now,
@@ -75,12 +83,12 @@ export class AlertEvaluatorService {
     );
   }
 
-  private evaluateHighUsage(
+  private async evaluateHighUsage(
     organizationId: string,
     rule: AlertRule,
     now: string,
   ) {
-    const aggregates = this.windowAggregates(organizationId, rule, now);
+    const aggregates = await this.windowAggregates(organizationId, rule, now);
     const total = aggregates.reduce(
       (sum, aggregate) => sum + aggregate.usageValue,
       0,
@@ -88,7 +96,7 @@ export class AlertEvaluatorService {
     if (total <= (rule.threshold ?? Number.POSITIVE_INFINITY)) {
       return undefined;
     }
-    return this.persistence.createAlertEvent({
+    return await this.persistence.createAlertEvent({
       message: `${rule.name} exceeded ${rule.threshold} with ${round(total)} usage`,
       organizationId,
       ruleId: rule.id,
@@ -98,18 +106,22 @@ export class AlertEvaluatorService {
     });
   }
 
-  private evaluateLeak(organizationId: string, rule: AlertRule, now: string) {
+  private async evaluateLeak(
+    organizationId: string,
+    rule: AlertRule,
+    now: string,
+  ) {
     const threshold = rule.threshold ?? 0;
-    const aggregates = this.windowAggregates(organizationId, rule, now).filter(
-      (aggregate) => aggregate.utilityType === "water",
-    );
+    const aggregates = (
+      await this.windowAggregates(organizationId, rule, now)
+    ).filter((aggregate) => aggregate.utilityType === "water");
     if (
       aggregates.length < 2 ||
       !aggregates.every((aggregate) => aggregate.usageValue > threshold)
     ) {
       return undefined;
     }
-    return this.persistence.createAlertEvent({
+    return await this.persistence.createAlertEvent({
       message: `${rule.name} detected continuous water usage`,
       organizationId,
       ruleId: rule.id,
@@ -119,7 +131,7 @@ export class AlertEvaluatorService {
     });
   }
 
-  private evaluateDeviceCondition(
+  private async evaluateDeviceCondition(
     organizationId: string,
     rule: AlertRule,
     now: string,
@@ -128,7 +140,7 @@ export class AlertEvaluatorService {
       "outage_suspected" | "stale_device"
     >,
   ) {
-    const meters = this.scopedMeters(organizationId, rule);
+    const meters = await this.scopedMeters(organizationId, rule);
     const matched = meters.find((meter) =>
       conditionType === "outage_suspected"
         ? meter.status === "offline"
@@ -137,7 +149,7 @@ export class AlertEvaluatorService {
     if (!matched) {
       return undefined;
     }
-    return this.persistence.createAlertEvent({
+    return await this.persistence.createAlertEvent({
       message:
         conditionType === "outage_suspected"
           ? `${matched.externalId} is offline`
@@ -153,14 +165,14 @@ export class AlertEvaluatorService {
     });
   }
 
-  private windowAggregates(
+  private async windowAggregates(
     organizationId: string,
     rule: AlertRule,
     now: string,
-  ): UsageAggregate[] {
+  ): Promise<UsageAggregate[]> {
     const from = new Date(now);
     from.setUTCMinutes(from.getUTCMinutes() - rule.windowMinutes);
-    return this.persistence.listUsageAggregates({
+    return await this.persistence.listUsageAggregates({
       buildingId: rule.scopeType === "building" ? rule.scopeId : undefined,
       from: from.toISOString(),
       meterId: rule.scopeType === "meter" ? rule.scopeId : undefined,
@@ -172,17 +184,20 @@ export class AlertEvaluatorService {
     });
   }
 
-  private scopedMeters(organizationId: string, rule: AlertRule): Meter[] {
-    return this.persistence
-      .listMeters({
+  private async scopedMeters(
+    organizationId: string,
+    rule: AlertRule,
+  ): Promise<Meter[]> {
+    return (
+      await this.persistence.listMeters({
         buildingId: rule.scopeType === "building" ? rule.scopeId : undefined,
         organizationId,
         unitId: rule.scopeType === "unit" ? rule.scopeId : undefined,
         utilityType: rule.utilityType,
       })
-      .filter(
-        (meter) => rule.scopeType !== "meter" || meter.id === rule.scopeId,
-      );
+    ).filter(
+      (meter) => rule.scopeType !== "meter" || meter.id === rule.scopeId,
+    );
   }
 
   private isStale(meter: Meter, now: string, windowMinutes: number): boolean {

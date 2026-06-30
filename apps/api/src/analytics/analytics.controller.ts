@@ -19,12 +19,12 @@ export class AnalyticsController {
 
   @Post("aggregate")
   @Roles("owner", "manager")
-  aggregate(
+  async aggregate(
     @Req() request: RequestWithContext,
     @Body() body: AggregateRequest,
   ) {
     return {
-      items: this.aggregationService.aggregate({
+      items: await this.aggregationService.aggregate({
         organizationId: request.context!.organization.id,
         periodType: body.periodType ?? "hour",
       }),

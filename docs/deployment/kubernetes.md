@@ -43,14 +43,21 @@ node apps/api/dist/migrate.js
 
 ## Migrations
 
-Run migration asset validation locally:
+Run migrations locally:
 
 ```bash
 pnpm build
 pnpm db:migrate
 ```
 
-The current MVP still uses in-memory persistence at runtime. The migration command validates the ordered SQL migration assets and environment contract now, and is the stable Kubernetes Job entrypoint where the future PostgreSQL-backed migration executor will run.
+The API uses PostgreSQL persistence at runtime. The migration command is the same entrypoint used by the Kubernetes migration Job. It:
+
+- Creates `schema_migrations` automatically.
+- Applies migration files in lexical order.
+- Stores a SHA-256 checksum for each applied migration.
+- Skips matching already-applied migrations.
+- Fails if a previously applied migration has a different checksum.
+- Uses a PostgreSQL advisory lock so concurrent migration Jobs do not apply the same file twice.
 
 ## Kustomize Overlays
 
@@ -92,4 +99,4 @@ kubectl -n <namespace> rollout undo deployment/web
 kubectl -n <namespace> rollout undo deployment/worker
 ```
 
-Migration rollback should be handled by explicit forward-fix migrations once PostgreSQL persistence is active.
+Migration rollback should be handled by explicit forward-fix migrations.

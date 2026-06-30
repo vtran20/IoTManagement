@@ -1,5 +1,6 @@
 export interface ApiEnv {
   apiPort: number;
+  databaseSchema: string;
   databaseUrl: string;
   jwtSessionSecret: string;
   nodeEnv: "development" | "test" | "production";
@@ -12,6 +13,7 @@ const developmentDefaults = {
   API_PORT: "3001",
   DATABASE_URL:
     "postgresql://iot_local:iot_local_password@localhost:5432/iot_management",
+  DATABASE_SCHEMA: "public",
   JWT_SESSION_SECRET: "local-development-session-secret",
   REDIS_URL: "redis://localhost:6379",
 };
@@ -38,6 +40,7 @@ export function validateApiEnv(input: EnvInput = process.env): ApiEnv {
   const errors = [
     validatePort(withDefaults.API_PORT!),
     validateDatabaseUrl(withDefaults.DATABASE_URL!),
+    validateDatabaseSchema(withDefaults.DATABASE_SCHEMA || "public"),
     validateRedisUrl(withDefaults.REDIS_URL!),
     validateSecret(withDefaults.JWT_SESSION_SECRET!),
   ].filter(Boolean);
@@ -48,6 +51,7 @@ export function validateApiEnv(input: EnvInput = process.env): ApiEnv {
 
   return {
     apiPort: Number(withDefaults.API_PORT),
+    databaseSchema: withDefaults.DATABASE_SCHEMA || "public",
     databaseUrl: withDefaults.DATABASE_URL!,
     jwtSessionSecret: withDefaults.JWT_SESSION_SECRET!,
     nodeEnv,
@@ -73,6 +77,13 @@ function validatePort(value: string): string | undefined {
 function validateDatabaseUrl(value: string): string | undefined {
   if (!value.startsWith("postgresql://") && !value.startsWith("postgres://")) {
     return "DATABASE_URL must start with postgresql:// or postgres://";
+  }
+  return undefined;
+}
+
+function validateDatabaseSchema(value: string): string | undefined {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+    return "DATABASE_SCHEMA must be a valid PostgreSQL identifier";
   }
   return undefined;
 }

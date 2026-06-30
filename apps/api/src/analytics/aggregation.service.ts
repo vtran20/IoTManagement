@@ -1,11 +1,13 @@
 import type {
   AggregatePeriodType,
-  Meter,
   MeterReading,
   UsageAggregate,
 } from "@iot-management/types";
 import { Inject, Injectable } from "@nestjs/common";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { CostEstimateService } from "./cost-estimate.service";
 
 export interface AggregateUsageInput {
@@ -25,8 +27,8 @@ export interface IntervalUsage {
 @Injectable()
 export class AggregationService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
     @Inject(CostEstimateService)
     private readonly costEstimate: CostEstimateService,
   ) {}
@@ -74,15 +76,15 @@ export class AggregationService {
     return intervals;
   }
 
-  aggregate(input: AggregateUsageInput): UsageAggregate[] {
-    const meters = this.persistence.listMeters({
+  async aggregate(input: AggregateUsageInput): Promise<UsageAggregate[]> {
+    const meters = await this.persistence.listMeters({
       organizationId: input.organizationId,
     });
     const grouped = new Map<string, Omit<UsageAggregate, "id">>();
 
     for (const meter of meters) {
       const intervals = this.calculateIntervalUsage(
-        this.persistence.listReadings({
+        await this.persistence.listReadings({
           meterId: meter.id,
           organizationId: input.organizationId,
         }),
@@ -124,7 +126,7 @@ export class AggregationService {
       }
     }
 
-    return this.persistence.replaceUsageAggregates({
+    return await this.persistence.replaceUsageAggregates({
       aggregates: [...grouped.values()],
       organizationId: input.organizationId,
       periodType: input.periodType,

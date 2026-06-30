@@ -1,7 +1,10 @@
 import type { AlertRuleResponse } from "@iot-management/types";
 import { Inject, Injectable } from "@nestjs/common";
 import { RequestContext } from "../common/request-context";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
 import { CreateAlertRuleDto } from "./dto/create-alert-rule.dto";
 import { UpdateAlertRuleDto } from "./dto/update-alert-rule.dto";
@@ -9,12 +12,15 @@ import { UpdateAlertRuleDto } from "./dto/update-alert-rule.dto";
 @Injectable()
 export class AlertRulesService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  create(context: RequestContext, dto: CreateAlertRuleDto): AlertRuleResponse {
-    return this.persistence.createAlertRule({
+  async create(
+    context: RequestContext,
+    dto: CreateAlertRuleDto,
+  ): Promise<AlertRuleResponse> {
+    return await this.persistence.createAlertRule({
       conditionType: dto.conditionType,
       enabled: dto.enabled ?? true,
       name: dto.name,
@@ -27,20 +33,20 @@ export class AlertRulesService {
     });
   }
 
-  list(context: RequestContext) {
+  async list(context: RequestContext) {
     return {
-      items: this.persistence.listAlertRules({
+      items: await this.persistence.listAlertRules({
         organizationId: context.organization.id,
       }),
     };
   }
 
-  update(
+  async update(
     context: RequestContext,
     ruleId: string,
     dto: UpdateAlertRuleDto,
-  ): AlertRuleResponse {
-    const rule = this.persistence.updateAlertRule(
+  ): Promise<AlertRuleResponse> {
+    const rule = await this.persistence.updateAlertRule(
       context.organization.id,
       ruleId,
       dto,

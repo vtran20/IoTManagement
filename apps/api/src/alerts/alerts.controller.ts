@@ -32,12 +32,15 @@ export class AlertsController {
 
   @Post("evaluate")
   @Roles("owner", "manager")
-  evaluate(
+  async evaluate(
     @Req() request: RequestWithContext,
     @Body() body: { now?: string },
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = this.alertEventsService.evaluate(request.context!, body);
+    const result = await this.alertEventsService.evaluate(
+      request.context!,
+      body,
+    );
     response.status(result.createdCount > 0 ? 201 : 200);
     return result;
   }

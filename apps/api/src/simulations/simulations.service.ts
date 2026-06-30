@@ -5,7 +5,10 @@ import type {
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { ReadingsService } from "../readings/readings.service";
 import { RunSimulationDto } from "./dto/run-simulation.dto";
 import { generateSimulatedReadings } from "./simulated-usage-profile";
@@ -13,16 +16,16 @@ import { generateSimulatedReadings } from "./simulated-usage-profile";
 @Injectable()
 export class SimulationsService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
     @Inject(ReadingsService)
     private readonly readingsService: ReadingsService,
   ) {}
 
-  run(
+  async run(
     context: RequestContext,
     dto: RunSimulationDto = {},
-  ): RunSimulationResponse {
+  ): Promise<RunSimulationResponse> {
     const config = {
       intervalMinutes: dto.intervalMinutes ?? 15,
       intervals: dto.intervals ?? 24,
@@ -35,21 +38,23 @@ export class SimulationsService {
     this.validateConfig(config);
 
     const meters = dto.meterExternalIds?.length
-      ? dto.meterExternalIds.map((externalId) => {
-          const meter = this.persistence.findMeterByExternalId(
-            context.organization.id,
-            externalId,
-          );
-          if (!meter) {
-            throw new ApiError(
-              "UNKNOWN_METER",
-              "Simulation meter externalId was not found in the authenticated tenant scope",
-              HttpStatus.NOT_FOUND,
+      ? await Promise.all(
+          dto.meterExternalIds.map(async (externalId) => {
+            const meter = await this.persistence.findMeterByExternalId(
+              context.organization.id,
+              externalId,
             );
-          }
-          return meter;
-        })
-      : this.persistence.listMeters({
+            if (!meter) {
+              throw new ApiError(
+                "UNKNOWN_METER",
+                "Simulation meter externalId was not found in the authenticated tenant scope",
+                HttpStatus.NOT_FOUND,
+              );
+            }
+            return meter;
+          }),
+        )
+      : await this.persistence.listMeters({
           organizationId: context.organization.id,
         });
 
@@ -70,7 +75,7 @@ export class SimulationsService {
       let duplicateCount = 0;
 
       for (const reading of generated) {
-        const result = this.readingsService.ingest(context, reading);
+        const result = await this.readingsService.ingest(context, reading);
         if (result.duplicate) {
           duplicateCount += 1;
         } else if (result.accepted) {

@@ -8,7 +8,10 @@ import type {
   UsageTrendPoint,
 } from "@iot-management/types";
 import { Inject, Injectable } from "@nestjs/common";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { CostEstimateService } from "./cost-estimate.service";
 
 export interface UsageQueryInput extends ListUsageQuery {
@@ -19,43 +22,45 @@ export interface UsageQueryInput extends ListUsageQuery {
 @Injectable()
 export class UsageQueryService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
     @Inject(CostEstimateService)
     private readonly costEstimate: CostEstimateService,
   ) {}
 
-  getTrends(input: UsageQueryInput): PageResponse<UsageTrendPoint> {
+  async getTrends(
+    input: UsageQueryInput,
+  ): Promise<PageResponse<UsageTrendPoint>> {
     return {
-      items: this.persistence
-        .listUsageAggregates({
+      items: (
+        await this.persistence.listUsageAggregates({
           ...input,
           periodType: input.periodType ?? "hour",
         })
-        .map((aggregate) => ({
-          costEstimate:
-            aggregate.costEstimate ??
-            this.costEstimate.estimate(
-              aggregate.utilityType,
-              aggregate.usageValue,
-            ),
-          periodEnd: aggregate.periodEnd,
-          periodStart: aggregate.periodStart,
-          usageValue: aggregate.usageValue,
-          utilityType: aggregate.utilityType,
-        })),
+      ).map((aggregate) => ({
+        costEstimate:
+          aggregate.costEstimate ??
+          this.costEstimate.estimate(
+            aggregate.utilityType,
+            aggregate.usageValue,
+          ),
+        periodEnd: aggregate.periodEnd,
+        periodStart: aggregate.periodStart,
+        usageValue: aggregate.usageValue,
+        utilityType: aggregate.utilityType,
+      })),
     };
   }
 
-  getBuildingBreakdown(
+  async getBuildingBreakdown(
     input: UsageQueryInput,
-  ): PageResponse<BuildingBreakdownItem> {
+  ): Promise<PageResponse<BuildingBreakdownItem>> {
     const grouped = new Map<string, BuildingBreakdownItem>();
-    for (const aggregate of this.persistence.listUsageAggregates({
+    for (const aggregate of await this.persistence.listUsageAggregates({
       ...input,
       periodType: input.periodType ?? "hour",
     })) {
-      const building = this.persistence.findBuildingById(
+      const building = await this.persistence.findBuildingById(
         input.organizationId,
         aggregate.buildingId,
       );
@@ -78,20 +83,22 @@ export class UsageQueryService {
     return { items: [...grouped.values()] };
   }
 
-  getUnitRankings(input: UsageQueryInput): PageResponse<UnitRankingItem> {
+  async getUnitRankings(
+    input: UsageQueryInput,
+  ): Promise<PageResponse<UnitRankingItem>> {
     const grouped = new Map<string, UnitRankingItem>();
-    for (const aggregate of this.persistence.listUsageAggregates({
+    for (const aggregate of await this.persistence.listUsageAggregates({
       ...input,
       periodType: input.periodType ?? "hour",
     })) {
       if (!aggregate.unitId) {
         continue;
       }
-      const unit = this.persistence.findUnitById(
+      const unit = await this.persistence.findUnitById(
         input.organizationId,
         aggregate.unitId,
       );
-      const building = this.persistence.findBuildingById(
+      const building = await this.persistence.findBuildingById(
         input.organizationId,
         aggregate.buildingId,
       );
@@ -115,31 +122,33 @@ export class UsageQueryService {
     };
   }
 
-  getDeviceHealth(input: {
+  async getDeviceHealth(input: {
     now?: string;
     organizationId: string;
-  }): DeviceHealthResponse {
+  }): Promise<DeviceHealthResponse> {
     const nowMs = new Date(input.now ?? new Date().toISOString()).getTime();
     return {
-      meters: this.persistence
-        .listMeters({ organizationId: input.organizationId })
-        .map((meter) => {
-          const lastReadingMs = meter.lastReadingAt
-            ? new Date(meter.lastReadingAt).getTime()
-            : undefined;
-          const computedStatus =
-            meter.status === "online" &&
-            (!lastReadingMs || nowMs - lastReadingMs > 2 * 60 * 60 * 1000)
-              ? "stale"
-              : meter.status;
-          return {
-            externalId: meter.externalId,
-            lastReadingAt: meter.lastReadingAt,
-            meterId: meter.id,
-            status: computedStatus,
-            utilityType: meter.utilityType,
-          };
-        }),
+      meters: (
+        await this.persistence.listMeters({
+          organizationId: input.organizationId,
+        })
+      ).map((meter) => {
+        const lastReadingMs = meter.lastReadingAt
+          ? new Date(meter.lastReadingAt).getTime()
+          : undefined;
+        const computedStatus =
+          meter.status === "online" &&
+          (!lastReadingMs || nowMs - lastReadingMs > 2 * 60 * 60 * 1000)
+            ? "stale"
+            : meter.status;
+        return {
+          externalId: meter.externalId,
+          lastReadingAt: meter.lastReadingAt,
+          meterId: meter.id,
+          status: computedStatus,
+          utilityType: meter.utilityType,
+        };
+      }),
     };
   }
 }

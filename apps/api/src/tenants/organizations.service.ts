@@ -1,13 +1,16 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 
 @Injectable()
 export class OrganizationsService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
   getCurrent(context: RequestContext) {
@@ -17,7 +20,7 @@ export class OrganizationsService {
     };
   }
 
-  getById(context: RequestContext, organizationId: string) {
+  async getById(context: RequestContext, organizationId: string) {
     if (organizationId !== context.organization.id) {
       throw new ApiError(
         "TENANT_ACCESS_DENIED",
@@ -26,7 +29,8 @@ export class OrganizationsService {
       );
     }
 
-    const organization = this.persistence.findOrganizationById(organizationId);
+    const organization =
+      await this.persistence.findOrganizationById(organizationId);
     return { organization };
   }
 }

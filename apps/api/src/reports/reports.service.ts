@@ -6,24 +6,27 @@ import type {
 } from "@iot-management/types";
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 
 @Injectable()
 export class ReportsService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  monthlyUsage(
+  async monthlyUsage(
     organizationId: string,
     query: MonthlyUsageReportQuery,
-  ): MonthlyUsageReportResponse {
+  ): Promise<MonthlyUsageReportResponse> {
     const periodStart = monthStart(query.month);
     const periodEnd = monthEnd(periodStart);
     const grouped = new Map<string, MonthlyUsageReportRow>();
 
-    for (const aggregate of this.persistence.listUsageAggregates({
+    for (const aggregate of await this.persistence.listUsageAggregates({
       buildingId: query.buildingId,
       from: periodStart,
       organizationId,
@@ -31,12 +34,12 @@ export class ReportsService {
       to: periodEnd,
       unitId: query.unitId,
     })) {
-      const building = this.persistence.findBuildingById(
+      const building = await this.persistence.findBuildingById(
         organizationId,
         aggregate.buildingId,
       );
       const unit = aggregate.unitId
-        ? this.persistence.findUnitById(organizationId, aggregate.unitId)
+        ? await this.persistence.findUnitById(organizationId, aggregate.unitId)
         : undefined;
       const key = `${aggregate.buildingId}:${aggregate.unitId ?? "shared"}`;
       const existing = grouped.get(key) ?? {

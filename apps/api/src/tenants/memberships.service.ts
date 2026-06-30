@@ -1,7 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { UserRole } from "@iot-management/types";
 import { RequestContext } from "../common/request-context";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 
 export interface CreateMembershipDto {
   email?: string;
@@ -11,16 +14,17 @@ export interface CreateMembershipDto {
 @Injectable()
 export class MembershipsService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  create(context: RequestContext, dto: CreateMembershipDto) {
-    const membership = this.persistence.createMembershipForCurrentOrganization({
-      email: dto.email ?? "",
-      organizationId: context.organization.id,
-      role: dto.role ?? "viewer",
-    });
+  async create(context: RequestContext, dto: CreateMembershipDto) {
+    const membership =
+      await this.persistence.createMembershipForCurrentOrganization({
+        email: dto.email ?? "",
+        organizationId: context.organization.id,
+        role: dto.role ?? "viewer",
+      });
 
     return { membership };
   }

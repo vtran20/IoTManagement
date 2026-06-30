@@ -6,7 +6,10 @@ import type {
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
 import { CreateMeterDto } from "./dto/create-meter.dto";
 import { UpdateMeterDto } from "./dto/update-meter.dto";
@@ -14,15 +17,23 @@ import { UpdateMeterDto } from "./dto/update-meter.dto";
 @Injectable()
 export class MetersService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  create(context: RequestContext, dto: CreateMeterDto): MeterResponse {
-    this.validateAssignment(context, dto.buildingId, dto.floorId, dto.unitId);
+  async create(
+    context: RequestContext,
+    dto: CreateMeterDto,
+  ): Promise<MeterResponse> {
+    await this.validateAssignment(
+      context,
+      dto.buildingId,
+      dto.floorId,
+      dto.unitId,
+    );
 
     if (
-      this.persistence.findMeterByExternalId(
+      await this.persistence.findMeterByExternalId(
         context.organization.id,
         dto.externalId,
       )
@@ -35,7 +46,7 @@ export class MetersService {
     }
 
     return this.withSupportedReadingUnits(
-      this.persistence.createMeter({
+      await this.persistence.createMeter({
         organizationId: context.organization.id,
         buildingId: dto.buildingId,
         floorId: dto.floorId,
@@ -48,22 +59,22 @@ export class MetersService {
     );
   }
 
-  list(context: RequestContext, query: ListMetersQuery = {}) {
+  async list(context: RequestContext, query: ListMetersQuery = {}) {
     return {
-      items: this.persistence
-        .listMeters({
+      items: (
+        await this.persistence.listMeters({
           organizationId: context.organization.id,
           buildingId: query.buildingId,
           unitId: query.unitId,
           status: query.status,
           utilityType: query.utilityType,
         })
-        .map((meter) => this.withSupportedReadingUnits(meter)),
+      ).map((meter) => this.withSupportedReadingUnits(meter)),
     };
   }
 
-  get(context: RequestContext, meterId: string): MeterResponse {
-    const meter = this.persistence.findMeterById(
+  async get(context: RequestContext, meterId: string): Promise<MeterResponse> {
+    const meter = await this.persistence.findMeterById(
       context.organization.id,
       meterId,
     );
@@ -73,26 +84,26 @@ export class MetersService {
     return this.withSupportedReadingUnits(meter);
   }
 
-  update(
+  async update(
     context: RequestContext,
     meterId: string,
     dto: UpdateMeterDto,
-  ): MeterResponse {
-    const existing = this.persistence.findMeterById(
+  ): Promise<MeterResponse> {
+    const existing = await this.persistence.findMeterById(
       context.organization.id,
       meterId,
     );
     if (!existing) {
       throw tenantResourceNotFound("Meter");
     }
-    this.validateAssignment(
+    await this.validateAssignment(
       context,
       existing.buildingId,
       dto.floorId ?? existing.floorId,
       dto.unitId ?? existing.unitId,
     );
 
-    const meter = this.persistence.updateMeter(
+    const meter = await this.persistence.updateMeter(
       context.organization.id,
       meterId,
       dto,
@@ -103,13 +114,13 @@ export class MetersService {
     return this.withSupportedReadingUnits(meter);
   }
 
-  private validateAssignment(
+  private async validateAssignment(
     context: RequestContext,
     buildingId: string,
     floorId?: string,
     unitId?: string,
   ) {
-    const building = this.persistence.findBuildingById(
+    const building = await this.persistence.findBuildingById(
       context.organization.id,
       buildingId,
     );
@@ -118,7 +129,7 @@ export class MetersService {
     }
 
     if (floorId) {
-      const floor = this.persistence.findFloorById(
+      const floor = await this.persistence.findFloorById(
         context.organization.id,
         floorId,
       );
@@ -128,7 +139,7 @@ export class MetersService {
     }
 
     if (unitId) {
-      const unit = this.persistence.findUnitById(
+      const unit = await this.persistence.findUnitById(
         context.organization.id,
         unitId,
       );

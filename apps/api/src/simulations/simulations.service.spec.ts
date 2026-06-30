@@ -127,7 +127,7 @@ describe("generateSimulatedReadings", () => {
 });
 
 describe("SimulationsService", () => {
-  it("runs generated readings through ingestion and reports duplicates", () => {
+  it("runs generated readings through ingestion and reports duplicates", async () => {
     const context = {
       organization: { id: "org_north" },
     } as RequestContext;
@@ -165,7 +165,7 @@ describe("SimulationsService", () => {
     } as unknown as ReadingsService;
     const service = new SimulationsService(persistence, readings);
 
-    const result = service.run(context, {
+    const result = await service.run(context, {
       intervalMinutes: 60,
       intervals: 2,
       meterExternalIds: ["water-main"],

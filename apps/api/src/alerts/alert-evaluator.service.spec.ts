@@ -3,7 +3,7 @@ import { InMemoryPersistenceService } from "../persistence/in-memory-persistence
 import { AlertEvaluatorService } from "./alert-evaluator.service";
 
 describe("AlertEvaluatorService", () => {
-  it("creates one high-usage alert and does not duplicate an open alert", () => {
+  it("creates one high-usage alert and does not duplicate an open alert", async () => {
     const { evaluator, persistence } = createFixture();
     const building = persistence.createBuilding({
       name: "Alert Tower",
@@ -38,11 +38,11 @@ describe("AlertEvaluatorService", () => {
       windowMinutes: 60,
     });
 
-    const first = evaluator.evaluate({
+    const first = await evaluator.evaluate({
       now: "2026-06-29T11:00:00.000Z",
       organizationId: "org_north",
     });
-    const second = evaluator.evaluate({
+    const second = await evaluator.evaluate({
       now: "2026-06-29T11:05:00.000Z",
       organizationId: "org_north",
     });
@@ -54,7 +54,7 @@ describe("AlertEvaluatorService", () => {
     ).toHaveLength(1);
   });
 
-  it("does not trigger disabled rules", () => {
+  it("does not trigger disabled rules", async () => {
     const { evaluator, persistence } = createFixture();
     persistence.createAlertRule({
       conditionType: "high_usage",
@@ -66,7 +66,7 @@ describe("AlertEvaluatorService", () => {
       windowMinutes: 60,
     });
 
-    const result = evaluator.evaluate({
+    const result = await evaluator.evaluate({
       now: "2026-06-29T11:00:00.000Z",
       organizationId: "org_north",
     });
@@ -74,7 +74,7 @@ describe("AlertEvaluatorService", () => {
     expect(result.createdCount).toBe(0);
   });
 
-  it("detects suspected leaks from continuous water usage", () => {
+  it("detects suspected leaks from continuous water usage", async () => {
     const { evaluator, persistence } = createFixture();
     const building = persistence.createBuilding({
       name: "Leak Tower",
@@ -115,7 +115,7 @@ describe("AlertEvaluatorService", () => {
       windowMinutes: 180,
     });
 
-    const result = evaluator.evaluate({
+    const result = await evaluator.evaluate({
       now: "2026-06-29T03:00:00.000Z",
       organizationId: "org_north",
     });
@@ -127,7 +127,7 @@ describe("AlertEvaluatorService", () => {
     });
   });
 
-  it("detects stale and outage device conditions", () => {
+  it("detects stale and outage device conditions", async () => {
     const { evaluator, persistence } = createFixture();
     const building = persistence.createBuilding({
       name: "Device Tower",
@@ -162,7 +162,7 @@ describe("AlertEvaluatorService", () => {
       });
     }
 
-    const result = evaluator.evaluate({
+    const result = await evaluator.evaluate({
       now: "2026-06-29T11:00:00.000Z",
       organizationId: "org_north",
     });

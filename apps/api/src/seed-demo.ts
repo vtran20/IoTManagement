@@ -3,7 +3,10 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { validateApiEnv } from "./config/env.schema";
 import { RequestContext } from "./common/request-context";
-import { InMemoryPersistenceService } from "./persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "./persistence/persistence.service";
 import { DemoSeedService } from "./simulations/demo-seed.service";
 
 async function run(): Promise<void> {
@@ -13,14 +16,14 @@ async function run(): Promise<void> {
   });
 
   try {
-    const persistence = app.get(InMemoryPersistenceService);
+    const persistence = app.get<PersistenceService>(PERSISTENCE_SERVICE);
     const demoSeedService = app.get(DemoSeedService);
-    const user = persistence.findUserByEmail("owner@north.example");
+    const user = await persistence.findUserByEmail("owner@north.example");
     const membership = user
-      ? persistence.findPrimaryMembershipForUser(user.id)
+      ? await persistence.findPrimaryMembershipForUser(user.id)
       : undefined;
     const organization = membership
-      ? persistence.findOrganizationById(membership.organizationId)
+      ? await persistence.findOrganizationById(membership.organizationId)
       : undefined;
 
     if (!user || !membership || !organization) {
@@ -28,7 +31,7 @@ async function run(): Promise<void> {
     }
 
     const context: RequestContext = { membership, organization, user };
-    const result = demoSeedService.seed(context);
+    const result = await demoSeedService.seed(context);
     console.log(JSON.stringify({ result, status: "demo-seed-complete" }));
   } finally {
     await app.close();

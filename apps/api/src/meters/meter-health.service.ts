@@ -1,19 +1,22 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 
 @Injectable()
 export class MeterHealthService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
   ) {}
 
-  markReadingAccepted(input: {
+  async markReadingAccepted(input: {
     measuredAt: string;
     meterId: string;
     organizationId: string;
-  }) {
-    this.persistence.updateMeter(input.organizationId, input.meterId, {
+  }): Promise<void> {
+    await this.persistence.updateMeter(input.organizationId, input.meterId, {
       lastReadingAt: input.measuredAt,
       status: "online",
     });

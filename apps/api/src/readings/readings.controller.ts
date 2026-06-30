@@ -30,7 +30,7 @@ export class ReadingsController {
 
   @Post("readings/ingest")
   @Roles("owner", "manager")
-  ingest(
+  async ingest(
     @Req() request: RequestWithContext,
     @Body() dto: IngestReadingDto,
     @Res({ passthrough: true }) response: Response,
@@ -41,7 +41,7 @@ export class ReadingsController {
       message: "Too many ingestion requests. Try again later.",
       windowMs: 60_000,
     });
-    const result = this.readingsService.ingest(request.context!, dto);
+    const result = await this.readingsService.ingest(request.context!, dto);
     response.status(result.duplicate ? 200 : 201);
     return result;
   }

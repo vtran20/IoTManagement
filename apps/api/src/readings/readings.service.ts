@@ -6,7 +6,10 @@ import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
 import { MeterHealthService } from "../meters/meter-health.service";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
 import { IngestReadingDto } from "./dto/ingest-reading.dto";
 import { ReadingValidationService } from "./reading-validation.service";
@@ -14,19 +17,19 @@ import { ReadingValidationService } from "./reading-validation.service";
 @Injectable()
 export class ReadingsService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
     @Inject(ReadingValidationService)
     private readonly validation: ReadingValidationService,
     @Inject(MeterHealthService)
     private readonly meterHealth: MeterHealthService,
   ) {}
 
-  ingest(
+  async ingest(
     context: RequestContext,
     dto: IngestReadingDto,
-  ): IngestReadingResponse {
-    const meter = this.persistence.findMeterByExternalId(
+  ): Promise<IngestReadingResponse> {
+    const meter = await this.persistence.findMeterByExternalId(
       context.organization.id,
       dto.meterExternalId,
     );
@@ -38,9 +41,9 @@ export class ReadingsService {
       );
     }
 
-    this.validation.validate({ ...dto, meter });
+    await this.validation.validate({ ...dto, meter });
 
-    const duplicate = this.persistence.findReadingByMeterAndMeasuredAt(
+    const duplicate = await this.persistence.findReadingByMeterAndMeasuredAt(
       context.organization.id,
       meter.id,
       dto.measuredAt,
@@ -53,7 +56,7 @@ export class ReadingsService {
       };
     }
 
-    const reading = this.persistence.createReading({
+    const reading = await this.persistence.createReading({
       organizationId: context.organization.id,
       meterId: meter.id,
       measuredAt: dto.measuredAt,
@@ -64,7 +67,7 @@ export class ReadingsService {
       receivedAt: new Date().toISOString(),
     });
 
-    this.meterHealth.markReadingAccepted({
+    await this.meterHealth.markReadingAccepted({
       organizationId: context.organization.id,
       meterId: meter.id,
       measuredAt: dto.measuredAt,
@@ -77,12 +80,12 @@ export class ReadingsService {
     };
   }
 
-  listByMeter(
+  async listByMeter(
     context: RequestContext,
     meterId: string,
     query: ListReadingsQuery,
   ) {
-    const meter = this.persistence.findMeterById(
+    const meter = await this.persistence.findMeterById(
       context.organization.id,
       meterId,
     );
@@ -91,7 +94,7 @@ export class ReadingsService {
     }
 
     return {
-      items: this.persistence.listReadings({
+      items: await this.persistence.listReadings({
         organizationId: context.organization.id,
         meterId,
         from: query?.from,

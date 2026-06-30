@@ -7,49 +7,52 @@ import type {
 import { Inject, Injectable } from "@nestjs/common";
 import { AggregationService } from "../analytics/aggregation.service";
 import { RequestContext } from "../common/request-context";
-import { InMemoryPersistenceService } from "../persistence/in-memory-persistence.service";
+import {
+  PERSISTENCE_SERVICE,
+  PersistenceService,
+} from "../persistence/persistence.service";
 import { ReadingsService } from "../readings/readings.service";
 
 @Injectable()
 export class DemoSeedService {
   constructor(
-    @Inject(InMemoryPersistenceService)
-    private readonly persistence: InMemoryPersistenceService,
+    @Inject(PERSISTENCE_SERVICE)
+    private readonly persistence: PersistenceService,
     @Inject(ReadingsService)
     private readonly readingsService: ReadingsService,
     @Inject(AggregationService)
     private readonly aggregationService: AggregationService,
   ) {}
 
-  seed(context: RequestContext): DemoSeedResponse {
+  async seed(context: RequestContext): Promise<DemoSeedResponse> {
     const organizationId = context.organization.id;
-    const northRidge = this.ensureBuilding(
+    const northRidge = await this.ensureBuilding(
       organizationId,
       "Demo North Ridge",
       "100 Demo Main St",
     );
-    const lakeview = this.ensureBuilding(
+    const lakeview = await this.ensureBuilding(
       organizationId,
       "Demo Lakeview Apartments",
       "18 Demo Lakeview Ave",
     );
-    const unit1201 = this.ensureUnit(organizationId, northRidge, "1201");
-    const unit802 = this.ensureUnit(organizationId, lakeview, "802");
+    const unit1201 = await this.ensureUnit(organizationId, northRidge, "1201");
+    const unit802 = await this.ensureUnit(organizationId, lakeview, "802");
 
     const meters = [
-      this.ensureMeter(organizationId, northRidge, unit1201, {
+      await this.ensureMeter(organizationId, northRidge, unit1201, {
         externalId: "demo-seed-water-1201",
         utilityType: "water",
       }),
-      this.ensureMeter(organizationId, northRidge, unit1201, {
+      await this.ensureMeter(organizationId, northRidge, unit1201, {
         externalId: "demo-seed-electric-1201",
         utilityType: "electric",
       }),
-      this.ensureMeter(organizationId, lakeview, unit802, {
+      await this.ensureMeter(organizationId, lakeview, unit802, {
         externalId: "demo-seed-water-0802",
         utilityType: "water",
       }),
-      this.ensureMeter(organizationId, lakeview, unit802, {
+      await this.ensureMeter(organizationId, lakeview, unit802, {
         externalId: "demo-seed-electric-0802",
         utilityType: "electric",
       }),
@@ -58,7 +61,7 @@ export class DemoSeedService {
     let acceptedReadingCount = 0;
     let duplicateReadingCount = 0;
     for (const reading of demoReadings) {
-      const result = this.readingsService.ingest(context, reading);
+      const result = await this.readingsService.ingest(context, reading);
       if (result.duplicate) {
         duplicateReadingCount += 1;
       } else if (result.accepted) {
@@ -66,7 +69,7 @@ export class DemoSeedService {
       }
     }
 
-    const aggregates = this.aggregationService.aggregate({
+    const aggregates = await this.aggregationService.aggregate({
       organizationId,
       periodType: "month",
     });
@@ -84,64 +87,67 @@ export class DemoSeedService {
     };
   }
 
-  private ensureBuilding(
+  private async ensureBuilding(
     organizationId: string,
     name: string,
     address: string,
-  ): Building {
-    const existing = this.persistence
-      .listBuildings(organizationId)
-      .find((building) => building.name === name);
+  ): Promise<Building> {
+    const existing = (
+      await this.persistence.listBuildings(organizationId)
+    ).find((building) => building.name === name);
     return (
       existing ??
-      this.persistence.createBuilding({
+      (await this.persistence.createBuilding({
         address,
         name,
         organizationId,
         timezone: "America/Detroit",
-      })
+      }))
     );
   }
 
-  private ensureUnit(
+  private async ensureUnit(
     organizationId: string,
     building: Building,
     name: string,
-  ): Unit {
-    const existing = this.persistence
-      .listUnits({ buildingId: building.id, organizationId })
-      .find((unit) => unit.name === name);
+  ): Promise<Unit> {
+    const existing = (
+      await this.persistence.listUnits({
+        buildingId: building.id,
+        organizationId,
+      })
+    ).find((unit) => unit.name === name);
     return (
       existing ??
-      this.persistence.createUnit({
+      (await this.persistence.createUnit({
         buildingId: building.id,
         name,
         occupancyStatus: "occupied",
         organizationId,
-      })
+      }))
     );
   }
 
-  private ensureMeter(
+  private async ensureMeter(
     organizationId: string,
     building: Building,
     unit: Unit,
     input: Pick<Meter, "externalId" | "utilityType">,
-  ): Meter {
-    const existing = this.persistence.findMeterByExternalId(
+  ): Promise<Meter> {
+    const existing = await this.persistence.findMeterByExternalId(
       organizationId,
       input.externalId,
     );
     return (
       existing ??
-      this.persistence.createMeter({
+      (await this.persistence.createMeter({
         buildingId: building.id,
         externalId: input.externalId,
         organizationId,
         source: "simulated",
         unitId: unit.id,
         utilityType: input.utilityType,
-      })
+      }))
     );
   }
 }

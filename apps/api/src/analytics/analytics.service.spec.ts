@@ -21,7 +21,7 @@ describe("AggregationService", () => {
     });
   });
 
-  it("aggregates hourly usage for water and electric independently", () => {
+  it("aggregates hourly usage for water and electric independently", async () => {
     const persistence = new InMemoryPersistenceService();
     const building = persistence.createBuilding({
       name: "Analytics Tower",
@@ -74,7 +74,7 @@ describe("AggregationService", () => {
       value: 7,
     });
 
-    const aggregates = createAggregationService(persistence).aggregate({
+    const aggregates = await createAggregationService(persistence).aggregate({
       organizationId: "org_north",
       periodType: "hour",
     });
@@ -90,7 +90,7 @@ describe("AggregationService", () => {
     );
   });
 
-  it("aggregates daily and monthly usage", () => {
+  it("aggregates daily and monthly usage", async () => {
     const persistence = new InMemoryPersistenceService();
     const building = persistence.createBuilding({
       name: "Period Tower",
@@ -122,11 +122,11 @@ describe("AggregationService", () => {
     }
     const service = createAggregationService(persistence);
 
-    const daily = service.aggregate({
+    const daily = await service.aggregate({
       organizationId: "org_north",
       periodType: "day",
     });
-    const monthly = service.aggregate({
+    const monthly = await service.aggregate({
       organizationId: "org_north",
       periodType: "month",
     });
@@ -163,7 +163,7 @@ describe("AggregationService", () => {
 });
 
 describe("UsageQueryService", () => {
-  it("returns trends, building breakdown, unit rankings, and device health", () => {
+  it("returns trends, building breakdown, unit rankings, and device health", async () => {
     const persistence = new InMemoryPersistenceService();
     const building = persistence.createBuilding({
       name: "Dashboard Tower",
@@ -203,11 +203,14 @@ describe("UsageQueryService", () => {
       new CostEstimateService(),
     );
 
-    expect(service.getTrends({ organizationId: "org_north" }).items).toEqual([
+    expect(
+      (await service.getTrends({ organizationId: "org_north" })).items,
+    ).toEqual([
       expect.objectContaining({ usageValue: 12, utilityType: "water" }),
     ]);
     expect(
-      service.getBuildingBreakdown({ organizationId: "org_north" }).items,
+      (await service.getBuildingBreakdown({ organizationId: "org_north" }))
+        .items,
     ).toEqual([
       expect.objectContaining({
         buildingId: building.id,
@@ -216,7 +219,7 @@ describe("UsageQueryService", () => {
       }),
     ]);
     expect(
-      service.getUnitRankings({ organizationId: "org_north" }).items,
+      (await service.getUnitRankings({ organizationId: "org_north" })).items,
     ).toEqual([
       expect.objectContaining({
         unitId: unit.id,
@@ -225,10 +228,12 @@ describe("UsageQueryService", () => {
       }),
     ]);
     expect(
-      service.getDeviceHealth({
-        now: "2026-06-29T10:30:00.000Z",
-        organizationId: "org_north",
-      }).meters,
+      (
+        await service.getDeviceHealth({
+          now: "2026-06-29T10:30:00.000Z",
+          organizationId: "org_north",
+        })
+      ).meters,
     ).toEqual([
       expect.objectContaining({
         externalId: "dash-water",
@@ -237,7 +242,7 @@ describe("UsageQueryService", () => {
     ]);
   });
 
-  it("reports online, stale, offline, and disabled device health states", () => {
+  it("reports online, stale, offline, and disabled device health states", async () => {
     const persistence = new InMemoryPersistenceService();
     const building = persistence.createBuilding({
       name: "Health Tower",
@@ -267,10 +272,12 @@ describe("UsageQueryService", () => {
     );
 
     expect(
-      service.getDeviceHealth({
-        now: "2026-06-29T11:00:00.000Z",
-        organizationId: "org_north",
-      }).meters,
+      (
+        await service.getDeviceHealth({
+          now: "2026-06-29T11:00:00.000Z",
+          organizationId: "org_north",
+        })
+      ).meters,
     ).toEqual([
       expect.objectContaining({
         externalId: "health-online",
