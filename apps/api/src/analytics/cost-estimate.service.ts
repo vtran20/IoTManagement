@@ -1,5 +1,5 @@
 import type { UtilityType } from "@iot-management/types";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 
 export interface CostRates {
   electricPerKwh: number;
@@ -11,12 +11,14 @@ const defaultRates: CostRates = {
   waterPerGallon: 0.005,
 };
 
+export const COST_RATES = "COST_RATES";
+
 @Injectable()
 export class CostEstimateService {
   private readonly rates: CostRates;
 
-  constructor(rates: CostRates = defaultRates) {
-    this.rates = rates;
+  constructor(@Optional() @Inject(COST_RATES) rates?: CostRates) {
+    this.rates = rates ?? defaultRates;
   }
 
   estimate(utilityType: UtilityType, usageValue: number): number {
