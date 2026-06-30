@@ -73,6 +73,8 @@ Before finishing any implementation:
 - Run lint/type checks when available.
 - Verify tenant isolation for backend changes that access organization data.
 - Verify dashboard states for frontend changes.
+- After each implementation phase, include a short "Manual verification" section with step-by-step commands or UI actions the user can run locally.
+- Make manual verification practical for the current phase: include expected URLs, API endpoints, Kubernetes commands, sample inputs, and expected results when applicable.
 - State exactly what was and was not verified.
 
 ## Git Hygiene

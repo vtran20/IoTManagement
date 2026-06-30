@@ -37,3 +37,9 @@ Use this rule file for quick project alignment before planning or implementation
 - Validate all external input.
 - Keep raw readings immutable.
 - Keep device-specific protocols out of dashboard-facing APIs.
+
+## Phase Handoff Rules
+
+- After every implementation phase, show the user how to manually test or verify the phase.
+- Include concrete local commands, browser URLs, API calls, Kubernetes checks, expected outputs, and any cleanup steps that matter.
+- Keep automated verification and manual verification separate in the final response.

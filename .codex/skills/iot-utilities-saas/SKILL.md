@@ -73,5 +73,7 @@ Before reporting success:
 
 - Confirm the relevant Superpowers verification step was used.
 - Run focused tests or explain why tests are not available yet.
+- Add a "Manual verification" section after each phase with concrete steps the user can run locally.
+- Include expected results for manual checks, such as dashboard URL behavior, API response shape, Kubernetes pod status, logs, or sample command output.
 - Check `git status --short`.
 - Mention changed files and verification performed.
