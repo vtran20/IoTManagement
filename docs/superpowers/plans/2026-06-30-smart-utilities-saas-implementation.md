@@ -378,13 +378,13 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write a failing auth integration test for successful login.
-- [ ] Write a failing auth integration test for invalid credentials.
-- [ ] Implement password hashing and login.
-- [ ] Write a failing membership test proving `GET /api/v1/organizations/current` returns only the current organization.
-- [ ] Implement organization and membership services.
-- [ ] Write a failing cross-organization access test.
-- [ ] Implement request scoping and role guards.
+- [x] Write a failing auth integration test for successful login.
+- [x] Write a failing auth integration test for invalid credentials.
+- [x] Implement password hashing and login.
+- [x] Write a failing membership test proving `GET /api/v1/organizations/current` returns only the current organization.
+- [x] Implement organization and membership services.
+- [x] Write a failing cross-organization access test.
+- [x] Implement request scoping and role guards.
 
 **Required tests:**
 
