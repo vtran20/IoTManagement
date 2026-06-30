@@ -28,6 +28,7 @@ Use this rule file for quick project alignment before planning or implementation
 - MVP customer: apartment and building owners.
 - MVP data: simulated water and electric readings.
 - MVP experience: operational dashboard for buildings, units, meters, alerts, reports, and settings.
+- Dashboard visual reference: `https://shadcnblocks-admin.vercel.app/ecommerce/dashboard-1`, using the screenshot supplied on 2026-06-29 as the target admin layout style.
 - Future experience: Expo mobile app for management and alert workflows.
 
 ## Safety Rules

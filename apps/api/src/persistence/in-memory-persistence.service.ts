@@ -1,6 +1,10 @@
 import type {
+  Building,
+  Floor,
   Membership,
+  Meter,
   Organization,
+  Unit,
   User,
   UserRole,
 } from "@iot-management/types";
@@ -13,6 +17,13 @@ export interface StoredUser extends User {
 
 @Injectable()
 export class InMemoryPersistenceService {
+  private counters = {
+    building: 1,
+    floor: 1,
+    meter: 1,
+    unit: 1,
+  };
+
   private readonly organizations: Organization[] = [
     {
       id: "org_north",
@@ -70,6 +81,39 @@ export class InMemoryPersistenceService {
     ),
   ];
 
+  private readonly buildings: Building[] = [
+    {
+      id: "building_south",
+      organizationId: "org_south",
+      name: "South Tower",
+      address: "200 South St",
+      timezone: "America/Detroit",
+    },
+  ];
+
+  private readonly floors: Floor[] = [
+    {
+      id: "floor_south_1",
+      organizationId: "org_south",
+      buildingId: "building_south",
+      name: "Level 1",
+      level: 1,
+    },
+  ];
+
+  private readonly units: Unit[] = [
+    {
+      id: "unit_south_101",
+      organizationId: "org_south",
+      buildingId: "building_south",
+      floorId: "floor_south_1",
+      name: "101",
+      occupancyStatus: "occupied",
+    },
+  ];
+
+  private readonly meters: Meter[] = [];
+
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
   }
@@ -107,6 +151,211 @@ export class InMemoryPersistenceService {
     return membership;
   }
 
+  listBuildings(organizationId: string): Building[] {
+    return this.buildings.filter(
+      (building) => building.organizationId === organizationId,
+    );
+  }
+
+  createBuilding(input: {
+    address?: string;
+    name: string;
+    organizationId: string;
+    timezone: string;
+  }): Building {
+    const building: Building = {
+      id: this.nextId("building", input.name),
+      organizationId: input.organizationId,
+      name: input.name,
+      address: input.address,
+      timezone: input.timezone,
+    };
+    this.buildings.push(building);
+    return building;
+  }
+
+  findBuildingById(
+    organizationId: string,
+    buildingId: string,
+  ): Building | undefined {
+    return this.buildings.find(
+      (building) =>
+        building.organizationId === organizationId &&
+        building.id === buildingId,
+    );
+  }
+
+  updateBuilding(
+    organizationId: string,
+    buildingId: string,
+    input: Partial<Pick<Building, "address" | "name" | "timezone">>,
+  ): Building | undefined {
+    const building = this.findBuildingById(organizationId, buildingId);
+    if (!building) {
+      return undefined;
+    }
+    Object.assign(building, input);
+    return building;
+  }
+
+  listFloors(organizationId: string, buildingId?: string): Floor[] {
+    return this.floors.filter(
+      (floor) =>
+        floor.organizationId === organizationId &&
+        (!buildingId || floor.buildingId === buildingId),
+    );
+  }
+
+  createFloor(input: {
+    buildingId: string;
+    level: number;
+    name: string;
+    organizationId: string;
+  }): Floor {
+    const floor: Floor = {
+      id: this.nextId("floor", input.name),
+      organizationId: input.organizationId,
+      buildingId: input.buildingId,
+      name: input.name,
+      level: input.level,
+    };
+    this.floors.push(floor);
+    return floor;
+  }
+
+  findFloorById(organizationId: string, floorId: string): Floor | undefined {
+    return this.floors.find(
+      (floor) =>
+        floor.organizationId === organizationId && floor.id === floorId,
+    );
+  }
+
+  updateFloor(
+    organizationId: string,
+    floorId: string,
+    input: Partial<Pick<Floor, "level" | "name">>,
+  ): Floor | undefined {
+    const floor = this.findFloorById(organizationId, floorId);
+    if (!floor) {
+      return undefined;
+    }
+    Object.assign(floor, input);
+    return floor;
+  }
+
+  listUnits(input: {
+    buildingId?: string;
+    floorId?: string;
+    organizationId: string;
+  }): Unit[] {
+    return this.units.filter(
+      (unit) =>
+        unit.organizationId === input.organizationId &&
+        (!input.buildingId || unit.buildingId === input.buildingId) &&
+        (!input.floorId || unit.floorId === input.floorId),
+    );
+  }
+
+  createUnit(input: {
+    buildingId: string;
+    floorId?: string;
+    name: string;
+    occupancyStatus: Unit["occupancyStatus"];
+    organizationId: string;
+  }): Unit {
+    const unit: Unit = {
+      id: this.nextId("unit", input.name),
+      organizationId: input.organizationId,
+      buildingId: input.buildingId,
+      floorId: input.floorId,
+      name: input.name,
+      occupancyStatus: input.occupancyStatus,
+    };
+    this.units.push(unit);
+    return unit;
+  }
+
+  findUnitById(organizationId: string, unitId: string): Unit | undefined {
+    return this.units.find(
+      (unit) => unit.organizationId === organizationId && unit.id === unitId,
+    );
+  }
+
+  updateUnit(
+    organizationId: string,
+    unitId: string,
+    input: Partial<Pick<Unit, "floorId" | "name" | "occupancyStatus">>,
+  ): Unit | undefined {
+    const unit = this.findUnitById(organizationId, unitId);
+    if (!unit) {
+      return undefined;
+    }
+    Object.assign(unit, input);
+    return unit;
+  }
+
+  listMeters(input: {
+    buildingId?: string;
+    organizationId: string;
+    status?: Meter["status"];
+    unitId?: string;
+    utilityType?: Meter["utilityType"];
+  }): Meter[] {
+    return this.meters.filter(
+      (meter) =>
+        meter.organizationId === input.organizationId &&
+        (!input.buildingId || meter.buildingId === input.buildingId) &&
+        (!input.unitId || meter.unitId === input.unitId) &&
+        (!input.status || meter.status === input.status) &&
+        (!input.utilityType || meter.utilityType === input.utilityType),
+    );
+  }
+
+  findMeterById(organizationId: string, meterId: string): Meter | undefined {
+    return this.meters.find(
+      (meter) =>
+        meter.organizationId === organizationId && meter.id === meterId,
+    );
+  }
+
+  findMeterByExternalId(
+    organizationId: string,
+    externalId: string,
+  ): Meter | undefined {
+    return this.meters.find(
+      (meter) =>
+        meter.organizationId === organizationId &&
+        meter.externalId === externalId,
+    );
+  }
+
+  createMeter(
+    input: Omit<Meter, "id" | "status"> & { status?: Meter["status"] },
+  ): Meter {
+    const meter: Meter = {
+      ...input,
+      id: this.nextId("meter", input.externalId),
+      status: input.status ?? "online",
+    };
+    this.meters.push(meter);
+    return meter;
+  }
+
+  updateMeter(
+    organizationId: string,
+    meterId: string,
+    input: Partial<
+      Pick<Meter, "floorId" | "installedAt" | "status" | "unitId">
+    >,
+  ): Meter | undefined {
+    const meter = this.findMeterById(organizationId, meterId);
+    if (!meter) {
+      return undefined;
+    }
+    Object.assign(meter, input);
+    return meter;
+  }
+
   private createUser(id: string, email: string, name: string): StoredUser {
     return {
       id,
@@ -129,5 +378,15 @@ export class InMemoryPersistenceService {
       userId,
       role,
     };
+  }
+
+  private nextId(kind: keyof typeof this.counters, seed: string): string {
+    const counter = this.counters[kind]++;
+    const slug = seed
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 32);
+    return `${kind}_${slug || "item"}_${counter}`;
   }
 }

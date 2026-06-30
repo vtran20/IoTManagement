@@ -4,12 +4,20 @@ import { APP_FILTER } from "@nestjs/core";
 import { AuthModule } from "./auth/auth.module";
 import { ApiErrorFilter } from "./common/errors/api-error.filter";
 import { HealthController } from "./health/health.controller";
+import { MetersModule } from "./meters/meters.module";
 import { PersistenceModule } from "./persistence/persistence.module";
+import { PortfolioModule } from "./portfolio/portfolio.module";
 import { TenantsModule } from "./tenants/tenants.module";
 
 @Module({
   controllers: [HealthController],
-  imports: [PersistenceModule, AuthModule, TenantsModule],
+  imports: [
+    PersistenceModule,
+    AuthModule,
+    TenantsModule,
+    PortfolioModule,
+    MetersModule,
+  ],
   providers: [
     {
       provide: APP_FILTER,

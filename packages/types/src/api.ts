@@ -100,6 +100,17 @@ export interface ListUnitsQuery extends PageRequest {
 export type UnitResponse = Unit;
 export type FloorResponse = Floor;
 
+export interface CreateFloorRequest {
+  buildingId: EntityId;
+  name: string;
+  level: number;
+}
+
+export interface UpdateFloorRequest {
+  name?: string;
+  level?: number;
+}
+
 export interface CreateMeterRequest {
   buildingId: EntityId;
   floorId?: EntityId;
@@ -124,7 +135,9 @@ export interface ListMetersQuery extends PageRequest {
   utilityType?: UtilityType;
 }
 
-export type MeterResponse = Meter;
+export interface MeterResponse extends Meter {
+  supportedReadingUnits: ReadingUnit[];
+}
 
 export interface IngestReadingRequest {
   meterExternalId: string;

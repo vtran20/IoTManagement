@@ -2,6 +2,7 @@ import type {
   BuildingResponse,
   CreateAlertRuleRequest,
   CreateBuildingRequest,
+  CreateFloorRequest,
   CreateMeterRequest,
   CreateReportRequest,
   CreateUnitRequest,
@@ -24,10 +25,12 @@ import type {
   UnitResponse,
   UpdateAlertRuleRequest,
   UpdateBuildingRequest,
+  UpdateFloorRequest,
   UpdateMeterRequest,
   UpdateUnitRequest,
   AlertEventResponse,
   AlertRuleResponse,
+  FloorResponse,
 } from "@iot-management/types";
 import type { ApiClient } from "./client";
 
@@ -59,6 +62,17 @@ export function createEndpoints(client: ApiClient) {
     },
     dashboard: {
       summary: () => client.get<DashboardSummaryResponse>("/dashboard/summary"),
+    },
+    floors: {
+      create: (body: CreateFloorRequest) =>
+        client.post<FloorResponse>("/floors", { body }),
+      get: (floorId: string) => client.get<FloorResponse>(`/floors/${floorId}`),
+      list: (buildingId?: string) =>
+        client.get<PageResponse<FloorResponse>>("/floors", {
+          query: buildingId ? { buildingId } : undefined,
+        }),
+      update: (floorId: string, body: UpdateFloorRequest) =>
+        client.patch<FloorResponse>(`/floors/${floorId}`, { body }),
     },
     health: () => client.get<HealthResponse>("/health"),
     meters: {

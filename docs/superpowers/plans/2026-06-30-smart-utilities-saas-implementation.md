@@ -432,18 +432,18 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write failing building create/list tests.
-- [ ] Implement building create/list.
-- [ ] Write failing building detail/update tests.
-- [ ] Implement building detail/update.
-- [ ] Write failing floor create/list tests.
-- [ ] Implement floor create/list.
-- [ ] Write failing unit create/list/detail/update tests.
-- [ ] Implement unit create/list/detail/update.
-- [ ] Write failing meter create/list/detail/update tests.
-- [ ] Implement meter create/list/detail/update.
-- [ ] Write failing tests for unit-level and building-level meter assignment.
-- [ ] Implement assignment validation.
+- [x] Write failing building create/list tests.
+- [x] Implement building create/list.
+- [x] Write failing building detail/update tests.
+- [x] Implement building detail/update.
+- [x] Write failing floor create/list tests.
+- [x] Implement floor create/list.
+- [x] Write failing unit create/list/detail/update tests.
+- [x] Implement unit create/list/detail/update.
+- [x] Write failing meter create/list/detail/update tests.
+- [x] Implement meter create/list/detail/update.
+- [x] Write failing tests for unit-level and building-level meter assignment.
+- [x] Implement assignment validation.
 
 **Required tests:**
 

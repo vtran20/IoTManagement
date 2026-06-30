@@ -61,6 +61,7 @@ Use these defaults unless the user approves a design update:
 
 - Build an operational SaaS dashboard, not a marketing landing page.
 - Prioritize dense but readable layouts for repeated property-management work.
+- Use the shadcnblocks admin dashboard reference for the visual direction: `https://shadcnblocks-admin.vercel.app/ecommerce/dashboard-1`. Match its calm left sidebar, slim top bar, rounded metric cards, bordered chart panels, compact spacing, and monochrome-first SaaS feel while adapting labels/data to smart utilities.
 - Use accessible shadcn/ui components and lucide icons where appropriate.
 - Include loading, empty, error, and stale-data states.
 - Keep charts tied to real dashboard questions: usage, cost, anomalies, device health, and trends.
