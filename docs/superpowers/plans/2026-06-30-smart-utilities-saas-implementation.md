@@ -486,20 +486,20 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write failing test for accepted water reading.
-- [ ] Implement accepted water reading ingestion.
-- [ ] Write failing test for accepted electric reading.
-- [ ] Implement accepted electric reading ingestion.
-- [ ] Write failing test for duplicate meter timestamp.
-- [ ] Implement idempotent duplicate behavior.
-- [ ] Write failing test for unknown `meterExternalId`.
-- [ ] Implement unknown meter rejection.
-- [ ] Write failing test for invalid unit by utility type.
-- [ ] Implement utility/unit compatibility validation.
-- [ ] Write failing test for negative values.
-- [ ] Implement negative value rejection.
-- [ ] Write failing test for stale measured timestamp policy.
-- [ ] Implement stale timestamp validation.
+- [x] Write failing test for accepted water reading.
+- [x] Implement accepted water reading ingestion.
+- [x] Write failing test for accepted electric reading.
+- [x] Implement accepted electric reading ingestion.
+- [x] Write failing test for duplicate meter timestamp.
+- [x] Implement idempotent duplicate behavior.
+- [x] Write failing test for unknown `meterExternalId`.
+- [x] Implement unknown meter rejection.
+- [x] Write failing test for invalid unit by utility type.
+- [x] Implement utility/unit compatibility validation.
+- [x] Write failing test for negative values.
+- [x] Implement negative value rejection.
+- [x] Write failing test for stale measured timestamp policy.
+- [x] Implement stale timestamp validation.
 
 **Required tests:**
 

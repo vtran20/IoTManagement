@@ -7,6 +7,7 @@ import { HealthController } from "./health/health.controller";
 import { MetersModule } from "./meters/meters.module";
 import { PersistenceModule } from "./persistence/persistence.module";
 import { PortfolioModule } from "./portfolio/portfolio.module";
+import { ReadingsModule } from "./readings/readings.module";
 import { TenantsModule } from "./tenants/tenants.module";
 
 @Module({
@@ -17,6 +18,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     TenantsModule,
     PortfolioModule,
     MetersModule,
+    ReadingsModule,
   ],
   providers: [
     {

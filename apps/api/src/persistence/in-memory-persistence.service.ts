@@ -3,10 +3,15 @@ import type {
   Floor,
   Membership,
   Meter,
+  MeterReading,
   Organization,
+  ReadingKind,
+  ReadingQuality,
+  ReadingUnit,
   Unit,
   User,
   UserRole,
+  UtilityType,
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
@@ -21,6 +26,7 @@ export class InMemoryPersistenceService {
     building: 1,
     floor: 1,
     meter: 1,
+    reading: 1,
     unit: 1,
   };
 
@@ -113,6 +119,7 @@ export class InMemoryPersistenceService {
   ];
 
   private readonly meters: Meter[] = [];
+  private readonly readings: MeterReading[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -345,7 +352,10 @@ export class InMemoryPersistenceService {
     organizationId: string,
     meterId: string,
     input: Partial<
-      Pick<Meter, "floorId" | "installedAt" | "status" | "unitId">
+      Pick<
+        Meter,
+        "floorId" | "installedAt" | "lastReadingAt" | "status" | "unitId"
+      >
     >,
   ): Meter | undefined {
     const meter = this.findMeterById(organizationId, meterId);
@@ -354,6 +364,63 @@ export class InMemoryPersistenceService {
     }
     Object.assign(meter, input);
     return meter;
+  }
+
+  findReadingByMeterAndMeasuredAt(
+    organizationId: string,
+    meterId: string,
+    measuredAt: string,
+  ): MeterReading | undefined {
+    return this.readings.find(
+      (reading) =>
+        reading.organizationId === organizationId &&
+        reading.meterId === meterId &&
+        reading.measuredAt === measuredAt,
+    );
+  }
+
+  createReading(input: {
+    measuredAt: string;
+    meterId: string;
+    organizationId: string;
+    quality?: ReadingQuality;
+    readingKind: ReadingKind;
+    receivedAt: string;
+    unit: ReadingUnit;
+    utilityType: UtilityType;
+    value: number;
+  }): MeterReading {
+    const reading: MeterReading = {
+      id: this.nextId("reading", input.meterId),
+      organizationId: input.organizationId,
+      meterId: input.meterId,
+      measuredAt: input.measuredAt,
+      utilityType: input.utilityType,
+      value: input.value,
+      unit: input.unit,
+      readingKind: input.readingKind,
+      quality: input.quality ?? "good",
+      receivedAt: input.receivedAt,
+    };
+    this.readings.push(reading);
+    return reading;
+  }
+
+  listReadings(input: {
+    from?: string;
+    meterId: string;
+    organizationId: string;
+    to?: string;
+  }): MeterReading[] {
+    return this.readings
+      .filter(
+        (reading) =>
+          reading.organizationId === input.organizationId &&
+          reading.meterId === input.meterId &&
+          (!input.from || reading.measuredAt >= input.from) &&
+          (!input.to || reading.measuredAt <= input.to),
+      )
+      .sort((left, right) => left.measuredAt.localeCompare(right.measuredAt));
   }
 
   private createUser(id: string, email: string, name: string): StoredUser {
