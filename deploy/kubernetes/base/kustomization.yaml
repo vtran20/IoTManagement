@@ -6,3 +6,11 @@ resources:
   - configmap.yaml
   - postgres.yaml
   - redis.yaml
+  - migration-job.yaml
+  - api-deployment.yaml
+  - api-service.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - worker-deployment.yaml
+  - ingress.yaml
+  - networkpolicy.yaml

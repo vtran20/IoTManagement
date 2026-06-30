@@ -8,6 +8,7 @@
     "dev": "next dev",
     "lint": "prettier --check \"app/**/*.{ts,tsx}\" \"components/**/*.tsx\" \"features/**/*.tsx\" \"lib/**/*.ts\" \"tests/**/*.ts\"",
     "start": "next start",
+    "start:prod": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc -p tsconfig.json --noEmit"

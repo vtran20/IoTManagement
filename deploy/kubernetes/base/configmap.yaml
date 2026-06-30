@@ -5,7 +5,9 @@ metadata:
   labels:
     app.kubernetes.io/part-of: iot-management
 data:
-  NODE_ENV: development
+  API_PORT: "3001"
+  NODE_ENV: production
+  WEB_PORT: "3000"
   POSTGRES_HOST: postgres
   POSTGRES_PORT: "5432"
   POSTGRES_DB: iot_management

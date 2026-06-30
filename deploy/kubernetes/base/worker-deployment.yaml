@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: iot-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: worker
+        app.kubernetes.io/part-of: iot-management
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          image: iot-management/api:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - node
+            - apps/api/dist/worker.js
+          envFrom:
+            - configMapRef:
+                name: iot-management-config
+            - secretRef:
+                name: iot-management-secrets
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - new URL(process.env.REDIS_URL); process.exit(0)
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - new URL(process.env.REDIS_URL); process.exit(0)
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 75m
+              memory: 192Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi

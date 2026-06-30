@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: iot-management-production
+resources:
+  - ../../base
+images:
+  - name: iot-management/api
+    newTag: production
+  - name: iot-management/web-dashboard
+    newTag: production
+patches:
+  - target:
+      kind: Namespace
+      name: iot-management
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: iot-management-production
+  - target:
+      kind: Deployment
+      name: api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: Deployment
+      name: web
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: Deployment
+      name: worker
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2

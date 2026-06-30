@@ -1,66 +1,28 @@
-# Local Kubernetes Setup
+# Kubernetes Manifests
 
-This directory contains Kubernetes manifests for local and future environment deployments.
+This directory contains Kustomize manifests for the smart utilities SaaS.
 
-The current local overlay targets Rancher Desktop's Kubernetes cluster and starts the shared infrastructure needed by the SaaS:
+Current workloads:
 
-- Namespace: `iot-management`
-- PostgreSQL service: `postgres` with ephemeral `emptyDir` storage for local testing
-- Redis service: `redis`
+- PostgreSQL and Redis for local validation.
+- API Deployment and Service.
+- Web dashboard Deployment and Service.
+- Worker Deployment.
+- Migration Job.
+- Ingress routing `/api` to the API and `/` to the dashboard.
+- NetworkPolicies limiting PostgreSQL and Redis ingress to application workloads.
 
-Application workloads for the API, dashboard, workers, and migration Job will be added after the app scaffolds exist.
-
-## Validate
+Validate locally:
 
 ```bash
 kubectl apply --dry-run=client -k deploy/kubernetes/overlays/local
 ```
 
-## Apply
+Render non-production or production:
 
 ```bash
-kubectl apply -k deploy/kubernetes/overlays/local
-kubectl -n iot-management get pods,svc
+kubectl kustomize deploy/kubernetes/overlays/non-production
+kubectl kustomize deploy/kubernetes/overlays/production
 ```
 
-## Local Ports
-
-Use port-forwarding from another terminal when local tools need database or Redis access:
-
-```bash
-kubectl -n iot-management port-forward svc/postgres 5432:5432
-kubectl -n iot-management port-forward svc/redis 6379:6379
-```
-
-Local development connection values:
-
-```text
-PostgreSQL host: localhost
-PostgreSQL port: 5432
-PostgreSQL database: iot_management
-PostgreSQL user: iot_local
-PostgreSQL password: iot_local_password
-
-Redis host: localhost
-Redis port: 6379
-```
-
-These credentials are for local development only.
-
-## Image Pull Troubleshooting
-
-Rancher Desktop must be able to pull these images, or they must already exist in its Docker runtime:
-
-```bash
-docker pull postgres:16-alpine
-docker pull redis:7.2-alpine
-```
-
-If these commands time out, check Rancher Desktop networking, VPN, proxy, or firewall settings before retrying the Kubernetes rollout.
-
-After image access is fixed, restart the local workloads:
-
-```bash
-kubectl -n iot-management rollout restart deployment/postgres deployment/redis
-kubectl -n iot-management get pods,svc
-```
+The file `base/secret.example.yaml` documents the required Secret shape. Do not commit real secrets.

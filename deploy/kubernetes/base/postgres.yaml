@@ -48,12 +48,12 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: iot-management-local-secrets
+                  name: iot-management-secrets
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: iot-management-local-secrets
+                  name: iot-management-secrets
                   key: POSTGRES_PASSWORD
           readinessProbe:
             exec:

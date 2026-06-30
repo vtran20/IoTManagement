@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+dist
+coverage
+test-results
+playwright-report
+*.log
+apps/**/.next
+apps/**/node_modules
+apps/**/dist
+packages/**/node_modules
+packages/**/dist

@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-const secret = process.env.AUTH_TOKEN_SECRET ?? "local-phase-3-secret";
+const secret =
+  process.env.JWT_SESSION_SECRET ??
+  process.env.AUTH_TOKEN_SECRET ??
+  "local-development-session-secret";
 
 interface TokenPayload {
   userId: string;
