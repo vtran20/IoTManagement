@@ -161,6 +161,42 @@ export interface ListReadingsQuery extends PageRequest {
 
 export type ReadingResponse = MeterReading;
 
+export const simulationScenarios = [
+  "normal",
+  "leak",
+  "spike",
+  "offline",
+] as const;
+export type SimulationScenario = (typeof simulationScenarios)[number];
+
+export interface RunSimulationRequest {
+  intervalMinutes?: number;
+  intervals?: number;
+  meterExternalIds?: string[];
+  offlineMeterExternalIds?: string[];
+  scenario?: SimulationScenario;
+  seed?: string;
+  startAt?: ISODateTime;
+}
+
+export interface SimulationMeterResult {
+  acceptedCount: number;
+  duplicateCount: number;
+  externalId: string;
+  generatedCount: number;
+  meterId: EntityId;
+  skipped: boolean;
+  utilityType: UtilityType;
+}
+
+export interface RunSimulationResponse {
+  acceptedCount: number;
+  duplicateCount: number;
+  generatedCount: number;
+  meters: SimulationMeterResult[];
+  skippedCount: number;
+}
+
 export interface ListUsageQuery extends PageRequest {
   buildingId?: EntityId;
   unitId?: EntityId;

@@ -22,6 +22,8 @@ import type {
   PageResponse,
   ReadingResponse,
   ReportResponse,
+  RunSimulationRequest,
+  RunSimulationResponse,
   UnitResponse,
   UpdateAlertRuleRequest,
   UpdateBuildingRequest,
@@ -94,6 +96,10 @@ export function createEndpoints(client: ApiClient) {
     readings: {
       ingest: (body: IngestReadingRequest) =>
         client.post<IngestReadingResponse>("/readings/ingest", { body }),
+    },
+    simulations: {
+      run: (body: RunSimulationRequest) =>
+        client.post<RunSimulationResponse>("/simulations/run", { body }),
     },
     reports: {
       create: (body: CreateReportRequest) =>

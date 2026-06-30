@@ -8,6 +8,7 @@ import { MetersModule } from "./meters/meters.module";
 import { PersistenceModule } from "./persistence/persistence.module";
 import { PortfolioModule } from "./portfolio/portfolio.module";
 import { ReadingsModule } from "./readings/readings.module";
+import { SimulationsModule } from "./simulations/simulations.module";
 import { TenantsModule } from "./tenants/tenants.module";
 
 @Module({
@@ -19,6 +20,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     PortfolioModule,
     MetersModule,
     ReadingsModule,
+    SimulationsModule,
   ],
   providers: [
     {

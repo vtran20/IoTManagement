@@ -543,18 +543,18 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write failing unit test for deterministic water readings with the same seed.
-- [ ] Implement seeded water reading generation.
-- [ ] Write failing unit test for deterministic electric readings with the same seed.
-- [ ] Implement seeded electric reading generation.
-- [ ] Write failing unit test for high-usage spike scenario.
-- [ ] Implement spike scenario.
-- [ ] Write failing unit test for leak scenario.
-- [ ] Implement leak scenario.
-- [ ] Write failing unit test for offline meter scenario.
-- [ ] Implement offline scenario.
-- [ ] Write failing integration test proving simulation calls ingestion.
-- [ ] Implement simulation run endpoint.
+- [x] Write failing unit test for deterministic water readings with the same seed.
+- [x] Implement seeded water reading generation.
+- [x] Write failing unit test for deterministic electric readings with the same seed.
+- [x] Implement seeded electric reading generation.
+- [x] Write failing unit test for high-usage spike scenario.
+- [x] Implement spike scenario.
+- [x] Write failing unit test for leak scenario.
+- [x] Implement leak scenario.
+- [x] Write failing unit test for offline meter scenario.
+- [x] Implement offline scenario.
+- [x] Write failing integration test proving simulation calls ingestion.
+- [x] Implement simulation run endpoint.
 
 **Required tests:**
 

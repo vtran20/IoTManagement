@@ -8,6 +8,7 @@ import { ReadingsService } from "./readings.service";
 
 @Module({
   controllers: [ReadingsController],
+  exports: [ReadingsService],
   imports: [AuthModule, PersistenceModule],
   providers: [MeterHealthService, ReadingValidationService, ReadingsService],
 })
