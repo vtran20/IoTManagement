@@ -11,6 +11,7 @@ import type { Response } from "express";
 import { AuthGuard } from "../common/guards/auth.guard";
 import { Roles, RolesGuard } from "../common/guards/roles.guard";
 import { RequestWithContext } from "../common/request-context";
+import { DemoSeedService } from "./demo-seed.service";
 import { RunSimulationDto } from "./dto/run-simulation.dto";
 import { SimulationsService } from "./simulations.service";
 
@@ -20,7 +21,20 @@ export class SimulationsController {
   constructor(
     @Inject(SimulationsService)
     private readonly simulationsService: SimulationsService,
+    @Inject(DemoSeedService)
+    private readonly demoSeedService: DemoSeedService,
   ) {}
+
+  @Post("demo-seed")
+  @Roles("owner", "manager")
+  demoSeed(
+    @Req() request: RequestWithContext,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = this.demoSeedService.seed(request.context!);
+    response.status(result.acceptedReadingCount > 0 ? 201 : 200);
+    return result;
+  }
 
   @Post("run")
   @Roles("owner", "manager")

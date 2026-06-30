@@ -7,6 +7,7 @@ import type {
   CreateReportRequest,
   CreateUnitRequest,
   DeviceHealthResponse,
+  DemoSeedResponse,
   DashboardSummaryResponse,
   DashboardAlertsResponse,
   BuildingBreakdownItem,
@@ -18,6 +19,8 @@ import type {
   ListAlertsQuery,
   ListBuildingsQuery,
   ListMetersQuery,
+  MonthlyUsageReportQuery,
+  MonthlyUsageReportResponse,
   ListReadingsQuery,
   ListReportsQuery,
   ListUnitsQuery,
@@ -129,6 +132,7 @@ export function createEndpoints(client: ApiClient) {
         client.post<IngestReadingResponse>("/readings/ingest", { body }),
     },
     simulations: {
+      demoSeed: () => client.post<DemoSeedResponse>("/simulations/demo-seed"),
       run: (body: RunSimulationRequest) =>
         client.post<RunSimulationResponse>("/simulations/run", { body }),
     },
@@ -139,6 +143,10 @@ export function createEndpoints(client: ApiClient) {
         client.get<ReportResponse>(`/reports/${reportId}`),
       list: (query?: ListReportsQuery) =>
         client.get<PageResponse<ReportResponse>>("/reports", { query }),
+      monthlyUsage: (query: MonthlyUsageReportQuery) =>
+        client.get<MonthlyUsageReportResponse>("/reports/monthly-usage", {
+          query,
+        }),
     },
     units: {
       create: (body: CreateUnitRequest) =>

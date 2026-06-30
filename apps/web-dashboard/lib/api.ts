@@ -2,6 +2,7 @@ import type {
   AlertEvent,
   Building,
   DeviceHealthItem,
+  MonthlyUsageReportResponse,
   Unit,
   UtilityType,
 } from "@iot-management/types";
@@ -134,6 +135,49 @@ export const reportRows: DemoReportRow[] = [
     waterGallons: 74220,
   },
 ];
+
+export const monthlyUsageReport: MonthlyUsageReportResponse = {
+  columns: [
+    { key: "buildingName", label: "Building" },
+    { key: "unitName", label: "Unit" },
+    { key: "waterGallons", label: "Water (gal)" },
+    { key: "electricKwh", label: "Electric (kWh)" },
+    { key: "estimatedCost", label: "Estimated cost" },
+  ],
+  format: "json",
+  generatedAt: "2026-06-30T09:00:00.000Z",
+  id: "monthly_usage_org_north_2026_06",
+  organizationId: "org_north",
+  periodEnd: "2026-07-01T00:00:00.000Z",
+  periodStart: "2026-06-01T00:00:00.000Z",
+  reportType: "usage_summary",
+  rows: [
+    {
+      buildingId: "building_north_ridge",
+      buildingName:
+        "North Ridge Mixed Use Building With A Very Long Operational Name",
+      electricKwh: 42817,
+      estimatedCost: 1284.4,
+      unitId: "unit_1201",
+      unitName: "Apartment 1201 With Long Tenant Label",
+      waterGallons: 128440,
+    },
+    {
+      buildingId: "building_lakeview",
+      buildingName: "Lakeview Apartments",
+      electricKwh: 29118,
+      estimatedCost: 842.18,
+      unitId: "unit_0802",
+      unitName: "Unit 802",
+      waterGallons: 74220,
+    },
+  ],
+  totals: {
+    electricKwh: 71935,
+    estimatedCost: 2126.58,
+    waterGallons: 202660,
+  },
+};
 
 export const overview = {
   alertCount: 2,

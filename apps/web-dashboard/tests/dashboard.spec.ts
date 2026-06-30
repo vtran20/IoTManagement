@@ -94,7 +94,9 @@ test("portfolio tables stay readable with long names", async ({ page }) => {
 test("reports and settings pages support demo operations", async ({ page }) => {
   await page.goto("/reports");
   await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
-  await expect(page.getByText("June 2026 Monthly Usage")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Monthly Usage Report" }),
+  ).toBeVisible();
   await expect(page.getByText("$1,284.40")).toBeVisible();
 
   await page.goto("/settings");

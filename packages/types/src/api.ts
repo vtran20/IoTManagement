@@ -197,6 +197,16 @@ export interface RunSimulationResponse {
   skippedCount: number;
 }
 
+export interface DemoSeedResponse {
+  acceptedReadingCount: number;
+  aggregateCount: number;
+  buildingCount: number;
+  duplicateReadingCount: number;
+  meterCount: number;
+  reportMonth: string;
+  unitCount: number;
+}
+
 export interface ListUsageQuery extends PageRequest {
   buildingId?: EntityId;
   unitId?: EntityId;
@@ -269,4 +279,47 @@ export interface ReportResponse {
 export interface ListReportsQuery extends PageRequest {
   reportType?: ReportType;
   status?: ReportResponse["status"];
+}
+
+export interface MonthlyUsageReportQuery {
+  buildingId?: EntityId;
+  month: string;
+  unitId?: EntityId;
+}
+
+export interface MonthlyUsageReportColumn {
+  key:
+    | "buildingName"
+    | "unitName"
+    | "waterGallons"
+    | "electricKwh"
+    | "estimatedCost";
+  label: string;
+}
+
+export interface MonthlyUsageReportRow {
+  buildingId: EntityId;
+  buildingName: string;
+  electricKwh: number;
+  estimatedCost: number;
+  unitId?: EntityId;
+  unitName: string;
+  waterGallons: number;
+}
+
+export interface MonthlyUsageReportResponse {
+  columns: MonthlyUsageReportColumn[];
+  format: "json";
+  generatedAt: ISODateTime;
+  id: EntityId;
+  organizationId: EntityId;
+  periodEnd: ISODateTime;
+  periodStart: ISODateTime;
+  reportType: "usage_summary";
+  rows: MonthlyUsageReportRow[];
+  totals: {
+    electricKwh: number;
+    estimatedCost: number;
+    waterGallons: number;
+  };
 }
