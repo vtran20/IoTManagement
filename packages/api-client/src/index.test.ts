@@ -17,6 +17,9 @@ describe("createApiClient", () => {
       status: "ok",
       service: "iot-management-api",
     });
-    expect(fetcher).toHaveBeenCalledWith("http://localhost:3001/api/v1/health");
+    expect(fetcher).toHaveBeenCalledWith(
+      "http://localhost:3001/api/v1/health",
+      expect.objectContaining({ method: "GET" }),
+    );
   });
 });

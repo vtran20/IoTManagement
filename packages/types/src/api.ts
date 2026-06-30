@@ -1,0 +1,223 @@
+import type {
+  AlertEvent,
+  AlertRule,
+  AlertSeverity,
+  AlertStatus,
+  Building,
+  EntityId,
+  Floor,
+  ISODateTime,
+  Meter,
+  MeterReading,
+  MeterSource,
+  MeterStatus,
+  ReadingKind,
+  ReadingUnit,
+  Unit,
+  UsageAggregate,
+  User,
+  UtilityType,
+} from "./domain";
+
+export interface HealthResponse {
+  status: "ok";
+  service: string;
+}
+
+export interface ApiErrorDetail {
+  field?: string;
+  message: string;
+}
+
+export interface ApiErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    details?: ApiErrorDetail[];
+  };
+}
+
+export interface PageRequest {
+  cursor?: string;
+  limit?: number;
+}
+
+export interface PageResponse<T> {
+  items: T[];
+  nextCursor?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  user: User;
+}
+
+export interface CurrentUserResponse {
+  user: User;
+}
+
+export interface CreateBuildingRequest {
+  name: string;
+  address?: string;
+  timezone: string;
+}
+
+export interface UpdateBuildingRequest {
+  name?: string;
+  address?: string;
+  timezone?: string;
+}
+
+export interface ListBuildingsQuery extends PageRequest {
+  search?: string;
+}
+
+export type BuildingResponse = Building;
+
+export interface CreateUnitRequest {
+  buildingId: EntityId;
+  floorId?: EntityId;
+  name: string;
+  occupancyStatus?: Unit["occupancyStatus"];
+}
+
+export interface UpdateUnitRequest {
+  floorId?: EntityId;
+  name?: string;
+  occupancyStatus?: Unit["occupancyStatus"];
+}
+
+export interface ListUnitsQuery extends PageRequest {
+  buildingId?: EntityId;
+  floorId?: EntityId;
+}
+
+export type UnitResponse = Unit;
+export type FloorResponse = Floor;
+
+export interface CreateMeterRequest {
+  buildingId: EntityId;
+  floorId?: EntityId;
+  unitId?: EntityId;
+  utilityType: UtilityType;
+  source: MeterSource;
+  externalId: string;
+  installedAt?: ISODateTime;
+}
+
+export interface UpdateMeterRequest {
+  floorId?: EntityId;
+  unitId?: EntityId;
+  status?: MeterStatus;
+  installedAt?: ISODateTime;
+}
+
+export interface ListMetersQuery extends PageRequest {
+  buildingId?: EntityId;
+  unitId?: EntityId;
+  status?: MeterStatus;
+  utilityType?: UtilityType;
+}
+
+export type MeterResponse = Meter;
+
+export interface IngestReadingRequest {
+  meterExternalId: string;
+  measuredAt: ISODateTime;
+  utilityType: UtilityType;
+  value: number;
+  unit: ReadingUnit;
+  readingKind: ReadingKind;
+}
+
+export interface IngestReadingResponse {
+  reading: MeterReading;
+  accepted: boolean;
+  duplicate: boolean;
+}
+
+export interface ListReadingsQuery extends PageRequest {
+  from?: ISODateTime;
+  to?: ISODateTime;
+}
+
+export type ReadingResponse = MeterReading;
+
+export interface ListUsageQuery extends PageRequest {
+  buildingId?: EntityId;
+  unitId?: EntityId;
+  meterId?: EntityId;
+  utilityType?: UtilityType;
+  from?: ISODateTime;
+  to?: ISODateTime;
+}
+
+export type UsageAggregateResponse = UsageAggregate;
+
+export type AlertRuleResponse = AlertRule;
+export type AlertEventResponse = AlertEvent;
+
+export interface ListAlertsQuery extends PageRequest {
+  status?: AlertStatus;
+  severity?: AlertSeverity;
+}
+
+export interface CreateAlertRuleRequest {
+  name: string;
+  utilityType?: UtilityType;
+  scopeType: AlertRule["scopeType"];
+  scopeId?: EntityId;
+  conditionType: AlertRule["conditionType"];
+  threshold?: number;
+  windowMinutes: number;
+  enabled?: boolean;
+}
+
+export interface UpdateAlertRuleRequest {
+  name?: string;
+  threshold?: number;
+  windowMinutes?: number;
+  enabled?: boolean;
+}
+
+export const reportTypes = [
+  "usage_summary",
+  "billing_export",
+  "device_health",
+  "alerts",
+] as const;
+export type ReportType = (typeof reportTypes)[number];
+
+export const reportFormats = ["csv", "pdf", "json"] as const;
+export type ReportFormat = (typeof reportFormats)[number];
+
+export interface CreateReportRequest {
+  reportType: ReportType;
+  format: ReportFormat;
+  from: ISODateTime;
+  to: ISODateTime;
+  buildingId?: EntityId;
+  unitId?: EntityId;
+  utilityType?: UtilityType;
+}
+
+export interface ReportResponse {
+  id: EntityId;
+  organizationId: EntityId;
+  reportType: ReportType;
+  format: ReportFormat;
+  status: "queued" | "running" | "completed" | "failed";
+  downloadUrl?: string;
+  createdAt: ISODateTime;
+  completedAt?: ISODateTime;
+}
+
+export interface ListReportsQuery extends PageRequest {
+  reportType?: ReportType;
+  status?: ReportResponse["status"];
+}

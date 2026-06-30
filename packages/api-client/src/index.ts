@@ -1,23 +1,15 @@
-import type { HealthResponse } from "@iot-management/types";
+import type { ApiClientOptions } from "./client";
+import { createApiClient as createVersionedClient } from "./client";
+import { createEndpoints } from "./endpoints";
 
-export interface ApiClientOptions {
-  baseUrl: string;
-  fetcher?: typeof fetch;
-}
+export * from "./client";
+export * from "./endpoints";
 
-export function createApiClient({
-  baseUrl,
-  fetcher = fetch,
-}: ApiClientOptions) {
-  const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
+export function createApiClient(options: ApiClientOptions) {
+  const client = createVersionedClient(options);
 
   return {
-    async health(): Promise<HealthResponse> {
-      const response = await fetcher(`${normalizedBaseUrl}/api/v1/health`);
-      if (!response.ok) {
-        throw new Error(`Health request failed with status ${response.status}`);
-      }
-      return response.json() as Promise<HealthResponse>;
-    },
+    ...client,
+    ...createEndpoints(client),
   };
 }

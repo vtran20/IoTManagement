@@ -328,11 +328,11 @@ docker compose up -d postgres redis
 
 **Implementation tasks:**
 
-- [ ] Write tests for domain enum values.
-- [ ] Define `UtilityType`, `MeterStatus`, `ReadingKind`, `ReadingQuality`, roles, alert statuses, and alert severities.
-- [ ] Define shared request and response contracts for auth, buildings, units, meters, readings, dashboard summaries, alerts, and reports.
-- [ ] Write tests for API client URL construction.
-- [ ] Implement an API client that accepts `baseUrl`, `fetch`, and auth options.
+- [x] Write tests for domain enum values.
+- [x] Define `UtilityType`, `MeterStatus`, `ReadingKind`, `ReadingQuality`, roles, alert statuses, and alert severities.
+- [x] Define shared request and response contracts for auth, buildings, units, meters, readings, dashboard summaries, alerts, and reports.
+- [x] Write tests for API client URL construction.
+- [x] Implement an API client that accepts `baseUrl`, `fetch`, and auth options.
 
 **Required tests:**
 
