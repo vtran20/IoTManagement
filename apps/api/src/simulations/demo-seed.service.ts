@@ -1,6 +1,9 @@
 import type {
+  AlertEvent,
+  AlertRule,
   Building,
   DemoSeedResponse,
+  Floor,
   Meter,
   Unit,
 } from "@iot-management/types";
@@ -12,6 +15,18 @@ import {
   PersistenceService,
 } from "../persistence/persistence.service";
 import { ReadingsService } from "../readings/readings.service";
+import {
+  demoAlertEventFixtures,
+  demoAlertRuleFixtures,
+  demoBuildings,
+  demoCounts,
+  demoFloorFixtures,
+  demoMeterFinalStatus,
+  demoMeterFixtures,
+  demoReadingsForMeters,
+  demoReportMonth,
+  demoUnitFixtures,
+} from "./demo-fixtures";
 
 @Injectable()
 export class DemoSeedService {
@@ -26,41 +41,53 @@ export class DemoSeedService {
 
   async seed(context: RequestContext): Promise<DemoSeedResponse> {
     const organizationId = context.organization.id;
-    const northRidge = await this.ensureBuilding(
-      organizationId,
-      "Demo North Ridge",
-      "100 Demo Main St",
-    );
-    const lakeview = await this.ensureBuilding(
-      organizationId,
-      "Demo Lakeview Apartments",
-      "18 Demo Lakeview Ave",
-    );
-    const unit1201 = await this.ensureUnit(organizationId, northRidge, "1201");
-    const unit802 = await this.ensureUnit(organizationId, lakeview, "802");
+    const buildingsByKey = new Map<string, Building>();
+    for (const fixture of demoBuildings) {
+      buildingsByKey.set(
+        fixture.key,
+        await this.ensureBuilding(organizationId, fixture),
+      );
+    }
 
-    const meters = [
-      await this.ensureMeter(organizationId, northRidge, unit1201, {
-        externalId: "demo-seed-water-1201",
-        utilityType: "water",
-      }),
-      await this.ensureMeter(organizationId, northRidge, unit1201, {
-        externalId: "demo-seed-electric-1201",
-        utilityType: "electric",
-      }),
-      await this.ensureMeter(organizationId, lakeview, unit802, {
-        externalId: "demo-seed-water-0802",
-        utilityType: "water",
-      }),
-      await this.ensureMeter(organizationId, lakeview, unit802, {
-        externalId: "demo-seed-electric-0802",
-        utilityType: "electric",
-      }),
-    ];
+    const floorsByBuildingAndName = new Map<string, Floor>();
+    for (const fixture of demoFloorFixtures()) {
+      const building = buildingsByKey.get(fixture.buildingKey)!;
+      const floor = await this.ensureFloor(organizationId, building, fixture);
+      floorsByBuildingAndName.set(floorKey(building.id, floor.name), floor);
+    }
+
+    const unitsByBuildingAndName = new Map<string, Unit>();
+    for (const fixture of demoUnitFixtures()) {
+      const building = buildingsByKey.get(fixture.buildingKey)!;
+      const floor = floorsByBuildingAndName.get(
+        floorKey(building.id, fixture.floorName),
+      );
+      const unit = await this.ensureUnit(
+        organizationId,
+        building,
+        fixture,
+        floor,
+      );
+      unitsByBuildingAndName.set(unitKey(building.id, unit.name), unit);
+    }
+
+    const meters: Meter[] = [];
+    for (const fixture of demoMeterFixtures()) {
+      const building = buildingsByKey.get(fixture.buildingKey)!;
+      const floor = fixture.floorName
+        ? floorsByBuildingAndName.get(floorKey(building.id, fixture.floorName))
+        : undefined;
+      const unit = fixture.unitName
+        ? unitsByBuildingAndName.get(unitKey(building.id, fixture.unitName))
+        : undefined;
+      meters.push(
+        await this.ensureMeter(organizationId, building, fixture, floor, unit),
+      );
+    }
 
     let acceptedReadingCount = 0;
     let duplicateReadingCount = 0;
-    for (const reading of demoReadings) {
+    for (const reading of demoReadingsForMeters(meters)) {
       const result = await this.readingsService.ingest(context, reading);
       if (result.duplicate) {
         duplicateReadingCount += 1;
@@ -69,39 +96,87 @@ export class DemoSeedService {
       }
     }
 
-    const aggregates = await this.aggregationService.aggregate({
-      organizationId,
-      periodType: "month",
-    });
+    for (const meter of meters) {
+      const status = demoMeterFinalStatus(meter.externalId);
+      if (status !== "online") {
+        await this.persistence.updateMeter(organizationId, meter.id, {
+          status,
+        });
+      }
+    }
+
+    const aggregates = [
+      ...(await this.aggregationService.aggregate({
+        organizationId,
+        periodType: "hour",
+      })),
+      ...(await this.aggregationService.aggregate({
+        organizationId,
+        periodType: "day",
+      })),
+      ...(await this.aggregationService.aggregate({
+        organizationId,
+        periodType: "month",
+      })),
+    ];
+
+    const rules = await this.ensureAlertRules(organizationId);
+    const events = await this.ensureAlertEvents(organizationId, rules);
+    const counts = demoCounts();
 
     return {
       acceptedReadingCount,
       aggregateCount: aggregates.filter((aggregate) =>
         meters.some((meter) => meter.id === aggregate.meterId),
       ).length,
-      buildingCount: 2,
+      alertEventCount: events.length,
+      alertRuleCount: rules.length,
+      buildingCount: counts.buildingCount,
       duplicateReadingCount,
+      floorCount: counts.floorCount,
       meterCount: meters.length,
-      reportMonth: "2026-06",
-      unitCount: 2,
+      reportMonth: demoReportMonth,
+      unitCount: counts.unitCount,
     };
+  }
+
+  async resetDemoData(context: RequestContext): Promise<void> {
+    await this.persistence.resetDemoData(context.organization.id);
   }
 
   private async ensureBuilding(
     organizationId: string,
-    name: string,
-    address: string,
+    fixture: (typeof demoBuildings)[number],
   ): Promise<Building> {
     const existing = (
       await this.persistence.listBuildings(organizationId)
-    ).find((building) => building.name === name);
+    ).find((building) => building.name === fixture.name);
     return (
       existing ??
       (await this.persistence.createBuilding({
-        address,
-        name,
+        address: fixture.address,
+        name: fixture.name,
         organizationId,
-        timezone: "America/Detroit",
+        timezone: fixture.timezone,
+      }))
+    );
+  }
+
+  private async ensureFloor(
+    organizationId: string,
+    building: Building,
+    fixture: ReturnType<typeof demoFloorFixtures>[number],
+  ): Promise<Floor> {
+    const existing = (
+      await this.persistence.listFloors(organizationId, building.id)
+    ).find((floor) => floor.name === fixture.name);
+    return (
+      existing ??
+      (await this.persistence.createFloor({
+        buildingId: building.id,
+        level: fixture.level,
+        name: fixture.name,
+        organizationId,
       }))
     );
   }
@@ -109,20 +184,22 @@ export class DemoSeedService {
   private async ensureUnit(
     organizationId: string,
     building: Building,
-    name: string,
+    fixture: ReturnType<typeof demoUnitFixtures>[number],
+    floor?: Floor,
   ): Promise<Unit> {
     const existing = (
       await this.persistence.listUnits({
         buildingId: building.id,
         organizationId,
       })
-    ).find((unit) => unit.name === name);
+    ).find((unit) => unit.name === fixture.name);
     return (
       existing ??
       (await this.persistence.createUnit({
         buildingId: building.id,
-        name,
-        occupancyStatus: "occupied",
+        floorId: floor?.id,
+        name: fixture.name,
+        occupancyStatus: fixture.occupancyStatus,
         organizationId,
       }))
     );
@@ -131,58 +208,79 @@ export class DemoSeedService {
   private async ensureMeter(
     organizationId: string,
     building: Building,
-    unit: Unit,
-    input: Pick<Meter, "externalId" | "utilityType">,
+    fixture: ReturnType<typeof demoMeterFixtures>[number],
+    floor?: Floor,
+    unit?: Unit,
   ): Promise<Meter> {
     const existing = await this.persistence.findMeterByExternalId(
       organizationId,
-      input.externalId,
+      fixture.externalId,
     );
     return (
       existing ??
       (await this.persistence.createMeter({
         buildingId: building.id,
-        externalId: input.externalId,
+        externalId: fixture.externalId,
+        floorId: floor?.id,
+        installedAt: fixture.installedAt,
         organizationId,
         source: "simulated",
-        unitId: unit.id,
-        utilityType: input.utilityType,
+        status: fixture.status,
+        unitId: unit?.id,
+        utilityType: fixture.utilityType,
       }))
     );
   }
+
+  private async ensureAlertRules(organizationId: string): Promise<AlertRule[]> {
+    const existing = await this.persistence.listAlertRules({ organizationId });
+    const rules: AlertRule[] = [];
+    for (const fixture of demoAlertRuleFixtures) {
+      const current = existing.find((rule) => rule.name === fixture.name);
+      rules.push(
+        current ??
+          (await this.persistence.createAlertRule({
+            ...fixture,
+            organizationId,
+          })),
+      );
+    }
+    return rules;
+  }
+
+  private async ensureAlertEvents(
+    organizationId: string,
+    rules: AlertRule[],
+  ): Promise<AlertEvent[]> {
+    const existing = await this.persistence.listAlertEvents({ organizationId });
+    const events: AlertEvent[] = [];
+    for (const fixture of demoAlertEventFixtures) {
+      const rule = rules.find(
+        (candidate) => candidate.name === fixture.ruleName,
+      );
+      const current = existing.find(
+        (event) => event.ruleId === rule?.id && event.title === fixture.title,
+      );
+      events.push(
+        current ??
+          (await this.persistence.createAlertEvent({
+            message: fixture.message,
+            organizationId,
+            ruleId: rule?.id,
+            severity: fixture.severity,
+            title: fixture.title,
+            triggeredAt: fixture.triggeredAt,
+          })),
+      );
+    }
+    return events;
+  }
 }
 
-const demoReadings = [
-  {
-    measuredAt: "2026-06-15T12:00:00.000Z",
-    meterExternalId: "demo-seed-water-1201",
-    readingKind: "interval" as const,
-    unit: "gallon" as const,
-    utilityType: "water" as const,
-    value: 100,
-  },
-  {
-    measuredAt: "2026-06-15T12:00:00.000Z",
-    meterExternalId: "demo-seed-electric-1201",
-    readingKind: "interval" as const,
-    unit: "kwh" as const,
-    utilityType: "electric" as const,
-    value: 40,
-  },
-  {
-    measuredAt: "2026-06-15T12:00:00.000Z",
-    meterExternalId: "demo-seed-water-0802",
-    readingKind: "interval" as const,
-    unit: "gallon" as const,
-    utilityType: "water" as const,
-    value: 75,
-  },
-  {
-    measuredAt: "2026-06-15T12:00:00.000Z",
-    meterExternalId: "demo-seed-electric-0802",
-    readingKind: "interval" as const,
-    unit: "kwh" as const,
-    utilityType: "electric" as const,
-    value: 20,
-  },
-];
+function floorKey(buildingId: string, floorName: string): string {
+  return `${buildingId}:${floorName}`;
+}
+
+function unitKey(buildingId: string, unitName: string): string {
+  return `${buildingId}:${unitName}`;
+}

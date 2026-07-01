@@ -971,6 +971,54 @@ export class InMemoryPersistenceService implements PersistenceService {
     return event;
   }
 
+  resetDemoData(organizationId: string): void {
+    const demoBuildingIds = new Set(
+      this.buildings
+        .filter(
+          (building) =>
+            building.organizationId === organizationId &&
+            building.name.startsWith("Demo "),
+        )
+        .map((building) => building.id),
+    );
+    const demoMeterIds = new Set(
+      this.meters
+        .filter(
+          (meter) =>
+            meter.organizationId === organizationId &&
+            (meter.externalId.startsWith("demo-") ||
+              demoBuildingIds.has(meter.buildingId)),
+        )
+        .map((meter) => meter.id),
+    );
+    const demoRuleIds = new Set(
+      this.alertRules
+        .filter(
+          (rule) =>
+            rule.organizationId === organizationId &&
+            rule.name.startsWith("Demo "),
+        )
+        .map((rule) => rule.id),
+    );
+
+    removeWhere(
+      this.alertEvents,
+      (event) =>
+        event.organizationId === organizationId &&
+        !!event.ruleId &&
+        demoRuleIds.has(event.ruleId),
+    );
+    removeWhere(this.alertRules, (rule) => demoRuleIds.has(rule.id));
+    removeWhere(this.usageAggregates, (aggregate) =>
+      demoMeterIds.has(aggregate.meterId),
+    );
+    removeWhere(this.readings, (reading) => demoMeterIds.has(reading.meterId));
+    removeWhere(this.meters, (meter) => demoMeterIds.has(meter.id));
+    removeWhere(this.units, (unit) => demoBuildingIds.has(unit.buildingId));
+    removeWhere(this.floors, (floor) => demoBuildingIds.has(floor.buildingId));
+    removeWhere(this.buildings, (building) => demoBuildingIds.has(building.id));
+  }
+
   private createBootstrapUser(
     id: string,
     email: string,
@@ -1008,5 +1056,13 @@ export class InMemoryPersistenceService implements PersistenceService {
       .replace(/^_|_$/g, "")
       .slice(0, 32);
     return `${kind}_${slug || "item"}_${counter}`;
+  }
+}
+
+function removeWhere<T>(items: T[], predicate: (item: T) => boolean): void {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (predicate(items[index]!)) {
+      items.splice(index, 1);
+    }
   }
 }

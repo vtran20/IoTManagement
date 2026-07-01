@@ -478,13 +478,16 @@ export async function mockAuthenticatedSession(
   await page.route("**/api/v1/simulations/demo-seed", async (route) => {
     await route.fulfill({
       body: JSON.stringify({
-        acceptedReadingCount: 12,
-        aggregateCount: 4,
-        buildingCount: 2,
+        acceptedReadingCount: 3870,
+        aggregateCount: 3956,
+        alertEventCount: 3,
+        alertRuleCount: 3,
+        buildingCount: 3,
         duplicateReadingCount: 0,
-        meterCount: 4,
+        floorCount: 10,
+        meterCount: 43,
         reportMonth: "2026-06",
-        unitCount: 3,
+        unitCount: 40,
       }),
       contentType: "application/json",
       status: 201,

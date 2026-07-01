@@ -345,6 +345,8 @@ export interface PersistenceService {
       Pick<AlertEvent, "acknowledgedAt" | "resolvedAt" | "status">
     >,
   ): MaybePromise<AlertEvent | undefined>;
+
+  resetDemoData(organizationId: string): MaybePromise<void>;
 }
 
 export type UserOrganization = import("@iot-management/types").Organization;

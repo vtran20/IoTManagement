@@ -81,6 +81,38 @@ DATABASE_URL=postgresql://iot_local:iot_local_password@127.0.0.1:5432/iot_manage
 
 `db:migrate` creates `schema_migrations` automatically, applies pending SQL files in lexical order, stores SHA-256 checksums, skips already-applied matching migrations, and fails if an applied migration file changes.
 
+## Demo Data
+
+`pnpm seed:demo` and `pnpm --filter @iot-management/api seed:demo` load deterministic product-review data for the North Properties tenant:
+
+- 3 demo buildings.
+- 10 floors.
+- 40 units.
+- 43 meters, including building-shared meters.
+- 90 days of daily readings.
+- Hourly, daily, and monthly usage aggregates.
+- Stale and offline meter states.
+- 3 alert rules and 3 open alert events.
+
+The seed is idempotent. Running it again should report `acceptedReadingCount: 0` and `duplicateReadingCount: 3870`, with no duplicate buildings, units, meters, rules, or events.
+
+For local reset only, run:
+
+```bash
+DATABASE_URL=postgresql://iot_local:iot_local_password@127.0.0.1:5432/iot_management pnpm --filter @iot-management/api seed:reset-demo
+```
+
+The reset command removes only demo-prefixed/demo-named data for the North Properties demo tenant. It is blocked when `NODE_ENV=production`.
+
+Demo accounts all use `password123`:
+
+| Role                   | Email                   |
+| ---------------------- | ----------------------- |
+| Owner                  | `owner@north.example`   |
+| Manager                | `manager@north.example` |
+| Viewer                 | `viewer@north.example`  |
+| Tenant isolation owner | `owner@south.example`   |
+
 ## Manual Phase 12 Verification
 
 1. `pnpm build` succeeds.

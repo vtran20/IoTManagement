@@ -263,8 +263,11 @@ export interface RunSimulationResponse {
 export interface DemoSeedResponse {
   acceptedReadingCount: number;
   aggregateCount: number;
+  alertEventCount?: number;
+  alertRuleCount?: number;
   buildingCount: number;
   duplicateReadingCount: number;
+  floorCount?: number;
   meterCount: number;
   reportMonth: string;
   unitCount: number;

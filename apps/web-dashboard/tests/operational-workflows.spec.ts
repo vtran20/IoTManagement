@@ -146,13 +146,16 @@ test("reports page exposes CSV export and demo data controls seed data", async (
     seedRequested = true;
     await route.fulfill({
       body: JSON.stringify({
-        acceptedReadingCount: 12,
-        aggregateCount: 4,
-        buildingCount: 2,
+        acceptedReadingCount: 3870,
+        aggregateCount: 3956,
+        alertEventCount: 3,
+        alertRuleCount: 3,
+        buildingCount: 3,
         duplicateReadingCount: 0,
-        meterCount: 4,
+        floorCount: 10,
+        meterCount: 43,
         reportMonth: "2026-06",
-        unitCount: 3,
+        unitCount: 40,
       }),
       contentType: "application/json",
       status: 201,
@@ -166,5 +169,7 @@ test("reports page exposes CSV export and demo data controls seed data", async (
   await page.goto("/settings/demo-data");
   await page.getByRole("button", { name: "Seed demo data" }).click();
   await expect(page.getByText("Demo data seeded for 2026-06")).toBeVisible();
+  await expect(page.getByText("40")).toBeVisible();
+  await expect(page.getByText("43")).toBeVisible();
   expect(seedRequested).toBe(true);
 });

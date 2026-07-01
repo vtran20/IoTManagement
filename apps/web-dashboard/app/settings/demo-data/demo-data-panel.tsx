@@ -86,12 +86,24 @@ export function DemoDataPanel() {
               <strong>{result.unitCount}</strong>
             </div>
             <div>
+              <span>Floors</span>
+              <strong>{result.floorCount ?? "n/a"}</strong>
+            </div>
+            <div>
               <span>Meters</span>
               <strong>{result.meterCount}</strong>
             </div>
             <div>
               <span>Accepted readings</span>
               <strong>{result.acceptedReadingCount}</strong>
+            </div>
+            <div>
+              <span>Alert rules</span>
+              <strong>{result.alertRuleCount ?? "n/a"}</strong>
+            </div>
+            <div>
+              <span>Alert events</span>
+              <strong>{result.alertEventCount ?? "n/a"}</strong>
             </div>
           </div>
         ) : null}

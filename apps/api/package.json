@@ -8,6 +8,7 @@
     "db:migrate": "node dist/migrate.js",
     "dev": "nest start --watch",
     "lint": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "seed:reset-demo": "node dist/reset-demo.js",
     "seed:demo": "node dist/seed-demo.js",
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",

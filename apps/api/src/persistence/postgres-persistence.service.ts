@@ -1053,7 +1053,7 @@ export class PostgresPersistenceService
     const row = await this.database.db
       .insertInto("meter_readings")
       .values({
-        id: await this.nextId("reading", input.meterId, "meter_readings"),
+        id: randomUUID(),
         organization_id: input.organizationId,
         meter_id: input.meterId,
         measured_at: input.measuredAt,
@@ -1098,11 +1098,7 @@ export class PostgresPersistenceService
     const row = await this.database.db
       .insertInto("usage_aggregates")
       .values({
-        id: await this.nextId(
-          "usageAggregate",
-          `${input.meterId}_${input.periodType}`,
-          "usage_aggregates",
-        ),
+        id: randomUUID(),
         organization_id: input.organizationId,
         meter_id: input.meterId,
         building_id: input.buildingId,
@@ -1364,6 +1360,91 @@ export class PostgresPersistenceService
       .returningAll()
       .executeTakeFirst();
     return row ? mapAlertEvent(row) : undefined;
+  }
+
+  async resetDemoData(organizationId: string): Promise<void> {
+    const db = this.database.db;
+    const demoBuildings = await db
+      .selectFrom("buildings")
+      .select("id")
+      .where("organization_id", "=", organizationId)
+      .where("name", "like", "Demo %")
+      .execute();
+    const buildingIds = demoBuildings.map((row) => row.id);
+
+    const demoMeters = await db
+      .selectFrom("meters")
+      .select("id")
+      .where("organization_id", "=", organizationId)
+      .where((eb) =>
+        eb.or([
+          eb("external_id", "like", "demo-%"),
+          buildingIds.length > 0
+            ? eb("building_id", "in", buildingIds)
+            : eb.val(false),
+        ]),
+      )
+      .execute();
+    const meterIds = demoMeters.map((row) => row.id);
+
+    const demoRules = await db
+      .selectFrom("alert_rules")
+      .select("id")
+      .where("organization_id", "=", organizationId)
+      .where("name", "like", "Demo %")
+      .execute();
+    const ruleIds = demoRules.map((row) => row.id);
+
+    await db.transaction().execute(async (trx) => {
+      if (ruleIds.length > 0) {
+        await trx
+          .deleteFrom("alert_events")
+          .where("organization_id", "=", organizationId)
+          .where("rule_id", "in", ruleIds)
+          .execute();
+        await trx
+          .deleteFrom("alert_rules")
+          .where("organization_id", "=", organizationId)
+          .where("id", "in", ruleIds)
+          .execute();
+      }
+
+      if (meterIds.length > 0) {
+        await trx
+          .deleteFrom("usage_aggregates")
+          .where("organization_id", "=", organizationId)
+          .where("meter_id", "in", meterIds)
+          .execute();
+        await trx
+          .deleteFrom("meter_readings")
+          .where("organization_id", "=", organizationId)
+          .where("meter_id", "in", meterIds)
+          .execute();
+        await trx
+          .deleteFrom("meters")
+          .where("organization_id", "=", organizationId)
+          .where("id", "in", meterIds)
+          .execute();
+      }
+
+      if (buildingIds.length > 0) {
+        await trx
+          .deleteFrom("units")
+          .where("organization_id", "=", organizationId)
+          .where("building_id", "in", buildingIds)
+          .execute();
+        await trx
+          .deleteFrom("floors")
+          .where("organization_id", "=", organizationId)
+          .where("building_id", "in", buildingIds)
+          .execute();
+        await trx
+          .deleteFrom("buildings")
+          .where("organization_id", "=", organizationId)
+          .where("id", "in", buildingIds)
+          .execute();
+      }
+    });
   }
 
   private bootstrapUser(
