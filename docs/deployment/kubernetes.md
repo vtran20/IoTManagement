@@ -9,13 +9,25 @@ Required API environment variables:
 - `NODE_ENV`
 - `API_PORT`
 - `DATABASE_URL`
+- `DATABASE_SCHEMA`
 - `REDIS_URL`
 - `JWT_SESSION_SECRET`
+- `WEB_BASE_URL`
 
 Required web environment variables:
 
 - `PORT`
 - `HOSTNAME`
+
+Dashboard browser API calls are compiled with `NEXT_PUBLIC_API_BASE_URL`.
+The Docker build default is `/api/v1`, which is correct when users access the dashboard through the Kubernetes Ingress that also routes `/api` to the API service. For a split-host deployment, build the web image with:
+
+```bash
+docker build \
+  -f apps/web-dashboard/Dockerfile \
+  --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.com/api/v1 \
+  -t iot-management/web-dashboard:<tag> .
+```
 
 Kubernetes resources use:
 
@@ -23,6 +35,8 @@ Kubernetes resources use:
 - `iot-management-secrets` Secret for database, Redis, PostgreSQL bootstrap, and JWT/session values.
 - API health endpoint: `/api/v1/health`.
 - Web health endpoint: `/login`.
+
+`/api/v1/health` returns dependency status for the API, PostgreSQL, and Redis. PostgreSQL must be `ok` before the API is considered ready for product workflows; Redis can show `degraded` during local smoke tests if queues are not being exercised.
 
 ## Images
 
@@ -39,6 +53,7 @@ The API image serves three commands:
 node apps/api/dist/main.js
 node apps/api/dist/worker.js
 node apps/api/dist/migrate.js
+node apps/api/dist/seed-demo.js
 ```
 
 ## Migrations
@@ -86,8 +101,9 @@ Before applying non-production or production, create a real `iot-management-secr
 1. Build and push API and web images.
 2. Apply namespace, ConfigMap, Secret, PostgreSQL/Redis or managed-service references.
 3. Run the migration Job.
-4. Deploy API, worker, and web workloads.
-5. Verify health endpoints and ingress routing.
+4. Optionally run `node apps/api/dist/seed-demo.js` for local/demo environments.
+5. Deploy API, worker, and web workloads.
+6. Verify health endpoints, login, dashboard pages, and ingress routing.
 
 ## Rollback
 

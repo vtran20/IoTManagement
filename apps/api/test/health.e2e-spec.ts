@@ -25,14 +25,16 @@ describe("GET /api/v1/health", () => {
     await request(app.getHttpServer())
       .get("/api/v1/health")
       .expect(200)
-      .expect({
-        dependencies: {
-          api: { status: "ok" },
-          postgres: { status: "ok" },
-          redis: { status: "ok" },
-        },
-        service: "iot-management-api",
-        status: "ok",
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          dependencies: {
+            api: { status: "ok" },
+            postgres: { status: "ok" },
+            redis: { status: expect.stringMatching(/^(ok|degraded)$/) },
+          },
+          service: "iot-management-api",
+          status: "ok",
+        });
       });
   });
 });

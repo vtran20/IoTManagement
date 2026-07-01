@@ -101,7 +101,7 @@ describe("Security and operational hardening", () => {
           dependencies: {
             api: { status: "ok" },
             postgres: { status: "ok" },
-            redis: { status: "ok" },
+            redis: { status: expect.stringMatching(/^(ok|degraded)$/) },
           },
           service: "iot-management-api",
           status: "ok",

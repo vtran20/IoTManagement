@@ -1,5 +1,10 @@
 import "reflect-metadata";
-import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
 import { AlertsModule } from "./alerts/alerts.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
@@ -59,6 +64,8 @@ import { TenantsModule } from "./tenants/tenants.module";
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestSecurityMiddleware).forRoutes("*");
+    consumer
+      .apply(RequestSecurityMiddleware)
+      .forRoutes({ method: RequestMethod.ALL, path: "*path" });
   }
 }

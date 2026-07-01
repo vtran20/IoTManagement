@@ -26,3 +26,10 @@ kubectl kustomize deploy/kubernetes/overlays/production
 ```
 
 The file `base/secret.example.yaml` documents the required Secret shape. Do not commit real secrets.
+
+Deployment notes:
+
+- Run the `migrate` Job before rolling out API, worker, or web workloads.
+- The API image includes compiled `main.js`, `worker.js`, `migrate.js`, and `seed-demo.js` entrypoints.
+- The web image defaults `NEXT_PUBLIC_API_BASE_URL` to `/api/v1`, so use the Ingress path routing for dashboard/API smoke tests.
+- `/api/v1/health` reports API, PostgreSQL, and Redis dependency status.

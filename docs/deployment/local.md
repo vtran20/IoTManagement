@@ -49,8 +49,18 @@ curl -s http://127.0.0.1:3301/api/v1/health
 Expected:
 
 ```json
-{ "status": "ok", "service": "iot-management-api" }
+{
+  "dependencies": {
+    "api": { "status": "ok" },
+    "postgres": { "status": "ok" },
+    "redis": { "status": "ok" }
+  },
+  "service": "iot-management-api",
+  "status": "ok"
+}
 ```
+
+If Redis is not reachable during a host-only smoke test, `redis.status` may be `degraded`; PostgreSQL should be `ok` before running migrations, seed, or dashboard workflows.
 
 Port-forward web:
 
@@ -148,10 +158,18 @@ curl -s http://127.0.0.1:3301/api/v1/audit/events \
 
 Expected result: `items` contains only `org_north` audit events and does not include auth tokens, reset tokens, passwords, or secrets.
 
-## Manual Phase 12 Verification
+## Manual Phase 10 Verification
 
 1. `pnpm build` succeeds.
 2. `pnpm db:migrate` prints `migrations-complete`.
 3. `pnpm seed:demo` prints `demo-seed-complete`.
 4. `kubectl apply --dry-run=client -k deploy/kubernetes/overlays/local` succeeds.
 5. API and web images build with `pnpm docker:build:api` and `pnpm docker:build:web`.
+6. API image smoke test can run the compiled commands:
+
+   ```bash
+   docker run --rm iot-management/api:local node apps/api/dist/migrate.js
+   docker run --rm iot-management/api:local node apps/api/dist/seed-demo.js
+   ```
+
+   Pass `DATABASE_URL`, `REDIS_URL`, `JWT_SESSION_SECRET`, and `WEB_BASE_URL` with `-e` flags or an env file when running against a real database.

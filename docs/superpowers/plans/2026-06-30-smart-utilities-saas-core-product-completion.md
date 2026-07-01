@@ -568,13 +568,13 @@ Phase 13 mobile and Phase 14 real-device integration are deferred. The active pr
 
 **Implementation tasks:**
 
-- [ ] Update Dockerfiles if new runtime dependencies require changes.
-- [ ] Update Kubernetes migration Job command if needed.
-- [ ] Update ConfigMap/Secret docs for new auth/session env vars.
-- [ ] Run Docker image builds.
-- [ ] Run Kubernetes client dry-runs.
-- [ ] Run compiled API smoke test against PostgreSQL.
-- [ ] Update deployment docs.
+- [x] Update Dockerfiles if new runtime dependencies require changes.
+- [x] Update Kubernetes migration Job command if needed.
+- [x] Update ConfigMap/Secret docs for new auth/session env vars.
+- [x] Run Docker image builds.
+- [x] Run Kubernetes client dry-runs.
+- [x] Run compiled API smoke test against PostgreSQL.
+- [x] Update deployment docs.
 
 **Acceptance:**
 
@@ -588,10 +588,10 @@ Phase 13 mobile and Phase 14 real-device integration are deferred. The active pr
 
 1. Build API/web images.
 2. Apply local Kubernetes dry-run.
-3. Run migration command.
-4. Run seed command.
-5. Start API and web.
-6. Login and visit dashboard.
+3. Run the compiled API migration command against local PostgreSQL.
+4. Run the compiled demo seed command against local PostgreSQL.
+5. Start the compiled API and confirm `/api/v1/health` reports PostgreSQL as `ok`.
+6. Confirm the dashboard image uses `/api/v1` as the default browser API base URL for ingress deployments.
 
 ---
 

@@ -12,6 +12,8 @@ COPY packages/types/package.json packages/types/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
+ARG NEXT_PUBLIC_API_BASE_URL=/api/v1
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 COPY apps/web-dashboard apps/web-dashboard
 COPY packages packages
 RUN pnpm --filter @iot-management/web-dashboard build

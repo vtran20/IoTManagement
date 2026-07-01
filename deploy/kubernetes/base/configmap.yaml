@@ -11,5 +11,7 @@ data:
   POSTGRES_HOST: postgres
   POSTGRES_PORT: "5432"
   POSTGRES_DB: iot_management
+  DATABASE_SCHEMA: public
   REDIS_HOST: redis
   REDIS_PORT: "6379"
+  WEB_BASE_URL: http://localhost:3000
