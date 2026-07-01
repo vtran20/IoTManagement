@@ -129,4 +129,48 @@ describe("Meters API", () => {
         expect(body.error.code).toBe("TENANT_RESOURCE_NOT_FOUND"),
       );
   });
+
+  it("archives and restores meters without physical deletion", async () => {
+    const building = await createBuilding("Archive Meter Building");
+    const meter = await request(app.getHttpServer())
+      .post("/api/v1/meters")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        buildingId: building.body.id,
+        utilityType: "electric",
+        source: "simulated",
+        externalId: "archive-electric-meter",
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/meters/${meter.body.id}/archive`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.id).toBe(meter.body.id);
+        expect(body.lifecycleStatus).toBe("archived");
+        expect(body.status).toBe("disabled");
+        expect(body.archivedAt).toEqual(expect.any(String));
+      });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/meters/${meter.body.id}`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.lifecycleStatus).toBe("archived");
+        expect(body.supportedReadingUnits).toEqual(["kwh"]);
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/meters/${meter.body.id}/restore`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.lifecycleStatus).toBe("active");
+        expect(body.status).toBe("online");
+        expect(body).not.toHaveProperty("archivedAt");
+      });
+  });
 });

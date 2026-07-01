@@ -111,6 +111,8 @@ export interface BuildingRow {
   name: string;
   address: string | null;
   timezone: string;
+  lifecycle_status: "active" | "archived";
+  archived_at: Timestamp | null;
 }
 
 export interface FloorRow {
@@ -119,6 +121,8 @@ export interface FloorRow {
   building_id: string;
   name: string;
   level: number;
+  lifecycle_status: "active" | "archived";
+  archived_at: Timestamp | null;
 }
 
 export interface UnitRow {
@@ -128,6 +132,8 @@ export interface UnitRow {
   floor_id: string | null;
   name: string;
   occupancy_status: "occupied" | "vacant" | "maintenance";
+  lifecycle_status: "active" | "archived";
+  archived_at: Timestamp | null;
 }
 
 export interface MeterRow {
@@ -142,6 +148,8 @@ export interface MeterRow {
   status: "online" | "offline" | "stale" | "disabled";
   installed_at: Timestamp | null;
   last_reading_at: Timestamp | null;
+  lifecycle_status: "active" | "archived";
+  archived_at: Timestamp | null;
 }
 
 export interface MeterReadingRow {

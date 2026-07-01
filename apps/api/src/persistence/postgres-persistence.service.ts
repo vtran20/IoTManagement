@@ -152,6 +152,8 @@ export class PostgresPersistenceService
         name: "South Tower",
         address: "200 South St",
         timezone: "America/Detroit",
+        lifecycle_status: "active",
+        archived_at: null,
       })
       .onConflict((conflict) => conflict.column("id").doNothing())
       .execute();
@@ -164,6 +166,8 @@ export class PostgresPersistenceService
         building_id: "building_south",
         name: "Level 1",
         level: 1,
+        lifecycle_status: "active",
+        archived_at: null,
       })
       .onConflict((conflict) => conflict.column("id").doNothing())
       .execute();
@@ -177,6 +181,8 @@ export class PostgresPersistenceService
         floor_id: "floor_south_1",
         name: "101",
         occupancy_status: "occupied",
+        lifecycle_status: "active",
+        archived_at: null,
       })
       .onConflict((conflict) => conflict.column("id").doNothing())
       .execute();
@@ -639,6 +645,8 @@ export class PostgresPersistenceService
         name: input.name,
         address: input.address ?? null,
         timezone: input.timezone,
+        lifecycle_status: "active",
+        archived_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -661,10 +669,18 @@ export class PostgresPersistenceService
   async updateBuilding(
     organizationId: string,
     buildingId: string,
-    input: Partial<Pick<Building, "address" | "name" | "timezone">>,
+    input: Partial<
+      Pick<
+        Building,
+        "address" | "archivedAt" | "lifecycleStatus" | "name" | "timezone"
+      >
+    >,
   ): Promise<Building | undefined> {
     const changes = defined({
       address: input.address,
+      archived_at:
+        "archivedAt" in input ? (input.archivedAt ?? null) : undefined,
+      lifecycle_status: input.lifecycleStatus,
       name: input.name,
       timezone: input.timezone,
     });
@@ -710,6 +726,8 @@ export class PostgresPersistenceService
         building_id: input.buildingId,
         name: input.name,
         level: input.level,
+        lifecycle_status: "active",
+        archived_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -732,9 +750,17 @@ export class PostgresPersistenceService
   async updateFloor(
     organizationId: string,
     floorId: string,
-    input: Partial<Pick<Floor, "level" | "name">>,
+    input: Partial<
+      Pick<Floor, "archivedAt" | "level" | "lifecycleStatus" | "name">
+    >,
   ): Promise<Floor | undefined> {
-    const changes = defined({ level: input.level, name: input.name });
+    const changes = defined({
+      archived_at:
+        "archivedAt" in input ? (input.archivedAt ?? null) : undefined,
+      level: input.level,
+      lifecycle_status: input.lifecycleStatus,
+      name: input.name,
+    });
     if (!Object.keys(changes).length) {
       return this.findFloorById(organizationId, floorId);
     }
@@ -783,6 +809,8 @@ export class PostgresPersistenceService
         floor_id: input.floorId ?? null,
         name: input.name,
         occupancy_status: input.occupancyStatus,
+        lifecycle_status: "active",
+        archived_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -805,10 +833,22 @@ export class PostgresPersistenceService
   async updateUnit(
     organizationId: string,
     unitId: string,
-    input: Partial<Pick<Unit, "floorId" | "name" | "occupancyStatus">>,
+    input: Partial<
+      Pick<
+        Unit,
+        | "archivedAt"
+        | "floorId"
+        | "lifecycleStatus"
+        | "name"
+        | "occupancyStatus"
+      >
+    >,
   ): Promise<Unit | undefined> {
     const changes = defined({
+      archived_at:
+        "archivedAt" in input ? (input.archivedAt ?? null) : undefined,
       floor_id: input.floorId,
+      lifecycle_status: input.lifecycleStatus,
       name: input.name,
       occupancy_status: input.occupancyStatus,
     });
@@ -895,6 +935,8 @@ export class PostgresPersistenceService
         status: input.status ?? "online",
         installed_at: input.installedAt ?? null,
         last_reading_at: input.lastReadingAt ?? null,
+        lifecycle_status: input.lifecycleStatus ?? "active",
+        archived_at: input.archivedAt ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -907,14 +949,23 @@ export class PostgresPersistenceService
     input: Partial<
       Pick<
         Meter,
-        "floorId" | "installedAt" | "lastReadingAt" | "status" | "unitId"
+        | "archivedAt"
+        | "floorId"
+        | "installedAt"
+        | "lastReadingAt"
+        | "lifecycleStatus"
+        | "status"
+        | "unitId"
       >
     >,
   ): Promise<Meter | undefined> {
     const changes = defined({
+      archived_at:
+        "archivedAt" in input ? (input.archivedAt ?? null) : undefined,
       floor_id: input.floorId,
       installed_at: input.installedAt,
       last_reading_at: input.lastReadingAt,
+      lifecycle_status: input.lifecycleStatus,
       status: input.status,
       unit_id: input.unitId,
     });
@@ -1399,6 +1450,8 @@ function mapBuilding(row: Selectable<BuildingRow>): Building {
     name: row.name,
     address: row.address ?? undefined,
     timezone: row.timezone,
+    lifecycleStatus: row.lifecycle_status,
+    archivedAt: row.archived_at ? iso(row.archived_at) : undefined,
   }) as Building;
 }
 
@@ -1409,6 +1462,8 @@ function mapFloor(row: Selectable<FloorRow>): Floor {
     buildingId: row.building_id,
     name: row.name,
     level: row.level,
+    lifecycleStatus: row.lifecycle_status,
+    archivedAt: row.archived_at ? iso(row.archived_at) : undefined,
   };
 }
 
@@ -1420,6 +1475,8 @@ function mapUnit(row: Selectable<UnitRow>): Unit {
     floorId: row.floor_id ?? undefined,
     name: row.name,
     occupancyStatus: row.occupancy_status,
+    lifecycleStatus: row.lifecycle_status,
+    archivedAt: row.archived_at ? iso(row.archived_at) : undefined,
   }) as Unit;
 }
 
@@ -1436,6 +1493,8 @@ function mapMeter(row: Selectable<MeterRow>): Meter {
     status: row.status,
     installedAt: row.installed_at ? iso(row.installed_at) : undefined,
     lastReadingAt: row.last_reading_at ? iso(row.last_reading_at) : undefined,
+    lifecycleStatus: row.lifecycle_status,
+    archivedAt: row.archived_at ? iso(row.archived_at) : undefined,
   }) as Meter;
 }
 

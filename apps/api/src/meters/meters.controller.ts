@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   Param,
   Patch,
@@ -49,5 +50,25 @@ export class MetersController {
     @Body() dto: UpdateMeterDto,
   ) {
     return this.metersService.update(request.context!, meterId, dto);
+  }
+
+  @Post(":meterId/archive")
+  @HttpCode(200)
+  @Roles("owner", "manager")
+  archive(
+    @Req() request: RequestWithContext,
+    @Param("meterId") meterId: string,
+  ) {
+    return this.metersService.archive(request.context!, meterId);
+  }
+
+  @Post(":meterId/restore")
+  @HttpCode(200)
+  @Roles("owner", "manager")
+  restore(
+    @Req() request: RequestWithContext,
+    @Param("meterId") meterId: string,
+  ) {
+    return this.metersService.restore(request.context!, meterId);
   }
 }

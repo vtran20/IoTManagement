@@ -45,7 +45,18 @@ export class BuildingsService {
     if (!building) {
       throw tenantResourceNotFound("Building");
     }
-    return building;
+    const [floors, units, meters] = await Promise.all([
+      this.persistence.listFloors(context.organization.id, buildingId),
+      this.persistence.listUnits({
+        organizationId: context.organization.id,
+        buildingId,
+      }),
+      this.persistence.listMeters({
+        organizationId: context.organization.id,
+        buildingId,
+      }),
+    ]);
+    return { ...building, building, floors, meters, units };
   }
 
   async update(
@@ -57,6 +68,34 @@ export class BuildingsService {
       context.organization.id,
       buildingId,
       dto,
+    );
+    if (!building) {
+      throw tenantResourceNotFound("Building");
+    }
+    return building;
+  }
+
+  async archive(context: RequestContext, buildingId: string) {
+    return this.setLifecycle(context, buildingId, "archived");
+  }
+
+  async restore(context: RequestContext, buildingId: string) {
+    return this.setLifecycle(context, buildingId, "active");
+  }
+
+  private async setLifecycle(
+    context: RequestContext,
+    buildingId: string,
+    lifecycleStatus: "active" | "archived",
+  ) {
+    const building = await this.persistence.updateBuilding(
+      context.organization.id,
+      buildingId,
+      {
+        archivedAt:
+          lifecycleStatus === "archived" ? new Date().toISOString() : undefined,
+        lifecycleStatus,
+      },
     );
     if (!building) {
       throw tenantResourceNotFound("Building");

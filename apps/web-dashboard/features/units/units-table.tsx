@@ -42,7 +42,9 @@ export function UnitsTable() {
         <tbody>
           {visibleUnits.map((unit) => (
             <tr key={unit.id}>
-              <td>{unit.name}</td>
+              <td>
+                <a href={`/units/${unit.id}`}>{unit.name}</a>
+              </td>
               <td>{buildingName(unit.buildingId)}</td>
               <td>{unit.occupancyStatus}</td>
             </tr>

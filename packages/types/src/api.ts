@@ -133,7 +133,14 @@ export interface ListBuildingsQuery extends PageRequest {
   search?: string;
 }
 
-export type BuildingResponse = Building;
+export interface BuildingDetailResponse extends Building {
+  building: Building;
+  floors: Floor[];
+  meters: Meter[];
+  units: Unit[];
+}
+
+export type BuildingResponse = Building | BuildingDetailResponse;
 
 export interface CreateUnitRequest {
   buildingId: EntityId;

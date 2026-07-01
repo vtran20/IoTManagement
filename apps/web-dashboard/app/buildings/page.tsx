@@ -1,5 +1,5 @@
 import { AppShell } from "../../components/app-shell";
-import { BuildingsTable } from "../../features/buildings/buildings-table";
+import { BuildingsManager } from "../../features/buildings/buildings-manager";
 
 export default function BuildingsPage() {
   return (
@@ -8,7 +8,7 @@ export default function BuildingsPage() {
         <h2>Portfolio</h2>
         <p>North Properties portfolio</p>
       </section>
-      <BuildingsTable />
+      <BuildingsManager />
     </AppShell>
   );
 }

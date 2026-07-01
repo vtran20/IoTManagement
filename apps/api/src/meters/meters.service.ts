@@ -10,7 +10,10 @@ import {
   PERSISTENCE_SERVICE,
   PersistenceService,
 } from "../persistence/persistence.service";
-import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
+import {
+  parentArchived,
+  tenantResourceNotFound,
+} from "../portfolio/portfolio-errors";
 import { CreateMeterDto } from "./dto/create-meter.dto";
 import { UpdateMeterDto } from "./dto/update-meter.dto";
 
@@ -114,6 +117,57 @@ export class MetersService {
     return this.withSupportedReadingUnits(meter);
   }
 
+  async archive(
+    context: RequestContext,
+    meterId: string,
+  ): Promise<MeterResponse> {
+    const meter = await this.persistence.updateMeter(
+      context.organization.id,
+      meterId,
+      {
+        archivedAt: new Date().toISOString(),
+        lifecycleStatus: "archived",
+        status: "disabled",
+      },
+    );
+    if (!meter) {
+      throw tenantResourceNotFound("Meter");
+    }
+    return this.withSupportedReadingUnits(meter);
+  }
+
+  async restore(
+    context: RequestContext,
+    meterId: string,
+  ): Promise<MeterResponse> {
+    const existing = await this.persistence.findMeterById(
+      context.organization.id,
+      meterId,
+    );
+    if (!existing) {
+      throw tenantResourceNotFound("Meter");
+    }
+    await this.validateAssignment(
+      context,
+      existing.buildingId,
+      existing.floorId,
+      existing.unitId,
+    );
+    const meter = await this.persistence.updateMeter(
+      context.organization.id,
+      meterId,
+      {
+        archivedAt: undefined,
+        lifecycleStatus: "active",
+        status: "online",
+      },
+    );
+    if (!meter) {
+      throw tenantResourceNotFound("Meter");
+    }
+    return this.withSupportedReadingUnits(meter);
+  }
+
   private async validateAssignment(
     context: RequestContext,
     buildingId: string,
@@ -127,6 +181,9 @@ export class MetersService {
     if (!building) {
       throw tenantResourceNotFound("Building");
     }
+    if ((building.lifecycleStatus ?? "active") === "archived") {
+      throw parentArchived("Building");
+    }
 
     if (floorId) {
       const floor = await this.persistence.findFloorById(
@@ -135,6 +192,9 @@ export class MetersService {
       );
       if (!floor || floor.buildingId !== buildingId) {
         throw tenantResourceNotFound("Floor");
+      }
+      if ((floor.lifecycleStatus ?? "active") === "archived") {
+        throw parentArchived("Floor");
       }
     }
 
@@ -145,6 +205,9 @@ export class MetersService {
       );
       if (!unit || unit.buildingId !== buildingId) {
         throw tenantResourceNotFound("Unit");
+      }
+      if ((unit.lifecycleStatus ?? "active") === "archived") {
+        throw parentArchived("Unit");
       }
     }
   }

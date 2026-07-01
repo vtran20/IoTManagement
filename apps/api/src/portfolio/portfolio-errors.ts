@@ -8,3 +8,11 @@ export function tenantResourceNotFound(resource: string): ApiError {
     HttpStatus.NOT_FOUND,
   );
 }
+
+export function parentArchived(resource: string): ApiError {
+  return new ApiError(
+    "PARENT_ARCHIVED",
+    `${resource} is archived and cannot accept new child resources`,
+    HttpStatus.CONFLICT,
+  );
+}

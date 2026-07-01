@@ -16,7 +16,9 @@ export function MetersTable() {
         <tbody>
           {meters.map((meter) => (
             <tr key={meter.id}>
-              <td>{meter.label}</td>
+              <td>
+                <a href={`/meters/${meter.id}`}>{meter.label}</a>
+              </td>
               <td>{meter.externalId}</td>
               <td>{meter.utilityType}</td>
               <td>

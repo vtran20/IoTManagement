@@ -7,7 +7,7 @@ import {
 } from "../persistence/persistence.service";
 import { CreateUnitDto } from "./dto/create-unit.dto";
 import { UpdateUnitDto } from "./dto/update-unit.dto";
-import { tenantResourceNotFound } from "./portfolio-errors";
+import { parentArchived, tenantResourceNotFound } from "./portfolio-errors";
 
 @Injectable()
 export class UnitsService {
@@ -17,11 +17,14 @@ export class UnitsService {
   ) {}
 
   async create(context: RequestContext, dto: CreateUnitDto) {
-    await this.requireBuilding(context, dto.buildingId);
+    await this.requireActiveBuilding(context, dto.buildingId);
     if (dto.floorId) {
       const floor = await this.requireFloor(context, dto.floorId);
       if (floor.buildingId !== dto.buildingId) {
         throw tenantResourceNotFound("Floor");
+      }
+      if ((floor.lifecycleStatus ?? "active") === "archived") {
+        throw parentArchived("Floor");
       }
     }
 
@@ -56,13 +59,54 @@ export class UnitsService {
   }
 
   async update(context: RequestContext, unitId: string, dto: UpdateUnitDto) {
+    const existing = await this.persistence.findUnitById(
+      context.organization.id,
+      unitId,
+    );
+    if (!existing) {
+      throw tenantResourceNotFound("Unit");
+    }
     if (dto.floorId) {
-      await this.requireFloor(context, dto.floorId);
+      const floor = await this.requireFloor(context, dto.floorId);
+      if (floor.buildingId !== existing.buildingId) {
+        throw tenantResourceNotFound("Floor");
+      }
+      if ((floor.lifecycleStatus ?? "active") === "archived") {
+        throw parentArchived("Floor");
+      }
     }
     const unit = await this.persistence.updateUnit(
       context.organization.id,
       unitId,
       dto,
+    );
+    if (!unit) {
+      throw tenantResourceNotFound("Unit");
+    }
+    return unit;
+  }
+
+  async archive(context: RequestContext, unitId: string) {
+    return this.setLifecycle(context, unitId, "archived");
+  }
+
+  async restore(context: RequestContext, unitId: string) {
+    return this.setLifecycle(context, unitId, "active");
+  }
+
+  private async setLifecycle(
+    context: RequestContext,
+    unitId: string,
+    lifecycleStatus: "active" | "archived",
+  ) {
+    const unit = await this.persistence.updateUnit(
+      context.organization.id,
+      unitId,
+      {
+        archivedAt:
+          lifecycleStatus === "archived" ? new Date().toISOString() : undefined,
+        lifecycleStatus,
+      },
     );
     if (!unit) {
       throw tenantResourceNotFound("Unit");
@@ -77,6 +121,17 @@ export class UnitsService {
     );
     if (!building) {
       throw tenantResourceNotFound("Building");
+    }
+    return building;
+  }
+
+  private async requireActiveBuilding(
+    context: RequestContext,
+    buildingId: string,
+  ) {
+    const building = await this.requireBuilding(context, buildingId);
+    if ((building.lifecycleStatus ?? "active") === "archived") {
+      throw parentArchived("Building");
     }
   }
 

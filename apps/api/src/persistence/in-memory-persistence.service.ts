@@ -121,6 +121,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       name: "South Tower",
       address: "200 South St",
       timezone: "America/Detroit",
+      lifecycleStatus: "active",
     },
   ];
 
@@ -131,6 +132,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       buildingId: "building_south",
       name: "Level 1",
       level: 1,
+      lifecycleStatus: "active",
     },
   ];
 
@@ -142,6 +144,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       floorId: "floor_south_1",
       name: "101",
       occupancyStatus: "occupied",
+      lifecycleStatus: "active",
     },
   ];
 
@@ -481,6 +484,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       name: input.name,
       address: input.address,
       timezone: input.timezone,
+      lifecycleStatus: "active",
     };
     this.buildings.push(building);
     return building;
@@ -500,7 +504,12 @@ export class InMemoryPersistenceService implements PersistenceService {
   updateBuilding(
     organizationId: string,
     buildingId: string,
-    input: Partial<Pick<Building, "address" | "name" | "timezone">>,
+    input: Partial<
+      Pick<
+        Building,
+        "address" | "archivedAt" | "lifecycleStatus" | "name" | "timezone"
+      >
+    >,
   ): Building | undefined {
     const building = this.findBuildingById(organizationId, buildingId);
     if (!building) {
@@ -530,6 +539,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       buildingId: input.buildingId,
       name: input.name,
       level: input.level,
+      lifecycleStatus: "active",
     };
     this.floors.push(floor);
     return floor;
@@ -545,7 +555,9 @@ export class InMemoryPersistenceService implements PersistenceService {
   updateFloor(
     organizationId: string,
     floorId: string,
-    input: Partial<Pick<Floor, "level" | "name">>,
+    input: Partial<
+      Pick<Floor, "archivedAt" | "level" | "lifecycleStatus" | "name">
+    >,
   ): Floor | undefined {
     const floor = this.findFloorById(organizationId, floorId);
     if (!floor) {
@@ -582,6 +594,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       floorId: input.floorId,
       name: input.name,
       occupancyStatus: input.occupancyStatus,
+      lifecycleStatus: "active",
     };
     this.units.push(unit);
     return unit;
@@ -596,7 +609,16 @@ export class InMemoryPersistenceService implements PersistenceService {
   updateUnit(
     organizationId: string,
     unitId: string,
-    input: Partial<Pick<Unit, "floorId" | "name" | "occupancyStatus">>,
+    input: Partial<
+      Pick<
+        Unit,
+        | "archivedAt"
+        | "floorId"
+        | "lifecycleStatus"
+        | "name"
+        | "occupancyStatus"
+      >
+    >,
   ): Unit | undefined {
     const unit = this.findUnitById(organizationId, unitId);
     if (!unit) {
@@ -648,6 +670,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       ...input,
       id: this.nextId("meter", input.externalId),
       status: input.status ?? "online",
+      lifecycleStatus: input.lifecycleStatus ?? "active",
     };
     this.meters.push(meter);
     return meter;
@@ -659,7 +682,13 @@ export class InMemoryPersistenceService implements PersistenceService {
     input: Partial<
       Pick<
         Meter,
-        "floorId" | "installedAt" | "lastReadingAt" | "status" | "unitId"
+        | "archivedAt"
+        | "floorId"
+        | "installedAt"
+        | "lastReadingAt"
+        | "lifecycleStatus"
+        | "status"
+        | "unitId"
       >
     >,
   ): Meter | undefined {

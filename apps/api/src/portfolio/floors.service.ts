@@ -6,7 +6,7 @@ import {
 } from "../persistence/persistence.service";
 import { CreateFloorDto } from "./dto/create-floor.dto";
 import { UpdateFloorDto } from "./dto/update-floor.dto";
-import { tenantResourceNotFound } from "./portfolio-errors";
+import { parentArchived, tenantResourceNotFound } from "./portfolio-errors";
 
 @Injectable()
 export class FloorsService {
@@ -16,7 +16,7 @@ export class FloorsService {
   ) {}
 
   async create(context: RequestContext, dto: CreateFloorDto) {
-    await this.requireBuilding(context, dto.buildingId);
+    await this.requireActiveBuilding(context, dto.buildingId);
     return this.persistence.createFloor({
       organizationId: context.organization.id,
       buildingId: dto.buildingId,
@@ -60,6 +60,34 @@ export class FloorsService {
     return floor;
   }
 
+  async archive(context: RequestContext, floorId: string) {
+    return this.setLifecycle(context, floorId, "archived");
+  }
+
+  async restore(context: RequestContext, floorId: string) {
+    return this.setLifecycle(context, floorId, "active");
+  }
+
+  private async setLifecycle(
+    context: RequestContext,
+    floorId: string,
+    lifecycleStatus: "active" | "archived",
+  ) {
+    const floor = await this.persistence.updateFloor(
+      context.organization.id,
+      floorId,
+      {
+        archivedAt:
+          lifecycleStatus === "archived" ? new Date().toISOString() : undefined,
+        lifecycleStatus,
+      },
+    );
+    if (!floor) {
+      throw tenantResourceNotFound("Floor");
+    }
+    return floor;
+  }
+
   private async requireBuilding(context: RequestContext, buildingId: string) {
     const building = await this.persistence.findBuildingById(
       context.organization.id,
@@ -67,6 +95,17 @@ export class FloorsService {
     );
     if (!building) {
       throw tenantResourceNotFound("Building");
+    }
+    return building;
+  }
+
+  private async requireActiveBuilding(
+    context: RequestContext,
+    buildingId: string,
+  ) {
+    const building = await this.requireBuilding(context, buildingId);
+    if ((building.lifecycleStatus ?? "active") === "archived") {
+      throw parentArchived("Building");
     }
   }
 }

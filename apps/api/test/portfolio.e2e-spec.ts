@@ -135,4 +135,128 @@ describe("Portfolio API", () => {
         expect(body.error.code).toBe("TENANT_RESOURCE_NOT_FOUND"),
       );
   });
+
+  it("returns building detail with child floors, units, and meters", async () => {
+    const building = await request(app.getHttpServer())
+      .post("/api/v1/buildings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Detail Building", timezone: "America/Detroit" })
+      .expect(201);
+    const floor = await request(app.getHttpServer())
+      .post("/api/v1/floors")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ buildingId: building.body.id, name: "Level 4", level: 4 })
+      .expect(201);
+    const unit = await request(app.getHttpServer())
+      .post("/api/v1/units")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        buildingId: building.body.id,
+        floorId: floor.body.id,
+        name: "401",
+      })
+      .expect(201);
+    const meter = await request(app.getHttpServer())
+      .post("/api/v1/meters")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        buildingId: building.body.id,
+        unitId: unit.body.id,
+        utilityType: "water",
+        source: "simulated",
+        externalId: "detail-building-water-401",
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/buildings/${building.body.id}`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.building).toMatchObject({
+          id: building.body.id,
+          lifecycleStatus: "active",
+        });
+        expect(body.floors).toEqual([
+          expect.objectContaining({ id: floor.body.id }),
+        ]);
+        expect(body.units).toEqual([
+          expect.objectContaining({ id: unit.body.id }),
+        ]);
+        expect(body.meters).toEqual([
+          expect.objectContaining({ id: meter.body.id }),
+        ]);
+      });
+  });
+
+  it("archives and restores buildings while blocking child creation under archived parents", async () => {
+    const building = await request(app.getHttpServer())
+      .post("/api/v1/buildings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Archive Building", timezone: "America/Detroit" })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/buildings/${building.body.id}/archive`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.lifecycleStatus).toBe("archived");
+        expect(body.archivedAt).toEqual(expect.any(String));
+      });
+
+    await request(app.getHttpServer())
+      .post("/api/v1/floors")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ buildingId: building.body.id, name: "Blocked", level: 9 })
+      .expect(409)
+      .expect(({ body }) => expect(body.error.code).toBe("PARENT_ARCHIVED"));
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/buildings/${building.body.id}/restore`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.lifecycleStatus).toBe("active");
+        expect(body).not.toHaveProperty("archivedAt");
+      });
+
+    await request(app.getHttpServer())
+      .post("/api/v1/floors")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ buildingId: building.body.id, name: "Allowed", level: 1 })
+      .expect(201);
+  });
+
+  it("rejects moving a unit to a floor in a different building", async () => {
+    const firstBuilding = await request(app.getHttpServer())
+      .post("/api/v1/buildings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Move Source", timezone: "America/Detroit" })
+      .expect(201);
+    const secondBuilding = await request(app.getHttpServer())
+      .post("/api/v1/buildings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Move Target", timezone: "America/Detroit" })
+      .expect(201);
+    const targetFloor = await request(app.getHttpServer())
+      .post("/api/v1/floors")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ buildingId: secondBuilding.body.id, name: "Other", level: 2 })
+      .expect(201);
+    const unit = await request(app.getHttpServer())
+      .post("/api/v1/units")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ buildingId: firstBuilding.body.id, name: "101" })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/units/${unit.body.id}`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ floorId: targetFloor.body.id })
+      .expect(404)
+      .expect(({ body }) =>
+        expect(body.error.code).toBe("TENANT_RESOURCE_NOT_FOUND"),
+      );
+  });
 });

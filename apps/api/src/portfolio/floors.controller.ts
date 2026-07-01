@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   Param,
   Patch,
@@ -51,5 +52,25 @@ export class FloorsController {
     @Body() dto: UpdateFloorDto,
   ) {
     return this.floorsService.update(request.context!, floorId, dto);
+  }
+
+  @Post(":floorId/archive")
+  @HttpCode(200)
+  @Roles("owner", "manager")
+  archive(
+    @Req() request: RequestWithContext,
+    @Param("floorId") floorId: string,
+  ) {
+    return this.floorsService.archive(request.context!, floorId);
+  }
+
+  @Post(":floorId/restore")
+  @HttpCode(200)
+  @Roles("owner", "manager")
+  restore(
+    @Req() request: RequestWithContext,
+    @Param("floorId") floorId: string,
+  ) {
+    return this.floorsService.restore(request.context!, floorId);
   }
 }

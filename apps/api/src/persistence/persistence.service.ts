@@ -143,7 +143,12 @@ export interface PersistenceService {
   updateBuilding(
     organizationId: string,
     buildingId: string,
-    input: Partial<Pick<Building, "address" | "name" | "timezone">>,
+    input: Partial<
+      Pick<
+        Building,
+        "address" | "archivedAt" | "lifecycleStatus" | "name" | "timezone"
+      >
+    >,
   ): MaybePromise<Building | undefined>;
 
   listFloors(
@@ -163,7 +168,9 @@ export interface PersistenceService {
   updateFloor(
     organizationId: string,
     floorId: string,
-    input: Partial<Pick<Floor, "level" | "name">>,
+    input: Partial<
+      Pick<Floor, "archivedAt" | "level" | "lifecycleStatus" | "name">
+    >,
   ): MaybePromise<Floor | undefined>;
 
   listUnits(input: {
@@ -185,7 +192,16 @@ export interface PersistenceService {
   updateUnit(
     organizationId: string,
     unitId: string,
-    input: Partial<Pick<Unit, "floorId" | "name" | "occupancyStatus">>,
+    input: Partial<
+      Pick<
+        Unit,
+        | "archivedAt"
+        | "floorId"
+        | "lifecycleStatus"
+        | "name"
+        | "occupancyStatus"
+      >
+    >,
   ): MaybePromise<Unit | undefined>;
 
   listMeters(input: {
@@ -212,7 +228,13 @@ export interface PersistenceService {
     input: Partial<
       Pick<
         Meter,
-        "floorId" | "installedAt" | "lastReadingAt" | "status" | "unitId"
+        | "archivedAt"
+        | "floorId"
+        | "installedAt"
+        | "lastReadingAt"
+        | "lifecycleStatus"
+        | "status"
+        | "unitId"
       >
     >,
   ): MaybePromise<Meter | undefined>;

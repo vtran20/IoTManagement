@@ -1,5 +1,6 @@
 export type EntityId = string;
 export type ISODateTime = string;
+export type ResourceLifecycleStatus = "active" | "archived";
 
 export const userRoles = ["owner", "manager", "viewer", "tenant"] as const;
 export type UserRole = (typeof userRoles)[number];
@@ -90,6 +91,8 @@ export interface Building {
   name: string;
   address?: string;
   timezone: string;
+  lifecycleStatus?: ResourceLifecycleStatus;
+  archivedAt?: ISODateTime;
 }
 
 export interface Floor {
@@ -98,6 +101,8 @@ export interface Floor {
   buildingId: EntityId;
   name: string;
   level: number;
+  lifecycleStatus?: ResourceLifecycleStatus;
+  archivedAt?: ISODateTime;
 }
 
 export interface Unit {
@@ -107,6 +112,8 @@ export interface Unit {
   floorId?: EntityId;
   name: string;
   occupancyStatus: "occupied" | "vacant" | "maintenance";
+  lifecycleStatus?: ResourceLifecycleStatus;
+  archivedAt?: ISODateTime;
 }
 
 export interface Meter {
@@ -121,6 +128,8 @@ export interface Meter {
   status: MeterStatus;
   installedAt?: ISODateTime;
   lastReadingAt?: ISODateTime;
+  lifecycleStatus?: ResourceLifecycleStatus;
+  archivedAt?: ISODateTime;
 }
 
 export interface MeterReading {
