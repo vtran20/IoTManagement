@@ -21,11 +21,13 @@ export class CostEstimateService {
     this.rates = rates ?? defaultRates;
   }
 
-  estimate(utilityType: UtilityType, usageValue: number): number {
+  estimate(
+    utilityType: UtilityType,
+    usageValue: number,
+    rates: CostRates = this.rates,
+  ): number {
     const rate =
-      utilityType === "electric"
-        ? this.rates.electricPerKwh
-        : this.rates.waterPerGallon;
+      utilityType === "electric" ? rates.electricPerKwh : rates.waterPerGallon;
     return Math.round(usageValue * rate * 100) / 100;
   }
 }

@@ -18,6 +18,12 @@ export function SettingsForm() {
         <p>Organization rates</p>
       </section>
       <section className="data-panel settings-links">
+        <a className="mode-button" href="/settings/rates">
+          Utility Rates
+        </a>
+        <a className="mode-button" href="/settings/demo-data">
+          Demo Data
+        </a>
         <a className="mode-button" href="/settings/profile">
           Profile
         </a>

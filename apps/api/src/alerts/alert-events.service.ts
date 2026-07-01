@@ -55,6 +55,7 @@ export class AlertEventsService {
     if (!event) {
       throw tenantResourceNotFound("Alert");
     }
+    await this.auditLifecycle(context, alertId, "alert.acknowledged");
     this.logLifecycle(context, alertId, "acknowledged");
     return event;
   }
@@ -71,8 +72,24 @@ export class AlertEventsService {
     if (!event) {
       throw tenantResourceNotFound("Alert");
     }
+    await this.auditLifecycle(context, alertId, "alert.resolved");
     this.logLifecycle(context, alertId, "resolved");
     return event;
+  }
+
+  private async auditLifecycle(
+    context: RequestContext,
+    alertId: string,
+    action: "alert.acknowledged" | "alert.resolved",
+  ) {
+    await this.persistence.createAuditLog({
+      action,
+      actorUserId: context.user.id,
+      metadata: {},
+      organizationId: context.organization.id,
+      targetId: alertId,
+      targetType: "alert_event",
+    });
   }
 
   private logLifecycle(

@@ -15,6 +15,7 @@ import type {
   User,
   UserRole,
   UsageAggregate,
+  UtilityRatesResponse,
   UtilityType,
 } from "@iot-management/types";
 import type { StoredUser } from "./in-memory-persistence.service";
@@ -128,6 +129,13 @@ export interface PersistenceService {
     to: string;
   }): MaybePromise<StoredEmailOutboxItem>;
   listEmailOutboxItems(): MaybePromise<StoredEmailOutboxItem[]>;
+
+  getUtilityRates(organizationId: string): MaybePromise<UtilityRatesResponse>;
+  upsertUtilityRates(input: {
+    electricPerKwh: number;
+    organizationId: string;
+    waterPerGallon: number;
+  }): MaybePromise<UtilityRatesResponse>;
 
   listBuildings(organizationId: string): MaybePromise<Building[]>;
   createBuilding(input: {

@@ -80,6 +80,7 @@ export class AggregationService {
     const meters = await this.persistence.listMeters({
       organizationId: input.organizationId,
     });
+    const rates = await this.persistence.getUtilityRates(input.organizationId);
     const grouped = new Map<string, Omit<UsageAggregate, "id">>();
 
     for (const meter of meters) {
@@ -113,6 +114,7 @@ export class AggregationService {
           costEstimate: this.costEstimate.estimate(
             interval.utilityType,
             usageValue,
+            rates,
           ),
           meterId: meter.id,
           organizationId: input.organizationId,

@@ -1,6 +1,7 @@
 "use client";
 
 import type { MonthlyUsageReportResponse } from "@iot-management/types";
+import { apiBaseUrl } from "../../lib/auth-client";
 import { useApiResource } from "../../lib/use-api-resource";
 import { MonthlyUsageReport } from "./monthly-usage-report";
 
@@ -29,7 +30,19 @@ export function ReportsPanel({ state }: { state?: string }) {
     return <NoReportData />;
   }
 
-  return <MonthlyUsageReport report={report.data} />;
+  return (
+    <>
+      <section className="data-panel report-actions">
+        <a
+          className="mode-button"
+          href={`${apiBaseUrl}/reports/monthly-usage/export?month=2026-06`}
+        >
+          Download CSV
+        </a>
+      </section>
+      <MonthlyUsageReport report={report.data} />
+    </>
+  );
 }
 
 function NoReportData() {

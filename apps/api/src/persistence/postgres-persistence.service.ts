@@ -9,6 +9,7 @@ import type {
   Organization,
   Unit,
   UsageAggregate,
+  UtilityRatesResponse,
 } from "@iot-management/types";
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
@@ -26,6 +27,7 @@ import type {
   MembershipRow,
   MeterReadingRow,
   MeterRow,
+  OrganizationUtilityRatesRow,
   OrganizationRow,
   PasswordResetTokenRow,
   SessionRow,
@@ -621,6 +623,46 @@ export class PostgresPersistenceService
       .execute();
   }
 
+  async getUtilityRates(organizationId: string): Promise<UtilityRatesResponse> {
+    const row = await this.database.db
+      .selectFrom("organization_utility_rates")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .executeTakeFirst();
+    return row
+      ? mapUtilityRates(row)
+      : {
+          electricPerKwh: 0.15,
+          organizationId,
+          waterPerGallon: 0.005,
+        };
+  }
+
+  async upsertUtilityRates(input: {
+    electricPerKwh: number;
+    organizationId: string;
+    waterPerGallon: number;
+  }): Promise<UtilityRatesResponse> {
+    const row = await this.database.db
+      .insertInto("organization_utility_rates")
+      .values({
+        electric_per_kwh: input.electricPerKwh,
+        organization_id: input.organizationId,
+        updated_at: new Date().toISOString(),
+        water_per_gallon: input.waterPerGallon,
+      })
+      .onConflict((conflict) =>
+        conflict.column("organization_id").doUpdateSet({
+          electric_per_kwh: input.electricPerKwh,
+          updated_at: new Date().toISOString(),
+          water_per_gallon: input.waterPerGallon,
+        }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapUtilityRates(row);
+  }
+
   async listBuildings(organizationId: string): Promise<Building[]> {
     const rows = await this.database.db
       .selectFrom("buildings")
@@ -1058,7 +1100,7 @@ export class PostgresPersistenceService
       .values({
         id: await this.nextId(
           "usageAggregate",
-          input.meterId,
+          `${input.meterId}_${input.periodType}`,
           "usage_aggregates",
         ),
         organization_id: input.organizationId,
@@ -1441,6 +1483,17 @@ function mapEmailOutboxItem(
     createdAt: iso(row.created_at),
     sentAt: row.sent_at ? iso(row.sent_at) : undefined,
   }) as StoredEmailOutboxItem;
+}
+
+function mapUtilityRates(
+  row: Selectable<OrganizationUtilityRatesRow>,
+): UtilityRatesResponse {
+  return {
+    electricPerKwh: Number(row.electric_per_kwh),
+    organizationId: row.organization_id,
+    updatedAt: iso(row.updated_at),
+    waterPerGallon: Number(row.water_per_gallon),
+  };
 }
 
 function mapBuilding(row: Selectable<BuildingRow>): Building {

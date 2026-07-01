@@ -18,6 +18,7 @@ import { PersistenceModule } from "./persistence/persistence.module";
 import { PortfolioModule } from "./portfolio/portfolio.module";
 import { ReadingsModule } from "./readings/readings.module";
 import { ReportsModule } from "./reports/reports.module";
+import { SettingsModule } from "./settings/settings.module";
 import { SimulationsModule } from "./simulations/simulations.module";
 import { TenantsModule } from "./tenants/tenants.module";
 
@@ -39,6 +40,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     JobsModule,
     AlertsModule,
     ReportsModule,
+    SettingsModule,
   ],
   providers: [
     {

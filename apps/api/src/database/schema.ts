@@ -14,6 +14,7 @@ export interface DatabaseSchema {
   meter_readings: MeterReadingRow;
   meters: MeterRow;
   organizations: OrganizationRow;
+  organization_utility_rates: OrganizationUtilityRatesRow;
   password_reset_tokens: PasswordResetTokenRow;
   schema_migrations: SchemaMigrationRow;
   email_outbox: EmailOutboxRow;
@@ -28,6 +29,13 @@ export interface OrganizationRow {
   name: string;
   status: "active" | "disabled";
   created_at: Timestamp;
+}
+
+export interface OrganizationUtilityRatesRow {
+  organization_id: string;
+  water_per_gallon: Numeric;
+  electric_per_kwh: Numeric;
+  updated_at: Timestamp;
 }
 
 export interface UserRow {

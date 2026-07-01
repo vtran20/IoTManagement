@@ -96,6 +96,24 @@ export class ReportsService {
       },
     };
   }
+
+  async monthlyUsageCsv(
+    organizationId: string,
+    query: MonthlyUsageReportQuery,
+  ): Promise<string> {
+    const report = await this.monthlyUsage(organizationId, query);
+    const header = report.columns.map((column) => csvCell(column.label));
+    const rows = report.rows.map((row) =>
+      [
+        row.buildingName,
+        row.unitName,
+        row.waterGallons,
+        row.electricKwh,
+        row.estimatedCost,
+      ].map(csvCell),
+    );
+    return [header, ...rows].map((row) => row.join(",")).join("\n") + "\n";
+  }
 }
 
 const monthlyUsageColumns: MonthlyUsageReportColumn[] = [
@@ -139,4 +157,9 @@ function roundUsage(value: number): number {
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function csvCell(value: string | number): string {
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }

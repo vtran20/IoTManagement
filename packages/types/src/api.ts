@@ -270,6 +270,18 @@ export interface DemoSeedResponse {
   unitCount: number;
 }
 
+export interface UtilityRatesResponse {
+  electricPerKwh: number;
+  organizationId: EntityId;
+  updatedAt?: ISODateTime;
+  waterPerGallon: number;
+}
+
+export interface UpdateUtilityRatesRequest {
+  electricPerKwh?: number;
+  waterPerGallon?: number;
+}
+
 export interface ListUsageQuery extends PageRequest {
   buildingId?: EntityId;
   unitId?: EntityId;

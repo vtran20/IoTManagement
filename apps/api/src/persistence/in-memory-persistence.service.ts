@@ -16,6 +16,7 @@ import type {
   User,
   UserRole,
   UsageAggregate,
+  UtilityRatesResponse,
   UtilityType,
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
@@ -63,6 +64,8 @@ export class InMemoryPersistenceService implements PersistenceService {
       createdAt: "2026-06-29T00:00:00.000Z",
     },
   ];
+
+  private readonly utilityRates = new Map<string, UtilityRatesResponse>();
 
   private readonly users: StoredUser[] = [
     this.createBootstrapUser(
@@ -466,6 +469,29 @@ export class InMemoryPersistenceService implements PersistenceService {
     return undefined;
   }
 
+  getUtilityRates(organizationId: string): UtilityRatesResponse {
+    return (
+      this.utilityRates.get(organizationId) ?? {
+        electricPerKwh: 0.15,
+        organizationId,
+        waterPerGallon: 0.005,
+      }
+    );
+  }
+
+  upsertUtilityRates(input: {
+    electricPerKwh: number;
+    organizationId: string;
+    waterPerGallon: number;
+  }): UtilityRatesResponse {
+    const rates: UtilityRatesResponse = {
+      ...input,
+      updatedAt: new Date().toISOString(),
+    };
+    this.utilityRates.set(input.organizationId, rates);
+    return rates;
+  }
+
   listBuildings(organizationId: string): Building[] {
     return this.buildings.filter(
       (building) => building.organizationId === organizationId,
@@ -764,7 +790,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   ): UsageAggregate {
     const aggregate: UsageAggregate = {
       ...input,
-      id: this.nextId("usageAggregate", input.meterId),
+      id: this.nextId("usageAggregate", `${input.meterId}_${input.periodType}`),
     };
     this.usageAggregates.push(aggregate);
     return aggregate;

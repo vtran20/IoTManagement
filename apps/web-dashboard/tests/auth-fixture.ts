@@ -1,5 +1,11 @@
 import type { Page } from "@playwright/test";
-import type { AlertEvent, Building, Meter, Unit } from "@iot-management/types";
+import type {
+  AlertEvent,
+  AlertRule,
+  Building,
+  Meter,
+  Unit,
+} from "@iot-management/types";
 import {
   alerts as fixtureAlerts,
   buildings as fixtureBuildings,
@@ -48,6 +54,24 @@ export async function mockAuthenticatedSession(
       meter.utilityType === "water" ? ["gallon", "liter"] : ["kwh"],
   }));
   let alerts: AlertEvent[] = fixtureAlerts.map((alert) => ({ ...alert }));
+  let rates = {
+    electricPerKwh: 0.15,
+    organizationId: "org_north",
+    waterPerGallon: 0.005,
+  };
+  let rules: AlertRule[] = [
+    {
+      conditionType: "high_usage",
+      enabled: true,
+      id: "rule_high_usage",
+      name: "High water usage",
+      organizationId: "org_north",
+      scopeType: "organization",
+      threshold: 100,
+      utilityType: "water",
+      windowMinutes: 60,
+    },
+  ];
   const units: Unit[] = fixtureUnits.map((unit) => ({
     ...unit,
     lifecycleStatus: unit.lifecycleStatus ?? "active",
@@ -115,6 +139,25 @@ export async function mockAuthenticatedSession(
           },
         ],
       }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route("**/api/v1/settings/rates", async (route) => {
+    if (route.request().method() === "PATCH") {
+      rates = {
+        ...rates,
+        ...(route.request().postDataJSON() as typeof rates),
+      };
+      await route.fulfill({
+        body: JSON.stringify(rates),
+        contentType: "application/json",
+        status: 200,
+      });
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(rates),
       contentType: "application/json",
       status: 200,
     });
@@ -348,6 +391,37 @@ export async function mockAuthenticatedSession(
       status: 200,
     });
   });
+  await page.route("**/api/v1/alerts/rules", async (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON() as {
+        name: string;
+        threshold?: number;
+      };
+      const rule: AlertRule = {
+        conditionType: "high_usage",
+        enabled: true,
+        id: `rule_${body.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
+        name: body.name,
+        organizationId: "org_north",
+        scopeType: "organization",
+        threshold: body.threshold,
+        utilityType: "water",
+        windowMinutes: 60,
+      };
+      rules = [...rules, rule];
+      await route.fulfill({
+        body: JSON.stringify(rule),
+        contentType: "application/json",
+        status: 201,
+      });
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify({ items: rules }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
   await page.route("**/api/v1/alerts/*/acknowledge", async (route) => {
     const alertId = route.request().url().split("/").at(-2);
     alerts = alerts.map((alert) =>
@@ -365,11 +439,55 @@ export async function mockAuthenticatedSession(
       status: 201,
     });
   });
+  await page.route("**/api/v1/alerts/*/resolve", async (route) => {
+    const alertId = route.request().url().split("/").at(-2);
+    alerts = alerts.map((alert) =>
+      alert.id === alertId
+        ? {
+            ...alert,
+            resolvedAt: "2026-06-30T12:10:00.000Z",
+            status: "resolved",
+          }
+        : alert,
+    );
+    await route.fulfill({
+      body: JSON.stringify(alerts.find((alert) => alert.id === alertId)),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
   await page.route("**/api/v1/reports/monthly-usage**", async (route) => {
+    if (route.request().url().includes("/export")) {
+      await route.fulfill({
+        body: "Building,Unit,Water (gal),Electric (kWh),Estimated cost\nNorth,101,10,5,1.25\n",
+        contentType: "text/csv",
+        headers: {
+          "content-disposition":
+            "attachment; filename=monthly-usage-2026-06.csv",
+        },
+        status: 200,
+      });
+      return;
+    }
     await route.fulfill({
       body: JSON.stringify(monthlyUsageReport),
       contentType: "application/json",
       status: 200,
+    });
+  });
+  await page.route("**/api/v1/simulations/demo-seed", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        acceptedReadingCount: 12,
+        aggregateCount: 4,
+        buildingCount: 2,
+        duplicateReadingCount: 0,
+        meterCount: 4,
+        reportMonth: "2026-06",
+        unitCount: 3,
+      }),
+      contentType: "application/json",
+      status: 201,
     });
   });
 }
