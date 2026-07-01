@@ -1,6 +1,6 @@
-import { units } from "../../lib/api";
+import type { UnitRankingItem } from "@iot-management/types";
 
-export function UnitRankingsTable() {
+export function UnitRankingsTable({ rows }: { rows: UnitRankingItem[] }) {
   return (
     <article className="small-card table-card">
       <div className="small-heading">
@@ -19,15 +19,27 @@ export function UnitRankingsTable() {
           </tr>
         </thead>
         <tbody>
-          {units.map((unit, index) => (
-            <tr key={unit.id}>
-              <td>{unit.name}</td>
-              <td>{index === 0 ? "18,420 gal" : "9,820 gal"}</td>
-              <td>{index === 0 ? "4,870 kWh" : "2,240 kWh"}</td>
+          {rows.slice(0, 8).map((row) => (
+            <tr key={`${row.unitId}:${row.utilityType}`}>
+              <td>{row.unitName}</td>
+              <td>
+                {row.utilityType === "water"
+                  ? formatUsage(row.usageValue)
+                  : "-"}
+              </td>
+              <td>
+                {row.utilityType === "electric"
+                  ? formatUsage(row.usageValue)
+                  : "-"}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     </article>
   );
+}
+
+function formatUsage(value: number): string {
+  return Math.round(value).toLocaleString("en-US");
 }

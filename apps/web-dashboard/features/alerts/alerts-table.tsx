@@ -1,12 +1,72 @@
 "use client";
 
-import { useState } from "react";
-import { alerts as initialAlerts } from "../../lib/api";
+import { useEffect, useState } from "react";
+import type { AlertEvent, PageResponse } from "@iot-management/types";
+import {
+  canMutate,
+  fetchJson,
+  mutateJson,
+  useCurrentSession,
+} from "../../lib/use-api-resource";
 
 export function AlertsTable() {
-  const [alerts, setAlerts] = useState(initialAlerts);
+  const session = useCurrentSession();
+  const [alerts, setAlerts] = useState<AlertEvent[]>([]);
+  const [status, setStatus] = useState<"error" | "loading" | "ready">(
+    "loading",
+  );
+  const [message, setMessage] = useState("");
+  const allowMutations = canMutate(session.data?.membership.role);
+
+  useEffect(() => {
+    let mounted = true;
+    setStatus("loading");
+    fetchJson<PageResponse<AlertEvent>>("/alerts")
+      .then((response) => {
+        if (!mounted) return;
+        setAlerts(response.items);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (mounted) setStatus("error");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function acknowledge(alertId: string) {
+    if (!allowMutations) return;
+    setMessage("");
+    try {
+      const alert = await mutateJson<AlertEvent>(
+        `/alerts/${alertId}/acknowledge`,
+        { method: "POST" },
+      );
+      setAlerts((current) =>
+        current.map((item) => (item.id === alertId ? alert : item)),
+      );
+    } catch {
+      setMessage("Alert could not be acknowledged.");
+    }
+  }
+
+  if (status === "loading" || session.status === "loading") {
+    return <section className="state-panel">Loading alerts</section>;
+  }
+
+  if (status === "error" || session.status === "error") {
+    return (
+      <section className="state-panel error-state">
+        Alert data is unavailable
+      </section>
+    );
+  }
+
   return (
     <div className="data-panel">
+      {message ? <p className="form-error">{message}</p> : null}
+      {alerts.length === 0 ? <p>No alerts found.</p> : null}
       <table>
         <thead>
           <tr>
@@ -28,19 +88,11 @@ export function AlertsTable() {
               <td>{alert.status}</td>
               <td>{new Date(alert.triggeredAt).toLocaleString("en-US")}</td>
               <td>
-                {alert.status === "open" ? (
+                {alert.status === "open" && allowMutations ? (
                   <button
                     className="table-button"
                     type="button"
-                    onClick={() =>
-                      setAlerts((current) =>
-                        current.map((item) =>
-                          item.id === alert.id
-                            ? { ...item, status: "acknowledged" }
-                            : item,
-                        ),
-                      )
-                    }
+                    onClick={() => acknowledge(alert.id)}
                   >
                     Acknowledge
                   </button>

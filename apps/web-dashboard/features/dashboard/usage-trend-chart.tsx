@@ -1,4 +1,20 @@
-export function UsageTrendChart() {
+import type {
+  DashboardSummaryResponse,
+  UsageTrendPoint,
+} from "@iot-management/types";
+
+export function UsageTrendChart({
+  summary,
+  trends,
+}: {
+  summary: DashboardSummaryResponse;
+  trends: UsageTrendPoint[];
+}) {
+  const totalCost = summary.utilitySummaries.reduce(
+    (sum, item) => sum + (item.costEstimate ?? 0),
+    0,
+  );
+  const points = trends.slice(0, 6);
   return (
     <article className="chart-card usage-card">
       <div className="card-heading">
@@ -12,8 +28,8 @@ export function UsageTrendChart() {
         </div>
       </div>
       <div className="chart-value">
-        <strong>$2,126.58</strong>
-        <span>June estimated cost</span>
+        <strong>{formatMoney(totalCost)}</strong>
+        <span>Estimated cost</span>
       </div>
       <svg
         className="line-chart"
@@ -39,10 +55,22 @@ export function UsageTrendChart() {
         />
       </svg>
       <div className="months">
-        {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((month) => (
-          <span key={month}>{month}</span>
+        {(points.length ? points : trends).slice(0, 6).map((point) => (
+          <span key={`${point.periodStart}:${point.utilityType}`}>
+            {new Intl.DateTimeFormat("en-US", {
+              month: "short",
+              timeZone: "UTC",
+            }).format(new Date(point.periodStart))}
+          </span>
         ))}
       </div>
     </article>
   );
+}
+
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    style: "currency",
+  }).format(value);
 }

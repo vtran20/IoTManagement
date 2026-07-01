@@ -3,7 +3,6 @@
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "../../lib/auth-client";
-import { demoUser } from "../../lib/api";
 
 export function LoginForm() {
   const router = useRouter();
@@ -54,15 +53,11 @@ export function LoginForm() {
         {error ? <p className="form-error">{error}</p> : null}
         <label className="field">
           <span>Email</span>
-          <input name="email" type="email" defaultValue={demoUser.email} />
+          <input name="email" type="email" defaultValue="owner@north.example" />
         </label>
         <label className="field">
           <span>Password</span>
-          <input
-            name="password"
-            type="password"
-            defaultValue={demoUser.password}
-          />
+          <input name="password" type="password" defaultValue="password123" />
         </label>
         <button
           className="primary-button"

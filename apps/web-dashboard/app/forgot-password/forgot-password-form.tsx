@@ -3,7 +3,6 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../lib/auth-client";
-import { demoUser } from "../../lib/api";
 
 export function ForgotPasswordForm() {
   const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
@@ -49,7 +48,7 @@ export function ForgotPasswordForm() {
         ) : null}
         <label className="field">
           <span>Email</span>
-          <input name="email" type="email" defaultValue={demoUser.email} />
+          <input name="email" type="email" defaultValue="owner@north.example" />
         </label>
         <button
           className="primary-button"

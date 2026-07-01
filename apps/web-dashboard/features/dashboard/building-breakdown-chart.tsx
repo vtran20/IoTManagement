@@ -1,9 +1,11 @@
-export function BuildingBreakdownChart() {
-  const rows = [
-    ["North Ridge", 58, 31],
-    ["Lakeview", 42, 22],
-    ["Shared", 28, 16],
-  ] as const;
+import type { BuildingBreakdownItem } from "@iot-management/types";
+
+export function BuildingBreakdownChart({
+  rows,
+}: {
+  rows: BuildingBreakdownItem[];
+}) {
+  const grouped = groupByBuilding(rows);
   return (
     <article className="chart-card channel-card">
       <div className="card-heading compact">
@@ -17,7 +19,7 @@ export function BuildingBreakdownChart() {
         <span>Electric</span>
       </div>
       <div className="bar-stack-list">
-        {rows.map(([name, water, electric]) => (
+        {grouped.map(({ electric, name, water }) => (
           <div className="bar-row" key={name}>
             <span>{name}</span>
             <div className="stack">
@@ -29,4 +31,29 @@ export function BuildingBreakdownChart() {
       </div>
     </article>
   );
+}
+
+function groupByBuilding(rows: BuildingBreakdownItem[]) {
+  const max = Math.max(...rows.map((row) => row.usageValue), 1);
+  const grouped = new Map<
+    string,
+    { electric: number; name: string; water: number }
+  >();
+  for (const row of rows) {
+    const existing = grouped.get(row.buildingId) ?? {
+      electric: 0,
+      name: row.buildingName,
+      water: 0,
+    };
+    if (row.utilityType === "water") {
+      existing.water = Math.max(existing.water, (row.usageValue / max) * 100);
+    } else {
+      existing.electric = Math.max(
+        existing.electric,
+        (row.usageValue / max) * 100,
+      );
+    }
+    grouped.set(row.buildingId, existing);
+  }
+  return [...grouped.values()];
 }

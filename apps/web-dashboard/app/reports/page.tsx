@@ -1,6 +1,5 @@
 import { AppShell } from "../../components/app-shell";
-import { MonthlyUsageReport } from "../../features/reports/monthly-usage-report";
-import { monthlyUsageReport } from "../../lib/api";
+import { ReportsPanel } from "../../features/reports/reports-panel";
 
 export default async function ReportsPage({
   searchParams,
@@ -11,14 +10,7 @@ export default async function ReportsPage({
 
   return (
     <AppShell title="Reports">
-      {params.state === "empty" ? (
-        <section className="state-panel">
-          <h2>No report data yet</h2>
-          <p>Seed demo data or run monthly aggregation to generate reports.</p>
-        </section>
-      ) : (
-        <MonthlyUsageReport report={monthlyUsageReport} />
-      )}
+      <ReportsPanel state={params.state} />
     </AppShell>
   );
 }
