@@ -1,25 +1,43 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiFetch } from "../../lib/auth-client";
 import { demoUser } from "../../lib/api";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
     const data = new FormData(event.currentTarget);
-    if (
-      data.get("email") === demoUser.email &&
-      data.get("password") === demoUser.password
-    ) {
-      window.localStorage.setItem("iot-management-session", demoUser.email);
-      router.push("/dashboard");
-      return;
+
+    try {
+      const response = await apiFetch("/auth/login", {
+        body: JSON.stringify({
+          email: data.get("email"),
+          password: data.get("password"),
+        }),
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        setError("Invalid email or password");
+        return;
+      }
+
+      router.push(searchParams.get("next") ?? "/dashboard");
+      router.refresh();
+    } catch {
+      setError("Sign in is unavailable. Try again soon.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setError("Invalid email or password");
   }
 
   return (
@@ -46,8 +64,12 @@ export function LoginForm() {
             defaultValue={demoUser.password}
           />
         </label>
-        <button className="primary-button" type="submit">
-          Sign in
+        <button
+          className="primary-button"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? "Signing in" : "Sign in"}
         </button>
       </form>
     </main>

@@ -29,6 +29,9 @@ export interface PersistenceService {
   findPrimaryMembershipForUser(
     userId: string,
   ): MaybePromise<Membership | undefined>;
+  findMembershipById(
+    membershipId: string,
+  ): MaybePromise<Membership | undefined>;
   findOrganizationById(
     organizationId: string,
   ): MaybePromise<UserOrganization | undefined>;
@@ -37,6 +40,20 @@ export interface PersistenceService {
     organizationId: string;
     role: UserRole;
   }): MaybePromise<Membership>;
+  createSession(input: {
+    expiresAt: string;
+    ipAddress?: string;
+    membershipId: string;
+    organizationId: string;
+    tokenHash: string;
+    userAgent?: string;
+    userId: string;
+  }): MaybePromise<StoredSession>;
+  findActiveSessionByTokenHash(
+    tokenHash: string,
+    now: string,
+  ): MaybePromise<StoredSession | undefined>;
+  revokeSession(sessionId: string, revokedAt: string): MaybePromise<void>;
 
   listBuildings(organizationId: string): MaybePromise<Building[]>;
   createBuilding(input: {
@@ -227,3 +244,16 @@ export interface PersistenceService {
 }
 
 export type UserOrganization = import("@iot-management/types").Organization;
+
+export interface StoredSession {
+  id: string;
+  tokenHash: string;
+  userId: string;
+  organizationId: string;
+  membershipId: string;
+  createdAt: string;
+  expiresAt: string;
+  revokedAt?: string;
+  userAgent?: string;
+  ipAddress?: string;
+}

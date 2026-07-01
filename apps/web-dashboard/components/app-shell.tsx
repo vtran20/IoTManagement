@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { demoUser } from "../lib/api";
+import { AccountMenu } from "./account-menu";
 import { Nav } from "./nav";
 
 export function AppShell({
@@ -20,13 +20,7 @@ export function AppShell({
           </div>
         </div>
         <Nav />
-        <div className="account-block">
-          <div className="avatar">NO</div>
-          <div>
-            <strong>{demoUser.name}</strong>
-            <span>{demoUser.email}</span>
-          </div>
-        </div>
+        <AccountMenu />
       </aside>
       <section className="workspace">
         <header className="topbar">

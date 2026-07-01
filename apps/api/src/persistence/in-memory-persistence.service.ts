@@ -20,7 +20,7 @@ import type {
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
-import type { PersistenceService } from "./persistence.service";
+import type { PersistenceService, StoredSession } from "./persistence.service";
 
 export interface StoredUser extends User {
   passwordHash: string;
@@ -35,6 +35,7 @@ export class InMemoryPersistenceService implements PersistenceService {
     floor: 1,
     meter: 1,
     reading: 1,
+    session: 1,
     usageAggregate: 1,
     unit: 1,
   };
@@ -132,6 +133,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly usageAggregates: UsageAggregate[] = [];
   private readonly alertRules: AlertRule[] = [];
   private readonly alertEvents: AlertEvent[] = [];
+  private readonly sessions: StoredSession[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -143,6 +145,12 @@ export class InMemoryPersistenceService implements PersistenceService {
 
   findPrimaryMembershipForUser(userId: string): Membership | undefined {
     return this.memberships.find((membership) => membership.userId === userId);
+  }
+
+  findMembershipById(membershipId: string): Membership | undefined {
+    return this.memberships.find(
+      (membership) => membership.id === membershipId,
+    );
   }
 
   findOrganizationById(organizationId: string): Organization | undefined {
@@ -168,6 +176,51 @@ export class InMemoryPersistenceService implements PersistenceService {
     );
     this.memberships.push(membership);
     return membership;
+  }
+
+  createSession(input: {
+    expiresAt: string;
+    ipAddress?: string;
+    membershipId: string;
+    organizationId: string;
+    tokenHash: string;
+    userAgent?: string;
+    userId: string;
+  }): StoredSession {
+    const session: StoredSession = {
+      id: this.nextId("session", input.userId),
+      tokenHash: input.tokenHash,
+      userId: input.userId,
+      organizationId: input.organizationId,
+      membershipId: input.membershipId,
+      createdAt: new Date().toISOString(),
+      expiresAt: input.expiresAt,
+      userAgent: input.userAgent,
+      ipAddress: input.ipAddress,
+    };
+    this.sessions.push(session);
+    return session;
+  }
+
+  findActiveSessionByTokenHash(
+    tokenHash: string,
+    now: string,
+  ): StoredSession | undefined {
+    return this.sessions.find(
+      (session) =>
+        session.tokenHash === tokenHash &&
+        !session.revokedAt &&
+        session.expiresAt > now,
+    );
+  }
+
+  revokeSession(sessionId: string, revokedAt: string): void {
+    const session = this.sessions.find(
+      (candidate) => candidate.id === sessionId,
+    );
+    if (session) {
+      session.revokedAt = revokedAt;
+    }
   }
 
   listBuildings(organizationId: string): Building[] {

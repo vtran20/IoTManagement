@@ -3,15 +3,21 @@ import {
   Controller,
   Get,
   Inject,
+  HttpStatus,
   Post,
   Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import type { Response } from "express";
+import { ApiError } from "../common/errors/api-error";
 import { AuthGuard } from "../common/guards/auth.guard";
 import { RateLimitService } from "../common/rate-limit/rate-limit.service";
 import { RequestWithContext } from "../common/request-context";
+import { validateApiEnv } from "../config/env.schema";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
+import { serializeClearSessionCookie, serializeSessionCookie } from "./session";
 
 @Controller("auth")
 export class AuthController {
@@ -22,19 +28,68 @@ export class AuthController {
   ) {}
 
   @Post("login")
-  login(@Body() dto: LoginDto, @Req() request: RequestWithContext) {
+  async login(
+    @Body() dto: LoginDto,
+    @Req() request: RequestWithContext,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     this.rateLimitService.check({
       key: `auth:${request.ip ?? "local"}:${dto.email?.toLowerCase() ?? "unknown"}`,
       limit: 5,
       message: "Too many auth attempts. Try again later.",
       windowMs: 60_000,
     });
-    return this.authService.login(dto);
+    const result = await this.authService.login(dto, {
+      ipAddress: request.ip,
+      userAgent: Array.isArray(request.headers["user-agent"])
+        ? request.headers["user-agent"][0]
+        : request.headers["user-agent"],
+    });
+    response.setHeader(
+      "Set-Cookie",
+      serializeSessionCookie({
+        expiresAt: result.sessionExpiresAt,
+        secure: validateApiEnv().nodeEnv === "production",
+        token: result.sessionToken,
+      }),
+    );
+    return result.response;
   }
 
   @Get("me")
   @UseGuards(AuthGuard)
   me(@Req() request: RequestWithContext) {
     return request.context;
+  }
+
+  @Get("csrf")
+  @UseGuards(AuthGuard)
+  csrf(@Req() request: RequestWithContext) {
+    if (!request.auth?.sessionToken) {
+      throw new ApiError(
+        "SESSION_REQUIRED",
+        "Session authentication is required",
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    return {
+      csrfToken: this.authService.createCsrfToken(request.auth.sessionToken),
+    };
+  }
+
+  @Post("logout")
+  @UseGuards(AuthGuard)
+  async logout(
+    @Req() request: RequestWithContext,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    if (request.auth?.session) {
+      await this.authService.revokeSession(request.auth.session.id);
+    }
+    response.setHeader(
+      "Set-Cookie",
+      serializeClearSessionCookie(validateApiEnv().nodeEnv === "production"),
+    );
+    return { success: true };
   }
 }

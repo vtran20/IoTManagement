@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { mockAuthenticatedSession } from "./auth-fixture";
 
 test("alerts can be acknowledged from the UI", async ({ page }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/alerts");
 
   await expect(page.getByRole("heading", { name: "Alerts" })).toBeVisible();

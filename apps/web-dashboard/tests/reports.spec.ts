@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { mockAuthenticatedSession } from "./auth-fixture";
 
 test("monthly usage report shows totals and grouped unit rows", async ({
   page,
 }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/reports");
 
   await expect(
@@ -37,6 +39,7 @@ test("monthly usage report shows totals and grouped unit rows", async ({
 });
 
 test("monthly usage report has a useful no-data state", async ({ page }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/reports?state=empty");
 
   await expect(page.getByText("No report data yet")).toBeVisible();

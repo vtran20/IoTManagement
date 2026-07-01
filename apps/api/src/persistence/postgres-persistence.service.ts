@@ -10,6 +10,7 @@ import type {
   Unit,
   UsageAggregate,
 } from "@iot-management/types";
+import { randomUUID } from "node:crypto";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
 import { Insertable, Selectable, sql } from "kysely";
 import { createPasswordHash } from "../auth/password";
@@ -23,6 +24,7 @@ import type {
   MeterReadingRow,
   MeterRow,
   OrganizationRow,
+  SessionRow,
   UnitRow,
   UsageAggregateRow,
   UserRow,
@@ -30,6 +32,7 @@ import type {
 import { validateApiEnv } from "../config/env.schema";
 import type {
   PersistenceService,
+  StoredSession,
   UserOrganization,
 } from "./persistence.service";
 import type { StoredUser } from "./in-memory-persistence.service";
@@ -197,6 +200,17 @@ export class PostgresPersistenceService
     return row ? mapMembership(row) : undefined;
   }
 
+  async findMembershipById(
+    membershipId: string,
+  ): Promise<Membership | undefined> {
+    const row = await this.database.db
+      .selectFrom("memberships")
+      .selectAll()
+      .where("id", "=", membershipId)
+      .executeTakeFirst();
+    return row ? mapMembership(row) : undefined;
+  }
+
   async findOrganizationById(
     organizationId: string,
   ): Promise<UserOrganization | undefined> {
@@ -254,6 +268,57 @@ export class PostgresPersistenceService
       throw new Error(`Unable to create membership for ${email}`);
     }
     return membership;
+  }
+
+  async createSession(input: {
+    expiresAt: string;
+    ipAddress?: string;
+    membershipId: string;
+    organizationId: string;
+    tokenHash: string;
+    userAgent?: string;
+    userId: string;
+  }): Promise<StoredSession> {
+    const row = await this.database.db
+      .insertInto("sessions")
+      .values({
+        id: randomUUID(),
+        token_hash: input.tokenHash,
+        user_id: input.userId,
+        organization_id: input.organizationId,
+        membership_id: input.membershipId,
+        created_at: new Date().toISOString(),
+        expires_at: input.expiresAt,
+        revoked_at: null,
+        user_agent: input.userAgent ?? null,
+        ip_address: input.ipAddress ?? null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapSession(row);
+  }
+
+  async findActiveSessionByTokenHash(
+    tokenHash: string,
+    now: string,
+  ): Promise<StoredSession | undefined> {
+    const row = await this.database.db
+      .selectFrom("sessions")
+      .selectAll()
+      .where("token_hash", "=", tokenHash)
+      .where("revoked_at", "is", null)
+      .where("expires_at", ">", new Date(now))
+      .executeTakeFirst();
+    return row ? mapSession(row) : undefined;
+  }
+
+  async revokeSession(sessionId: string, revokedAt: string): Promise<void> {
+    await this.database.db
+      .updateTable("sessions")
+      .set({ revoked_at: revokedAt })
+      .where("id", "=", sessionId)
+      .where("revoked_at", "is", null)
+      .execute();
   }
 
   async listBuildings(organizationId: string): Promise<Building[]> {
@@ -970,6 +1035,21 @@ function mapMembership(row: Selectable<MembershipRow>): Membership {
     userId: row.user_id,
     role: row.role,
   };
+}
+
+function mapSession(row: Selectable<SessionRow>): StoredSession {
+  return defined({
+    id: row.id,
+    tokenHash: row.token_hash,
+    userId: row.user_id,
+    organizationId: row.organization_id,
+    membershipId: row.membership_id,
+    createdAt: iso(row.created_at),
+    expiresAt: iso(row.expires_at),
+    revokedAt: row.revoked_at ? iso(row.revoked_at) : undefined,
+    userAgent: row.user_agent ?? undefined,
+    ipAddress: row.ip_address ?? undefined,
+  }) as StoredSession;
 }
 
 function mapBuilding(row: Selectable<BuildingRow>): Building {

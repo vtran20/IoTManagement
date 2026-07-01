@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { authUser, mockAuthenticatedSession } from "./auth-fixture";
 
 test("app shell navigation exposes core operations pages", async ({ page }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
@@ -24,6 +26,31 @@ test("app shell navigation exposes core operations pages", async ({ page }) => {
 test("login handles bad credentials and successful owner login", async ({
   page,
 }) => {
+  await page.route("http://127.0.0.1:3001/api/v1/auth/login", async (route) => {
+    const request = route.request();
+    const body = request.postDataJSON() as { password?: string };
+    await route.fulfill({
+      body: JSON.stringify(
+        body.password === "password123" ? { user: authUser.user } : {},
+      ),
+      contentType: "application/json",
+      headers:
+        body.password === "password123"
+          ? {
+              "set-cookie":
+                "iot_management_session=playwright-session; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax",
+            }
+          : undefined,
+      status: body.password === "password123" ? 201 : 401,
+    });
+  });
+  await page.route("http://127.0.0.1:3001/api/v1/auth/me", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(authUser),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
   await page.goto("/login");
 
   await page.getByLabel("Email").fill("owner@north.example");
@@ -40,6 +67,7 @@ test("login handles bad credentials and successful owner login", async ({
 test("overview renders loading, empty, error, and success states", async ({
   page,
 }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/dashboard?state=loading");
   await expect(page.getByText("Loading dashboard data")).toBeVisible();
 
@@ -61,6 +89,7 @@ test("overview renders loading, empty, error, and success states", async ({
 });
 
 test("portfolio tables stay readable with long names", async ({ page }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/buildings");
   await expect(
     page.getByText(
@@ -92,6 +121,7 @@ test("portfolio tables stay readable with long names", async ({ page }) => {
 });
 
 test("reports and settings pages support demo operations", async ({ page }) => {
+  await mockAuthenticatedSession(page);
   await page.goto("/reports");
   await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
   await expect(
@@ -103,4 +133,18 @@ test("reports and settings pages support demo operations", async ({ page }) => {
   await page.getByLabel("Water rate").fill("0.007");
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByText("Settings saved")).toBeVisible();
+});
+
+test("protected routes redirect to login without a session cookie", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
+});
+
+test("logout clears dashboard access", async ({ page }) => {
+  await mockAuthenticatedSession(page);
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "Logout" }).click();
+  await expect(page).toHaveURL(/\/login$/);
 });

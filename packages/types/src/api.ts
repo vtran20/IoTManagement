@@ -11,6 +11,8 @@ import type {
   MeterReading,
   MeterSource,
   MeterStatus,
+  Membership,
+  Organization,
   ReadingKind,
   ReadingUnit,
   Unit,
@@ -67,6 +69,8 @@ export interface LoginResponse {
 }
 
 export interface CurrentUserResponse {
+  membership: Membership;
+  organization: Organization;
   user: User;
 }
 

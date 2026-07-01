@@ -13,6 +13,7 @@ export interface DatabaseSchema {
   meters: MeterRow;
   organizations: OrganizationRow;
   schema_migrations: SchemaMigrationRow;
+  sessions: SessionRow;
   units: UnitRow;
   usage_aggregates: UsageAggregateRow;
   users: UserRow;
@@ -38,6 +39,19 @@ export interface MembershipRow {
   organization_id: string;
   user_id: string;
   role: "owner" | "manager" | "viewer" | "tenant";
+}
+
+export interface SessionRow {
+  id: string;
+  token_hash: string;
+  user_id: string;
+  organization_id: string;
+  membership_id: string;
+  created_at: Timestamp;
+  expires_at: Timestamp;
+  revoked_at: Timestamp | null;
+  user_agent: string | null;
+  ip_address: string | null;
 }
 
 export interface BuildingRow {
