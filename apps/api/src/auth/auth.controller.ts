@@ -87,7 +87,10 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     if (request.auth?.session) {
-      await this.authService.revokeSession(request.auth.session.id);
+      await this.authService.revokeSession(
+        request.auth.session.id,
+        request.context,
+      );
     }
     response.setHeader(
       "Set-Cookie",

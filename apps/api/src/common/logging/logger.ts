@@ -4,7 +4,10 @@ type LogFields = Record<string, unknown>;
 
 const sensitiveKeys = [
   "authorization",
+  "cookie",
+  "csrf",
   "password",
+  "session",
   "secret",
   "token",
   "deviceCredential",
@@ -44,6 +47,10 @@ export function sanitize(value: unknown): unknown {
     return sanitized;
   }
 
+  if (typeof value === "string") {
+    return redactSensitiveString(value);
+  }
+
   return value;
 }
 
@@ -51,5 +58,12 @@ function isSensitiveKey(key: string): boolean {
   const normalized = key.toLowerCase();
   return sensitiveKeys.some((sensitiveKey) =>
     normalized.includes(sensitiveKey.toLowerCase()),
+  );
+}
+
+function redactSensitiveString(value: string): string {
+  return value.replace(
+    /([?&](?:token|accessToken|resetToken|session|secret|password)=)[^&\s]+/gi,
+    "$1[redacted]",
   );
 }

@@ -23,6 +23,7 @@ import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
 import type {
   PersistenceService,
+  StoredAuditLog,
   StoredEmailOutboxItem,
   StoredInvitation,
   StoredPasswordResetToken,
@@ -39,6 +40,7 @@ export class InMemoryPersistenceService implements PersistenceService {
     building: 1,
     alertEvent: 1,
     alertRule: 1,
+    auditLog: 1,
     emailOutbox: 1,
     floor: 1,
     invitation: 1,
@@ -66,6 +68,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   ];
 
   private readonly utilityRates = new Map<string, UtilityRatesResponse>();
+  private readonly auditLogs: StoredAuditLog[] = [];
 
   private readonly users: StoredUser[] = [
     this.createBootstrapUser(
@@ -465,8 +468,39 @@ export class InMemoryPersistenceService implements PersistenceService {
     }
   }
 
-  createAuditLog(): void {
-    return undefined;
+  createAuditLog(input: {
+    action: string;
+    actorUserId?: string;
+    metadata?: Record<string, unknown>;
+    organizationId: string;
+    targetId: string;
+    targetType: string;
+  }): void {
+    this.auditLogs.unshift({
+      action: input.action,
+      actorUserId: input.actorUserId,
+      createdAt: new Date().toISOString(),
+      id: this.nextId("auditLog", input.action),
+      metadata: input.metadata ?? {},
+      organizationId: input.organizationId,
+      targetId: input.targetId,
+      targetType: input.targetType,
+    });
+  }
+
+  listAuditLogs(input: {
+    action?: string;
+    limit?: number;
+    organizationId: string;
+    targetType?: string;
+  }): StoredAuditLog[] {
+    return this.auditLogs
+      .filter((event) => event.organizationId === input.organizationId)
+      .filter((event) => (input.action ? event.action === input.action : true))
+      .filter((event) =>
+        input.targetType ? event.targetType === input.targetType : true,
+      )
+      .slice(0, Math.min(Math.max(input.limit ?? 50, 1), 100));
   }
 
   getUtilityRates(organizationId: string): UtilityRatesResponse {

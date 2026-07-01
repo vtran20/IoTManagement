@@ -38,6 +38,7 @@ import type {
 import { validateApiEnv } from "../config/env.schema";
 import type {
   PersistenceService,
+  StoredAuditLog,
   StoredEmailOutboxItem,
   StoredInvitation,
   StoredPasswordResetToken,
@@ -621,6 +622,31 @@ export class PostgresPersistenceService
         created_at: new Date().toISOString(),
       })
       .execute();
+  }
+
+  async listAuditLogs(input: {
+    action?: string;
+    limit?: number;
+    organizationId: string;
+    targetType?: string;
+  }): Promise<StoredAuditLog[]> {
+    let query = this.database.db
+      .selectFrom("audit_logs")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .orderBy("created_at", "desc")
+      .limit(Math.min(Math.max(input.limit ?? 50, 1), 100));
+
+    if (input.action) {
+      query = query.where("action", "=", input.action);
+    }
+
+    if (input.targetType) {
+      query = query.where("target_type", "=", input.targetType);
+    }
+
+    const rows = await query.execute();
+    return rows.map(mapAuditLog);
   }
 
   async getUtilityRates(organizationId: string): Promise<UtilityRatesResponse> {
@@ -1521,6 +1547,19 @@ function mapInvitation(row: Selectable<InvitationRow>): StoredInvitation {
   }) as StoredInvitation;
 }
 
+function mapAuditLog(row: Selectable<AuditLogRow>): StoredAuditLog {
+  return {
+    action: row.action,
+    actorUserId: row.actor_user_id ?? undefined,
+    createdAt: iso(row.created_at),
+    id: row.id,
+    metadata: parseJsonObject(row.metadata),
+    organizationId: row.organization_id,
+    targetId: row.target_id,
+    targetType: row.target_type,
+  };
+}
+
 function mapSession(row: Selectable<SessionRow>): StoredSession {
   return defined({
     id: row.id,
@@ -1698,6 +1737,25 @@ function iso(value: Date | string): string {
   return value instanceof Date
     ? value.toISOString()
     : new Date(value).toISOString();
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (!value) {
+    return {};
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function slug(seed: string): string {

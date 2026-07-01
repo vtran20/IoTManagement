@@ -24,6 +24,17 @@ export const PERSISTENCE_SERVICE = Symbol("PERSISTENCE_SERVICE");
 
 export type MaybePromise<T> = T | Promise<T>;
 
+export interface StoredAuditLog {
+  action: string;
+  actorUserId?: string;
+  createdAt: string;
+  id: string;
+  metadata: Record<string, unknown>;
+  organizationId: string;
+  targetId: string;
+  targetType: string;
+}
+
 export interface PersistenceService {
   findUserByEmail(email: string): MaybePromise<StoredUser | undefined>;
   findUserById(userId: string): MaybePromise<StoredUser | undefined>;
@@ -93,6 +104,12 @@ export interface PersistenceService {
     targetId: string;
     targetType: string;
   }): MaybePromise<void>;
+  listAuditLogs(input: {
+    action?: string;
+    limit?: number;
+    organizationId: string;
+    targetType?: string;
+  }): MaybePromise<StoredAuditLog[]>;
   createSession(input: {
     expiresAt: string;
     ipAddress?: string;

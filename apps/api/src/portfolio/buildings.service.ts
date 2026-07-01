@@ -17,12 +17,21 @@ export class BuildingsService {
   ) {}
 
   async create(context: RequestContext, dto: CreateBuildingDto) {
-    return this.persistence.createBuilding({
+    const building = await this.persistence.createBuilding({
       organizationId: context.organization.id,
       name: dto.name,
       address: dto.address,
       timezone: dto.timezone,
     });
+    await this.persistence.createAuditLog({
+      action: "building.created",
+      actorUserId: context.user.id,
+      metadata: { name: building.name },
+      organizationId: context.organization.id,
+      targetId: building.id,
+      targetType: "building",
+    });
+    return building;
   }
 
   async list(context: RequestContext, query: ListBuildingsQuery = {}) {
@@ -72,6 +81,14 @@ export class BuildingsService {
     if (!building) {
       throw tenantResourceNotFound("Building");
     }
+    await this.persistence.createAuditLog({
+      action: "building.updated",
+      actorUserId: context.user.id,
+      metadata: { fields: Object.keys(dto) },
+      organizationId: context.organization.id,
+      targetId: building.id,
+      targetType: "building",
+    });
     return building;
   }
 
@@ -100,6 +117,16 @@ export class BuildingsService {
     if (!building) {
       throw tenantResourceNotFound("Building");
     }
+    await this.persistence.createAuditLog({
+      action:
+        lifecycleStatus === "archived"
+          ? "building.archived"
+          : "building.restored",
+      actorUserId: context.user.id,
+      organizationId: context.organization.id,
+      targetId: building.id,
+      targetType: "building",
+    });
     return building;
   }
 }

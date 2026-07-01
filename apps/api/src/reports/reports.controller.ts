@@ -45,8 +45,8 @@ export class ReportsController {
       "content-disposition",
       `attachment; filename="monthly-usage-${query.month}.csv"`,
     );
-    return await this.reportsService.monthlyUsageCsv(
-      request.context!.organization.id,
+    return await this.reportsService.monthlyUsageCsvForContext(
+      request.context!,
       query,
     );
   }

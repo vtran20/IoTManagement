@@ -15,4 +15,5 @@ export interface RequestWithContext extends Request {
     sessionToken?: string;
   };
   context?: RequestContext;
+  requestId?: string;
 }

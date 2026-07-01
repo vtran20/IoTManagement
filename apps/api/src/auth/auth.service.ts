@@ -112,6 +112,17 @@ export class AuthService {
       userAgent: metadata.userAgent,
       userId: user.id,
     });
+    await this.persistence.createAuditLog({
+      action: "auth.login",
+      actorUserId: user.id,
+      metadata: {
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+      },
+      organizationId: membership.organizationId,
+      targetId: session.id,
+      targetType: "session",
+    });
 
     return {
       response,
@@ -216,8 +227,20 @@ export class AuthService {
     };
   }
 
-  async revokeSession(sessionId: string): Promise<void> {
+  async revokeSession(
+    sessionId: string,
+    context?: RequestContext,
+  ): Promise<void> {
     await this.persistence.revokeSession(sessionId, new Date().toISOString());
+    if (context) {
+      await this.persistence.createAuditLog({
+        action: "auth.logout",
+        actorUserId: context.user.id,
+        organizationId: context.organization.id,
+        targetId: sessionId,
+        targetType: "session",
+      });
+    }
   }
 
   createCsrfToken(sessionToken: string): string {
@@ -273,6 +296,13 @@ export class AuthService {
       user.id,
       createPasswordHash(newPassword),
     );
+    await this.persistence.createAuditLog({
+      action: "auth.password.changed",
+      actorUserId: context.user.id,
+      organizationId: context.organization.id,
+      targetId: context.user.id,
+      targetType: "user",
+    });
 
     return { success: true };
   }
@@ -290,13 +320,29 @@ export class AuthService {
     }
 
     const token = createSessionToken();
-    await this.persistence.createPasswordResetToken({
+    const resetToken = await this.persistence.createPasswordResetToken({
       expiresAt: new Date(Date.now() + passwordResetDurationMs).toISOString(),
       requestedIp: metadata.ipAddress,
       tokenHash: hashSessionToken(token),
       userAgent: metadata.userAgent,
       userId: user.id,
     });
+    const membership = await this.persistence.findPrimaryMembershipForUser(
+      user.id,
+    );
+    if (membership) {
+      await this.persistence.createAuditLog({
+        action: "auth.password_reset.requested",
+        actorUserId: user.id,
+        metadata: {
+          ipAddress: metadata.ipAddress,
+          userAgent: metadata.userAgent,
+        },
+        organizationId: membership.organizationId,
+        targetId: resetToken.id,
+        targetType: "password_reset_token",
+      });
+    }
     await this.emailService.sendPasswordReset({
       email: user.email,
       resetUrl: `${webBaseUrl()}/reset-password?token=${token}`,
@@ -336,6 +382,18 @@ export class AuthService {
       resetToken.id,
       new Date().toISOString(),
     );
+    const membership = await this.persistence.findPrimaryMembershipForUser(
+      user.id,
+    );
+    if (membership) {
+      await this.persistence.createAuditLog({
+        action: "auth.password_reset.completed",
+        actorUserId: user.id,
+        organizationId: membership.organizationId,
+        targetId: resetToken.id,
+        targetType: "password_reset_token",
+      });
+    }
 
     return { success: true };
   }

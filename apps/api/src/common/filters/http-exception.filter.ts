@@ -9,6 +9,7 @@ import {
 import type { Request, Response } from "express";
 import { ApiError } from "../errors/api-error";
 import { StructuredLogger } from "../logging/logger";
+import type { RequestWithContext } from "../request-context";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -19,7 +20,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
-    const request = http.getRequest<Request>();
+    const request = http.getRequest<RequestWithContext & Request>();
     const response = http.getResponse<Response>();
     const error = this.toErrorPayload(exception);
 
@@ -28,6 +29,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         code: error.code,
         method: request.method,
         path: request.originalUrl ?? request.url,
+        requestId: request.requestId,
         statusCode: error.statusCode,
       });
     }
@@ -38,6 +40,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message: error.message,
         method: request.method,
         path: request.originalUrl ?? request.url,
+        requestId: request.requestId,
         statusCode: error.statusCode,
         timestamp: new Date().toISOString(),
       },

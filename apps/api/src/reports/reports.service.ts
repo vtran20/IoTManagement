@@ -6,6 +6,7 @@ import type {
 } from "@iot-management/types";
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
+import { RequestContext } from "../common/request-context";
 import {
   PERSISTENCE_SERVICE,
   PersistenceService,
@@ -113,6 +114,26 @@ export class ReportsService {
       ].map(csvCell),
     );
     return [header, ...rows].map((row) => row.join(",")).join("\n") + "\n";
+  }
+
+  async monthlyUsageCsvForContext(
+    context: RequestContext,
+    query: MonthlyUsageReportQuery,
+  ): Promise<string> {
+    const csv = await this.monthlyUsageCsv(context.organization.id, query);
+    await this.persistence.createAuditLog({
+      action: "report.exported",
+      actorUserId: context.user.id,
+      metadata: {
+        format: "csv",
+        month: query.month,
+        reportType: "monthly_usage",
+      },
+      organizationId: context.organization.id,
+      targetId: `monthly_usage_${query.month}`,
+      targetType: "report",
+    });
+    return csv;
   }
 }
 

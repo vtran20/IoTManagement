@@ -32,11 +32,23 @@ export class SettingsService {
     const electricPerKwh = dto.electricPerKwh ?? current.electricPerKwh;
     assertRate("waterPerGallon", waterPerGallon);
     assertRate("electricPerKwh", electricPerKwh);
-    return await this.persistence.upsertUtilityRates({
+    const rates = await this.persistence.upsertUtilityRates({
       electricPerKwh,
       organizationId: context.organization.id,
       waterPerGallon,
     });
+    await this.persistence.createAuditLog({
+      action: "settings.rates.updated",
+      actorUserId: context.user.id,
+      metadata: {
+        electricPerKwh,
+        waterPerGallon,
+      },
+      organizationId: context.organization.id,
+      targetId: context.organization.id,
+      targetType: "organization_settings",
+    });
+    return rates;
   }
 }
 

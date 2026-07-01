@@ -54,6 +54,7 @@ describe("Auth API", () => {
         message: "Email or password is incorrect",
         method: "POST",
         path: "/api/v1/auth/login",
+        requestId: expect.any(String),
         statusCode: 401,
         timestamp: expect.any(String),
       },

@@ -32,6 +32,7 @@ describe("Security and operational hardening", () => {
   it("returns structured errors without stack traces or credentials", async () => {
     const response = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
+      .set("x-request-id", "phase9-error-request")
       .send({
         email: "owner@north.example",
         password: "super-secret-password",
@@ -44,6 +45,7 @@ describe("Security and operational hardening", () => {
         message: "Email or password is incorrect",
         method: "POST",
         path: "/api/v1/auth/login",
+        requestId: "phase9-error-request",
         statusCode: 401,
         timestamp: expect.any(String),
       },
@@ -53,6 +55,41 @@ describe("Security and operational hardening", () => {
     );
     expect(JSON.stringify(response.body).toLowerCase()).not.toContain("stack");
     expect(JSON.stringify(response.body).toLowerCase()).not.toContain("token");
+  });
+
+  it("sets request IDs and security headers on API responses", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/v1/health")
+      .set("x-request-id", "phase9-health-request")
+      .expect(200);
+
+    expect(response.headers["x-request-id"]).toBe("phase9-health-request");
+    expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers["x-frame-options"]).toBe("DENY");
+    expect(response.headers["referrer-policy"]).toBe("no-referrer");
+    expect(response.headers["permissions-policy"]).toContain("camera=()");
+    expect(response.headers["content-security-policy"]).toContain(
+      "frame-ancestors 'none'",
+    );
+  });
+
+  it("serves OpenAPI metadata for the REST API", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/v1/openapi.json")
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      info: {
+        title: "IoT Management API",
+      },
+      openapi: expect.stringMatching(/^3\./),
+      paths: {
+        "/api/v1/auth/login": expect.any(Object),
+        "/api/v1/audit/events": expect.any(Object),
+        "/api/v1/buildings": expect.any(Object),
+        "/api/v1/meters": expect.any(Object),
+      },
+    });
   });
 
   it("reports API, PostgreSQL, and Redis dependency health", async () => {
@@ -70,6 +107,56 @@ describe("Security and operational hardening", () => {
           status: "ok",
         });
       });
+  });
+
+  it("lets owner and manager review scoped audit events but blocks viewers", async () => {
+    const ownerToken = await login();
+    await request(app.getHttpServer())
+      .post("/api/v1/buildings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Audit Review Tower", timezone: "America/Detroit" })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get("/api/v1/audit/events")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              action: "building.created",
+              actorUserId: "user_north_owner",
+              organizationId: "org_north",
+              targetType: "building",
+            }),
+          ]),
+        );
+        expect(JSON.stringify(body)).not.toContain(ownerToken);
+      });
+
+    const managerToken = await login("manager@north.example");
+    await request(app.getHttpServer())
+      .get("/api/v1/audit/events?action=building.created")
+      .set("Authorization", `Bearer ${managerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(
+          body.items.every((item: { action: string }) => item.action),
+        ).toBe(true);
+        expect(
+          body.items.every(
+            (item: { organizationId: string }) =>
+              item.organizationId === "org_north",
+          ),
+        ).toBe(true);
+      });
+
+    const viewerToken = await login("viewer@north.example");
+    await request(app.getHttpServer())
+      .get("/api/v1/audit/events")
+      .set("Authorization", `Bearer ${viewerToken}`)
+      .expect(403);
   });
 
   it("rate limits repeated failed login attempts", async () => {

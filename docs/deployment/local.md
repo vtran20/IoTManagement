@@ -113,6 +113,41 @@ Demo accounts all use `password123`:
 | Viewer                 | `viewer@north.example`  |
 | Tenant isolation owner | `owner@south.example`   |
 
+## Security And Audit Checks
+
+Start the API locally or port-forward the Kubernetes API service:
+
+```bash
+kubectl -n iot-management port-forward service/api 3301:3001
+```
+
+Check request IDs, security headers, and OpenAPI metadata:
+
+```bash
+curl -i -H 'x-request-id: manual-phase9-check' http://127.0.0.1:3301/api/v1/health
+curl -s http://127.0.0.1:3301/api/v1/openapi.json
+```
+
+Expected results:
+
+- The health response includes `x-request-id: manual-phase9-check`.
+- The response headers include `x-content-type-options`, `x-frame-options`, `referrer-policy`, `permissions-policy`, and `content-security-policy`.
+- The OpenAPI response includes paths such as `/api/v1/auth/login`, `/api/v1/buildings`, `/api/v1/meters`, and `/api/v1/audit/events`.
+
+Query audit events after logging in and performing an owner or manager action:
+
+```bash
+TOKEN=$(curl -s http://127.0.0.1:3301/api/v1/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"owner@north.example","password":"password123"}' \
+  | node -e 'let body = ""; process.stdin.on("data", c => body += c); process.stdin.on("end", () => console.log(JSON.parse(body).accessToken));')
+
+curl -s http://127.0.0.1:3301/api/v1/audit/events \
+  -H "authorization: Bearer $TOKEN"
+```
+
+Expected result: `items` contains only `org_north` audit events and does not include auth tokens, reset tokens, passwords, or secrets.
+
 ## Manual Phase 12 Verification
 
 1. `pnpm build` succeeds.

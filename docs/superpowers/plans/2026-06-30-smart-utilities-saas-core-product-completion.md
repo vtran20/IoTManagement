@@ -527,13 +527,13 @@ Phase 13 mobile and Phase 14 real-device integration are deferred. The active pr
 
 **Implementation tasks:**
 
-- [ ] Write security regression tests for redaction, rate limits, and audit events.
-- [ ] Add audit migration and service.
-- [ ] Add request id middleware.
-- [ ] Add logger redaction.
-- [ ] Add OpenAPI setup.
-- [ ] Add security headers.
-- [ ] Add audit UI under settings for owner/manager if low-risk; otherwise API only.
+- [x] Write security regression tests for redaction, rate limits, and audit events.
+- [x] Add audit query service/API using the existing audit log table.
+- [x] Add request id middleware.
+- [x] Add logger redaction.
+- [x] Add OpenAPI setup.
+- [x] Add security headers.
+- [x] Defer audit UI under settings; Phase 9 exposes API-only audit review for owner/manager.
 
 **Acceptance:**
 
@@ -544,10 +544,14 @@ Phase 13 mobile and Phase 14 real-device integration are deferred. The active pr
 
 **Manual verification:**
 
-1. Perform login, password change, invite, building update, and alert resolve.
-2. Query audit log endpoint or database.
-3. Confirm actor, organization, action, target, and timestamp exist.
-4. Confirm logs do not contain secrets.
+1. Start the API and log in as `owner@north.example`.
+2. Confirm `GET /api/v1/health` includes `x-request-id`, `x-content-type-options`, `x-frame-options`, `referrer-policy`, `permissions-policy`, and `content-security-policy`.
+3. Confirm `GET /api/v1/openapi.json` returns OpenAPI metadata with auth, buildings, meters, readings, and audit paths.
+4. Perform login, password change, invite, building update, meter update, settings-rate update, report export, and alert resolve.
+5. Query `GET /api/v1/audit/events` as owner or manager and confirm the events are scoped to the authenticated organization.
+6. Query `GET /api/v1/audit/events` as viewer and confirm the API returns `403`.
+7. Confirm actor, organization, action, target, and timestamp exist.
+8. Confirm logs do not contain secrets.
 
 ---
 

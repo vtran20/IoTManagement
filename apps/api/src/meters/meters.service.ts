@@ -48,18 +48,28 @@ export class MetersService {
       );
     }
 
-    return this.withSupportedReadingUnits(
-      await this.persistence.createMeter({
-        organizationId: context.organization.id,
-        buildingId: dto.buildingId,
-        floorId: dto.floorId,
-        unitId: dto.unitId,
-        utilityType: dto.utilityType,
-        source: dto.source,
-        externalId: dto.externalId,
-        installedAt: dto.installedAt,
-      }),
-    );
+    const meter = await this.persistence.createMeter({
+      organizationId: context.organization.id,
+      buildingId: dto.buildingId,
+      floorId: dto.floorId,
+      unitId: dto.unitId,
+      utilityType: dto.utilityType,
+      source: dto.source,
+      externalId: dto.externalId,
+      installedAt: dto.installedAt,
+    });
+    await this.persistence.createAuditLog({
+      action: "meter.created",
+      actorUserId: context.user.id,
+      metadata: {
+        externalId: meter.externalId,
+        utilityType: meter.utilityType,
+      },
+      organizationId: context.organization.id,
+      targetId: meter.id,
+      targetType: "meter",
+    });
+    return this.withSupportedReadingUnits(meter);
   }
 
   async list(context: RequestContext, query: ListMetersQuery = {}) {
@@ -114,6 +124,14 @@ export class MetersService {
     if (!meter) {
       throw tenantResourceNotFound("Meter");
     }
+    await this.persistence.createAuditLog({
+      action: "meter.updated",
+      actorUserId: context.user.id,
+      metadata: { fields: Object.keys(dto) },
+      organizationId: context.organization.id,
+      targetId: meter.id,
+      targetType: "meter",
+    });
     return this.withSupportedReadingUnits(meter);
   }
 
@@ -133,6 +151,13 @@ export class MetersService {
     if (!meter) {
       throw tenantResourceNotFound("Meter");
     }
+    await this.persistence.createAuditLog({
+      action: "meter.archived",
+      actorUserId: context.user.id,
+      organizationId: context.organization.id,
+      targetId: meter.id,
+      targetType: "meter",
+    });
     return this.withSupportedReadingUnits(meter);
   }
 
@@ -165,6 +190,13 @@ export class MetersService {
     if (!meter) {
       throw tenantResourceNotFound("Meter");
     }
+    await this.persistence.createAuditLog({
+      action: "meter.restored",
+      actorUserId: context.user.id,
+      organizationId: context.organization.id,
+      targetId: meter.id,
+      targetType: "meter",
+    });
     return this.withSupportedReadingUnits(meter);
   }
 
