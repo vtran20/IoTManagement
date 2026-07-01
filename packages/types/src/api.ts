@@ -18,6 +18,7 @@ import type {
   Unit,
   UsageAggregate,
   User,
+  UserRole,
   UtilityType,
 } from "./domain";
 
@@ -90,6 +91,30 @@ export interface ResetPasswordRequest {
 
 export interface SuccessResponse {
   success: true;
+}
+
+export interface InvitationPreviewResponse {
+  invitation: {
+    email: string;
+    organizationName: string;
+    role: UserRole;
+    status: "pending" | "accepted" | "revoked" | "expired";
+  };
+}
+
+export interface CreateInvitationRequest {
+  email: string;
+  role: UserRole;
+}
+
+export interface AcceptInvitationRequest {
+  name: string;
+  password: string;
+  token: string;
+}
+
+export interface UpdateMembershipRequest {
+  role?: UserRole;
 }
 
 export interface CreateBuildingRequest {

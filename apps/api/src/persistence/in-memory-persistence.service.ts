@@ -23,6 +23,7 @@ import { createPasswordHash } from "../auth/password";
 import type {
   PersistenceService,
   StoredEmailOutboxItem,
+  StoredInvitation,
   StoredPasswordResetToken,
   StoredSession,
 } from "./persistence.service";
@@ -39,6 +40,7 @@ export class InMemoryPersistenceService implements PersistenceService {
     alertRule: 1,
     emailOutbox: 1,
     floor: 1,
+    invitation: 1,
     meter: 1,
     passwordResetToken: 1,
     reading: 1,
@@ -63,18 +65,26 @@ export class InMemoryPersistenceService implements PersistenceService {
   ];
 
   private readonly users: StoredUser[] = [
-    this.createUser("user_north_owner", "owner@north.example", "North Owner"),
-    this.createUser(
+    this.createBootstrapUser(
+      "user_north_owner",
+      "owner@north.example",
+      "North Owner",
+    ),
+    this.createBootstrapUser(
       "user_north_manager",
       "manager@north.example",
       "North Manager",
     ),
-    this.createUser(
+    this.createBootstrapUser(
       "user_north_viewer",
       "viewer@north.example",
       "North Viewer",
     ),
-    this.createUser("user_south_owner", "owner@south.example", "South Owner"),
+    this.createBootstrapUser(
+      "user_south_owner",
+      "owner@south.example",
+      "South Owner",
+    ),
   ];
 
   private readonly memberships: Membership[] = [
@@ -143,6 +153,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly sessions: StoredSession[] = [];
   private readonly passwordResetTokens: StoredPasswordResetToken[] = [];
   private readonly emailOutboxItems: StoredEmailOutboxItem[] = [];
+  private readonly invitations: StoredInvitation[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -161,6 +172,29 @@ export class InMemoryPersistenceService implements PersistenceService {
       return undefined;
     }
     user.passwordHash = passwordHash;
+    return user;
+  }
+
+  createUser(input: {
+    email: string;
+    name: string;
+    passwordHash: string;
+  }): StoredUser {
+    const email = input.email.toLowerCase();
+    const existing = this.findUserByEmail(email);
+    if (existing) {
+      existing.name = input.name;
+      existing.passwordHash = input.passwordHash;
+      return existing;
+    }
+    const user: StoredUser = {
+      id: `user_${email.replace(/[^a-z0-9]/gi, "_").toLowerCase()}`,
+      email,
+      name: input.name,
+      passwordHash: input.passwordHash,
+      createdAt: new Date().toISOString(),
+    };
+    this.users.push(user);
     return user;
   }
 
@@ -186,17 +220,97 @@ export class InMemoryPersistenceService implements PersistenceService {
     role: UserRole;
   }): Membership {
     const userId = `user_${input.email.replace(/[^a-z0-9]/gi, "_").toLowerCase()}`;
-    const user = this.createUser(userId, input.email, input.email);
-    this.users.push(user);
+    let user = this.findUserByEmail(input.email);
+    if (!user) {
+      user = this.createBootstrapUser(userId, input.email, input.email);
+      this.users.push(user);
+    }
+
+    const existing = this.findMembershipByOrganizationAndUser(
+      input.organizationId,
+      user.id,
+    );
+    if (existing) {
+      existing.role = input.role;
+      existing.status = "active";
+      return existing;
+    }
 
     const membership = this.createMembership(
-      `membership_${userId}`,
+      `membership_${userId}_${input.organizationId}`,
       input.organizationId,
       user.id,
       input.role,
     );
     this.memberships.push(membership);
     return membership;
+  }
+
+  listMemberships(organizationId: string): Membership[] {
+    return this.memberships.filter(
+      (membership) => membership.organizationId === organizationId,
+    );
+  }
+
+  findMembershipByOrganizationAndId(
+    organizationId: string,
+    membershipId: string,
+  ): Membership | undefined {
+    return this.memberships.find(
+      (membership) =>
+        membership.organizationId === organizationId &&
+        membership.id === membershipId,
+    );
+  }
+
+  findMembershipByOrganizationAndUser(
+    organizationId: string,
+    userId: string,
+  ): Membership | undefined {
+    return this.memberships.find(
+      (membership) =>
+        membership.organizationId === organizationId &&
+        membership.userId === userId,
+    );
+  }
+
+  updateMembershipRole(
+    organizationId: string,
+    membershipId: string,
+    role: UserRole,
+  ): Membership | undefined {
+    const membership = this.findMembershipByOrganizationAndId(
+      organizationId,
+      membershipId,
+    );
+    if (membership) {
+      membership.role = role;
+    }
+    return membership;
+  }
+
+  updateMembershipStatus(
+    organizationId: string,
+    membershipId: string,
+    status: "active" | "disabled",
+  ): Membership | undefined {
+    const membership = this.findMembershipByOrganizationAndId(
+      organizationId,
+      membershipId,
+    );
+    if (membership) {
+      membership.status = status;
+    }
+    return membership;
+  }
+
+  countActiveOwners(organizationId: string): number {
+    return this.memberships.filter(
+      (membership) =>
+        membership.organizationId === organizationId &&
+        membership.role === "owner" &&
+        (membership.status ?? "active") === "active",
+    ).length;
   }
 
   createSession(input: {
@@ -306,6 +420,47 @@ export class InMemoryPersistenceService implements PersistenceService {
     return [...this.emailOutboxItems].sort((left, right) =>
       right.createdAt.localeCompare(left.createdAt),
     );
+  }
+
+  createInvitation(input: {
+    email: string;
+    expiresAt: string;
+    inviterUserId: string;
+    organizationId: string;
+    role: UserRole;
+    tokenHash: string;
+  }): StoredInvitation {
+    const invitation: StoredInvitation = {
+      id: this.nextId("invitation", input.email),
+      tokenHash: input.tokenHash,
+      organizationId: input.organizationId,
+      inviterUserId: input.inviterUserId,
+      email: input.email.toLowerCase(),
+      role: input.role,
+      createdAt: new Date().toISOString(),
+      expiresAt: input.expiresAt,
+    };
+    this.invitations.push(invitation);
+    return invitation;
+  }
+
+  findInvitationByTokenHash(tokenHash: string): StoredInvitation | undefined {
+    return this.invitations.find(
+      (invitation) => invitation.tokenHash === tokenHash,
+    );
+  }
+
+  markInvitationAccepted(invitationId: string, acceptedAt: string): void {
+    const invitation = this.invitations.find(
+      (candidate) => candidate.id === invitationId,
+    );
+    if (invitation) {
+      invitation.acceptedAt = acceptedAt;
+    }
+  }
+
+  createAuditLog(): void {
+    return undefined;
   }
 
   listBuildings(organizationId: string): Building[] {
@@ -761,7 +916,11 @@ export class InMemoryPersistenceService implements PersistenceService {
     return event;
   }
 
-  private createUser(id: string, email: string, name: string): StoredUser {
+  private createBootstrapUser(
+    id: string,
+    email: string,
+    name: string,
+  ): StoredUser {
     return {
       id,
       email: email.toLowerCase(),
@@ -782,6 +941,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       organizationId,
       userId,
       role,
+      status: "active",
     };
   }
 

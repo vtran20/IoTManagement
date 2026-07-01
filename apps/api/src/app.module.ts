@@ -11,6 +11,7 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { DevModule } from "./dev/dev.module";
 import { HealthController } from "./health/health.controller";
 import { HealthService } from "./health/health.service";
+import { InvitationsModule } from "./invitations/invitations.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetersModule } from "./meters/meters.module";
 import { PersistenceModule } from "./persistence/persistence.module";
@@ -33,6 +34,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     SimulationsModule,
     AnalyticsModule,
     DashboardModule,
+    InvitationsModule,
     DevModule,
     JobsModule,
     AlertsModule,

@@ -24,6 +24,9 @@ export function SettingsForm() {
         <a className="mode-button" href="/settings/security">
           Security
         </a>
+        <a className="mode-button" href="/settings/users">
+          Users
+        </a>
       </section>
       <form className="data-panel settings-form" onSubmit={submit}>
         {saved ? <p className="success-state">Settings saved</p> : null}

@@ -81,6 +81,13 @@ export class AuthService {
         HttpStatus.FORBIDDEN,
       );
     }
+    if ((membership.status ?? "active") !== "active") {
+      throw new ApiError(
+        "MEMBERSHIP_DISABLED",
+        "Membership is disabled",
+        HttpStatus.FORBIDDEN,
+      );
+    }
 
     const response = {
       accessToken: signToken({
@@ -136,6 +143,7 @@ export class AuthService {
       !user ||
       !membership ||
       !organization ||
+      (membership.status ?? "active") !== "active" ||
       membership.organizationId !== payload.organizationId
     ) {
       throw new ApiError(
@@ -182,6 +190,7 @@ export class AuthService {
       !user ||
       !membership ||
       !organization ||
+      (membership.status ?? "active") !== "active" ||
       membership.userId !== session.userId ||
       membership.organizationId !== session.organizationId
     ) {

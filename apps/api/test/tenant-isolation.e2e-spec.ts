@@ -49,6 +49,7 @@ describe("Tenant boundary API", () => {
         organizationId: "org_north",
         userId: "user_north_owner",
         role: "owner",
+        status: "active",
       },
     });
   });

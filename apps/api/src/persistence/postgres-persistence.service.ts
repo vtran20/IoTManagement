@@ -18,9 +18,11 @@ import { DatabaseService } from "../database/database.service";
 import type {
   AlertEventRow,
   AlertRuleRow,
+  AuditLogRow,
   BuildingRow,
   EmailOutboxRow,
   FloorRow,
+  InvitationRow,
   MembershipRow,
   MeterReadingRow,
   MeterRow,
@@ -35,6 +37,7 @@ import { validateApiEnv } from "../config/env.schema";
 import type {
   PersistenceService,
   StoredEmailOutboxItem,
+  StoredInvitation,
   StoredPasswordResetToken,
   StoredSession,
   UserOrganization,
@@ -114,24 +117,28 @@ export class PostgresPersistenceService
           organization_id: "org_north",
           user_id: "user_north_owner",
           role: "owner",
+          status: "active",
         },
         {
           id: "membership_north_manager",
           organization_id: "org_north",
           user_id: "user_north_manager",
           role: "manager",
+          status: "active",
         },
         {
           id: "membership_north_viewer",
           organization_id: "org_north",
           user_id: "user_north_viewer",
           role: "viewer",
+          status: "active",
         },
         {
           id: "membership_south_owner",
           organization_id: "org_south",
           user_id: "user_south_owner",
           role: "owner",
+          status: "active",
         },
       ])
       .onConflict((conflict) => conflict.column("id").doNothing())
@@ -206,6 +213,39 @@ export class PostgresPersistenceService
     return row ? mapUser(row) : undefined;
   }
 
+  async createUser(input: {
+    email: string;
+    name: string;
+    passwordHash: string;
+  }): Promise<StoredUser> {
+    const email = input.email.toLowerCase();
+    const row = await this.database.db
+      .insertInto("users")
+      .values({
+        id: `user_${slug(email)}`,
+        email,
+        name: input.name,
+        password_hash: input.passwordHash,
+        created_at: new Date().toISOString(),
+      })
+      .onConflict((conflict) =>
+        conflict.column("email").doUpdateSet({
+          name: input.name,
+          password_hash: input.passwordHash,
+        }),
+      )
+      .returningAll()
+      .executeTakeFirst();
+    if (row) {
+      return mapUser(row);
+    }
+    const user = await this.findUserByEmail(email);
+    if (!user) {
+      throw new Error(`Unable to create user ${email}`);
+    }
+    return user;
+  }
+
   async findPrimaryMembershipForUser(
     userId: string,
   ): Promise<Membership | undefined> {
@@ -272,19 +312,101 @@ export class PostgresPersistenceService
         organization_id: input.organizationId,
         user_id: user.id,
         role: input.role,
+        status: "active",
       })
       .onConflict((conflict) =>
         conflict.columns(["organization_id", "user_id"]).doUpdateSet({
           role: input.role,
+          status: "active",
         }),
       )
       .execute();
 
-    const membership = await this.findPrimaryMembershipForUser(user.id);
+    const membership = await this.findMembershipByOrganizationAndUser(
+      input.organizationId,
+      user.id,
+    );
     if (!membership) {
       throw new Error(`Unable to create membership for ${email}`);
     }
     return membership;
+  }
+
+  async listMemberships(organizationId: string): Promise<Membership[]> {
+    const rows = await this.database.db
+      .selectFrom("memberships")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .orderBy("role")
+      .execute();
+    return rows.map(mapMembership);
+  }
+
+  async findMembershipByOrganizationAndId(
+    organizationId: string,
+    membershipId: string,
+  ): Promise<Membership | undefined> {
+    const row = await this.database.db
+      .selectFrom("memberships")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", membershipId)
+      .executeTakeFirst();
+    return row ? mapMembership(row) : undefined;
+  }
+
+  async findMembershipByOrganizationAndUser(
+    organizationId: string,
+    userId: string,
+  ): Promise<Membership | undefined> {
+    const row = await this.database.db
+      .selectFrom("memberships")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("user_id", "=", userId)
+      .executeTakeFirst();
+    return row ? mapMembership(row) : undefined;
+  }
+
+  async updateMembershipRole(
+    organizationId: string,
+    membershipId: string,
+    role: Membership["role"],
+  ): Promise<Membership | undefined> {
+    const row = await this.database.db
+      .updateTable("memberships")
+      .set({ role })
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", membershipId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapMembership(row) : undefined;
+  }
+
+  async updateMembershipStatus(
+    organizationId: string,
+    membershipId: string,
+    status: "active" | "disabled",
+  ): Promise<Membership | undefined> {
+    const row = await this.database.db
+      .updateTable("memberships")
+      .set({ status })
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", membershipId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapMembership(row) : undefined;
+  }
+
+  async countActiveOwners(organizationId: string): Promise<number> {
+    const result = await this.database.db
+      .selectFrom("memberships")
+      .select((eb) => eb.fn.countAll<string>().as("count"))
+      .where("organization_id", "=", organizationId)
+      .where("role", "=", "owner")
+      .where("status", "=", "active")
+      .executeTakeFirst();
+    return Number(result?.count ?? "0");
   }
 
   async createSession(input: {
@@ -418,6 +540,79 @@ export class PostgresPersistenceService
       .orderBy("created_at", "desc")
       .execute();
     return rows.map(mapEmailOutboxItem);
+  }
+
+  async createInvitation(input: {
+    email: string;
+    expiresAt: string;
+    inviterUserId: string;
+    organizationId: string;
+    role: Membership["role"];
+    tokenHash: string;
+  }): Promise<StoredInvitation> {
+    const row = await this.database.db
+      .insertInto("invitations")
+      .values({
+        id: randomUUID(),
+        token_hash: input.tokenHash,
+        organization_id: input.organizationId,
+        inviter_user_id: input.inviterUserId,
+        email: input.email.toLowerCase(),
+        role: input.role,
+        created_at: new Date().toISOString(),
+        expires_at: input.expiresAt,
+        accepted_at: null,
+        revoked_at: null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapInvitation(row);
+  }
+
+  async findInvitationByTokenHash(
+    tokenHash: string,
+  ): Promise<StoredInvitation | undefined> {
+    const row = await this.database.db
+      .selectFrom("invitations")
+      .selectAll()
+      .where("token_hash", "=", tokenHash)
+      .executeTakeFirst();
+    return row ? mapInvitation(row) : undefined;
+  }
+
+  async markInvitationAccepted(
+    invitationId: string,
+    acceptedAt: string,
+  ): Promise<void> {
+    await this.database.db
+      .updateTable("invitations")
+      .set({ accepted_at: acceptedAt })
+      .where("id", "=", invitationId)
+      .where("accepted_at", "is", null)
+      .execute();
+  }
+
+  async createAuditLog(input: {
+    action: string;
+    actorUserId?: string;
+    metadata?: Record<string, unknown>;
+    organizationId: string;
+    targetId: string;
+    targetType: string;
+  }): Promise<void> {
+    await this.database.db
+      .insertInto("audit_logs")
+      .values({
+        id: randomUUID(),
+        organization_id: input.organizationId,
+        actor_user_id: input.actorUserId ?? null,
+        action: input.action,
+        target_type: input.targetType,
+        target_id: input.targetId,
+        metadata: JSON.stringify(input.metadata ?? {}),
+        created_at: new Date().toISOString(),
+      })
+      .execute();
   }
 
   async listBuildings(organizationId: string): Promise<Building[]> {
@@ -1133,7 +1328,23 @@ function mapMembership(row: Selectable<MembershipRow>): Membership {
     organizationId: row.organization_id,
     userId: row.user_id,
     role: row.role,
+    status: row.status,
   };
+}
+
+function mapInvitation(row: Selectable<InvitationRow>): StoredInvitation {
+  return defined({
+    id: row.id,
+    tokenHash: row.token_hash,
+    organizationId: row.organization_id,
+    inviterUserId: row.inviter_user_id,
+    email: row.email,
+    role: row.role,
+    createdAt: iso(row.created_at),
+    expiresAt: iso(row.expires_at),
+    acceptedAt: row.accepted_at ? iso(row.accepted_at) : undefined,
+    revokedAt: row.revoked_at ? iso(row.revoked_at) : undefined,
+  }) as StoredInvitation;
 }
 
 function mapSession(row: Selectable<SessionRow>): StoredSession {

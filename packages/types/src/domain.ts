@@ -81,6 +81,7 @@ export interface Membership {
   organizationId: EntityId;
   userId: EntityId;
   role: UserRole;
+  status?: "active" | "disabled";
 }
 
 export interface Building {

@@ -6,8 +6,10 @@ type Numeric = ColumnType<string, string | number, string | number>;
 export interface DatabaseSchema {
   alert_events: AlertEventRow;
   alert_rules: AlertRuleRow;
+  audit_logs: AuditLogRow;
   buildings: BuildingRow;
   floors: FloorRow;
+  invitations: InvitationRow;
   memberships: MembershipRow;
   meter_readings: MeterReadingRow;
   meters: MeterRow;
@@ -63,6 +65,31 @@ export interface MembershipRow {
   organization_id: string;
   user_id: string;
   role: "owner" | "manager" | "viewer" | "tenant";
+  status: "active" | "disabled";
+}
+
+export interface InvitationRow {
+  id: string;
+  token_hash: string;
+  organization_id: string;
+  inviter_user_id: string;
+  email: string;
+  role: "owner" | "manager" | "viewer" | "tenant";
+  created_at: Timestamp;
+  expires_at: Timestamp;
+  accepted_at: Timestamp | null;
+  revoked_at: Timestamp | null;
+}
+
+export interface AuditLogRow {
+  id: string;
+  organization_id: string;
+  actor_user_id: string | null;
+  action: string;
+  target_type: string;
+  target_id: string;
+  metadata: unknown;
+  created_at: Timestamp;
 }
 
 export interface SessionRow {

@@ -44,6 +44,54 @@ export interface PersistenceService {
     organizationId: string;
     role: UserRole;
   }): MaybePromise<Membership>;
+  listMemberships(organizationId: string): MaybePromise<Membership[]>;
+  findMembershipByOrganizationAndId(
+    organizationId: string,
+    membershipId: string,
+  ): MaybePromise<Membership | undefined>;
+  findMembershipByOrganizationAndUser(
+    organizationId: string,
+    userId: string,
+  ): MaybePromise<Membership | undefined>;
+  updateMembershipRole(
+    organizationId: string,
+    membershipId: string,
+    role: UserRole,
+  ): MaybePromise<Membership | undefined>;
+  updateMembershipStatus(
+    organizationId: string,
+    membershipId: string,
+    status: "active" | "disabled",
+  ): MaybePromise<Membership | undefined>;
+  countActiveOwners(organizationId: string): MaybePromise<number>;
+  createUser(input: {
+    email: string;
+    name: string;
+    passwordHash: string;
+  }): MaybePromise<StoredUser>;
+  createInvitation(input: {
+    email: string;
+    expiresAt: string;
+    inviterUserId: string;
+    organizationId: string;
+    role: UserRole;
+    tokenHash: string;
+  }): MaybePromise<StoredInvitation>;
+  findInvitationByTokenHash(
+    tokenHash: string,
+  ): MaybePromise<StoredInvitation | undefined>;
+  markInvitationAccepted(
+    invitationId: string,
+    acceptedAt: string,
+  ): MaybePromise<void>;
+  createAuditLog(input: {
+    action: string;
+    actorUserId?: string;
+    metadata?: Record<string, unknown>;
+    organizationId: string;
+    targetId: string;
+    targetType: string;
+  }): MaybePromise<void>;
   createSession(input: {
     expiresAt: string;
     ipAddress?: string;
@@ -304,4 +352,17 @@ export interface StoredEmailOutboxItem {
   status: "queued" | "sent" | "failed";
   createdAt: string;
   sentAt?: string;
+}
+
+export interface StoredInvitation {
+  id: string;
+  tokenHash: string;
+  organizationId: string;
+  inviterUserId: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt?: string;
+  revokedAt?: string;
 }

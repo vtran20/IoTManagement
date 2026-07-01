@@ -12,6 +12,12 @@ export interface EmailService {
     email: string;
     resetUrl: string;
   }): Promise<StoredEmailOutboxItem>;
+  sendInvitation(input: {
+    email: string;
+    invitationUrl: string;
+    organizationName: string;
+    role: string;
+  }): Promise<StoredEmailOutboxItem>;
 }
 
 @Injectable()
@@ -29,6 +35,20 @@ export class OutboxEmailService implements EmailService {
       htmlBody: `<p>Use this link to reset your password: <a href="${input.resetUrl}">${input.resetUrl}</a></p>`,
       subject: "Reset your password",
       textBody: `Use this link to reset your password: ${input.resetUrl}`,
+      to: input.email,
+    });
+  }
+
+  async sendInvitation(input: {
+    email: string;
+    invitationUrl: string;
+    organizationName: string;
+    role: string;
+  }): Promise<StoredEmailOutboxItem> {
+    return this.persistence.createEmailOutboxItem({
+      htmlBody: `<p>You were invited to ${input.organizationName} as ${input.role}. Accept your invitation: <a href="${input.invitationUrl}">${input.invitationUrl}</a></p>`,
+      subject: "You're invited to IoT Utilities",
+      textBody: `You were invited to ${input.organizationName} as ${input.role}.\nAccept your invitation: ${input.invitationUrl}`,
       to: input.email,
     });
   }

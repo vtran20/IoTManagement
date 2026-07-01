@@ -728,6 +728,51 @@ td span {
   padding: 12px;
 }
 
+.users-invite-form {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 1fr) 160px auto;
+  padding: 18px;
+}
+
+.users-invite-form .success-state,
+.users-invite-form .form-error {
+  grid-column: 1 / -1;
+}
+
+.users-table-panel {
+  grid-column: 1 / -1;
+}
+
+.invitation-panel {
+  gap: 16px;
+}
+
+.invitation-summary {
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+}
+
+.invitation-summary span {
+  color: #71717a;
+  font-size: 13px;
+}
+
+.invitation-summary strong {
+  color: #18181b;
+  font-size: 18px;
+}
+
+.invitation-summary p {
+  color: #52525b;
+  font-size: 13px;
+  margin: 0;
+}
+
 .profile-panel {
   display: grid;
   gap: 12px;
@@ -811,5 +856,10 @@ td span {
 
   .topbar-actions {
     flex-wrap: wrap;
+  }
+
+  .users-invite-form {
+    align-items: stretch;
+    grid-template-columns: 1fr;
   }
 }
