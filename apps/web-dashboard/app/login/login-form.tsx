@@ -71,6 +71,9 @@ export function LoginForm() {
         >
           {isSubmitting ? "Signing in" : "Sign in"}
         </button>
+        <a className="text-link" href="/forgot-password">
+          Forgot password
+        </a>
       </form>
     </main>
   );

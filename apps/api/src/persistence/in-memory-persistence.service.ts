@@ -20,7 +20,12 @@ import type {
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
-import type { PersistenceService, StoredSession } from "./persistence.service";
+import type {
+  PersistenceService,
+  StoredEmailOutboxItem,
+  StoredPasswordResetToken,
+  StoredSession,
+} from "./persistence.service";
 
 export interface StoredUser extends User {
   passwordHash: string;
@@ -32,8 +37,10 @@ export class InMemoryPersistenceService implements PersistenceService {
     building: 1,
     alertEvent: 1,
     alertRule: 1,
+    emailOutbox: 1,
     floor: 1,
     meter: 1,
+    passwordResetToken: 1,
     reading: 1,
     session: 1,
     usageAggregate: 1,
@@ -134,6 +141,8 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly alertRules: AlertRule[] = [];
   private readonly alertEvents: AlertEvent[] = [];
   private readonly sessions: StoredSession[] = [];
+  private readonly passwordResetTokens: StoredPasswordResetToken[] = [];
+  private readonly emailOutboxItems: StoredEmailOutboxItem[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -141,6 +150,18 @@ export class InMemoryPersistenceService implements PersistenceService {
 
   findUserById(userId: string): StoredUser | undefined {
     return this.users.find((user) => user.id === userId);
+  }
+
+  updateUserPasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): StoredUser | undefined {
+    const user = this.users.find((candidate) => candidate.id === userId);
+    if (!user) {
+      return undefined;
+    }
+    user.passwordHash = passwordHash;
+    return user;
   }
 
   findPrimaryMembershipForUser(userId: string): Membership | undefined {
@@ -221,6 +242,70 @@ export class InMemoryPersistenceService implements PersistenceService {
     if (session) {
       session.revokedAt = revokedAt;
     }
+  }
+
+  createPasswordResetToken(input: {
+    expiresAt: string;
+    requestedIp?: string;
+    tokenHash: string;
+    userAgent?: string;
+    userId: string;
+  }): StoredPasswordResetToken {
+    const token: StoredPasswordResetToken = {
+      id: this.nextId("passwordResetToken", input.userId),
+      tokenHash: input.tokenHash,
+      userId: input.userId,
+      createdAt: new Date().toISOString(),
+      expiresAt: input.expiresAt,
+      requestedIp: input.requestedIp,
+      userAgent: input.userAgent,
+    };
+    this.passwordResetTokens.push(token);
+    return token;
+  }
+
+  findActivePasswordResetTokenByHash(
+    tokenHash: string,
+    now: string,
+  ): StoredPasswordResetToken | undefined {
+    return this.passwordResetTokens.find(
+      (token) =>
+        token.tokenHash === tokenHash && !token.usedAt && token.expiresAt > now,
+    );
+  }
+
+  markPasswordResetTokenUsed(tokenId: string, usedAt: string): void {
+    const token = this.passwordResetTokens.find(
+      (candidate) => candidate.id === tokenId,
+    );
+    if (token) {
+      token.usedAt = usedAt;
+    }
+  }
+
+  createEmailOutboxItem(input: {
+    htmlBody?: string;
+    subject: string;
+    textBody: string;
+    to: string;
+  }): StoredEmailOutboxItem {
+    const item: StoredEmailOutboxItem = {
+      id: this.nextId("emailOutbox", input.to),
+      to: input.to.toLowerCase(),
+      subject: input.subject,
+      textBody: input.textBody,
+      htmlBody: input.htmlBody,
+      status: "queued",
+      createdAt: new Date().toISOString(),
+    };
+    this.emailOutboxItems.push(item);
+    return item;
+  }
+
+  listEmailOutboxItems(): StoredEmailOutboxItem[] {
+    return [...this.emailOutboxItems].sort((left, right) =>
+      right.createdAt.localeCompare(left.createdAt),
+    );
   }
 
   listBuildings(organizationId: string): Building[] {

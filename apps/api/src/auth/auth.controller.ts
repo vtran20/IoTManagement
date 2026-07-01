@@ -16,7 +16,10 @@ import { RateLimitService } from "../common/rate-limit/rate-limit.service";
 import { RequestWithContext } from "../common/request-context";
 import { validateApiEnv } from "../config/env.schema";
 import { AuthService } from "./auth.service";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { serializeClearSessionCookie, serializeSessionCookie } from "./session";
 
 @Controller("auth")
@@ -91,5 +94,32 @@ export class AuthController {
       serializeClearSessionCookie(validateApiEnv().nodeEnv === "production"),
     );
     return { success: true };
+  }
+
+  @Post("change-password")
+  @UseGuards(AuthGuard)
+  changePassword(
+    @Body() dto: ChangePasswordDto,
+    @Req() request: RequestWithContext,
+  ) {
+    return this.authService.changePassword(request.context!, dto);
+  }
+
+  @Post("forgot-password")
+  forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Req() request: RequestWithContext,
+  ) {
+    return this.authService.forgotPassword(dto, {
+      ipAddress: request.ip,
+      userAgent: Array.isArray(request.headers["user-agent"])
+        ? request.headers["user-agent"][0]
+        : request.headers["user-agent"],
+    });
+  }
+
+  @Post("reset-password")
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

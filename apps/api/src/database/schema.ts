@@ -12,7 +12,9 @@ export interface DatabaseSchema {
   meter_readings: MeterReadingRow;
   meters: MeterRow;
   organizations: OrganizationRow;
+  password_reset_tokens: PasswordResetTokenRow;
   schema_migrations: SchemaMigrationRow;
+  email_outbox: EmailOutboxRow;
   sessions: SessionRow;
   units: UnitRow;
   usage_aggregates: UsageAggregateRow;
@@ -32,6 +34,28 @@ export interface UserRow {
   name: string;
   password_hash: string;
   created_at: Timestamp;
+}
+
+export interface PasswordResetTokenRow {
+  id: string;
+  token_hash: string;
+  user_id: string;
+  created_at: Timestamp;
+  expires_at: Timestamp;
+  used_at: Timestamp | null;
+  requested_ip: string | null;
+  user_agent: string | null;
+}
+
+export interface EmailOutboxRow {
+  id: string;
+  to_email: string;
+  subject: string;
+  text_body: string;
+  html_body: string | null;
+  status: "queued" | "sent" | "failed";
+  created_at: Timestamp;
+  sent_at: Timestamp | null;
 }
 
 export interface MembershipRow {

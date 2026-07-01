@@ -19,11 +19,13 @@ import type {
   AlertEventRow,
   AlertRuleRow,
   BuildingRow,
+  EmailOutboxRow,
   FloorRow,
   MembershipRow,
   MeterReadingRow,
   MeterRow,
   OrganizationRow,
+  PasswordResetTokenRow,
   SessionRow,
   UnitRow,
   UsageAggregateRow,
@@ -32,6 +34,8 @@ import type {
 import { validateApiEnv } from "../config/env.schema";
 import type {
   PersistenceService,
+  StoredEmailOutboxItem,
+  StoredPasswordResetToken,
   StoredSession,
   UserOrganization,
 } from "./persistence.service";
@@ -189,6 +193,19 @@ export class PostgresPersistenceService
     return row ? mapUser(row) : undefined;
   }
 
+  async updateUserPasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): Promise<StoredUser | undefined> {
+    const row = await this.database.db
+      .updateTable("users")
+      .set({ password_hash: passwordHash })
+      .where("id", "=", userId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapUser(row) : undefined;
+  }
+
   async findPrimaryMembershipForUser(
     userId: string,
   ): Promise<Membership | undefined> {
@@ -319,6 +336,88 @@ export class PostgresPersistenceService
       .where("id", "=", sessionId)
       .where("revoked_at", "is", null)
       .execute();
+  }
+
+  async createPasswordResetToken(input: {
+    expiresAt: string;
+    requestedIp?: string;
+    tokenHash: string;
+    userAgent?: string;
+    userId: string;
+  }): Promise<StoredPasswordResetToken> {
+    const row = await this.database.db
+      .insertInto("password_reset_tokens")
+      .values({
+        id: randomUUID(),
+        token_hash: input.tokenHash,
+        user_id: input.userId,
+        created_at: new Date().toISOString(),
+        expires_at: input.expiresAt,
+        used_at: null,
+        requested_ip: input.requestedIp ?? null,
+        user_agent: input.userAgent ?? null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapPasswordResetToken(row);
+  }
+
+  async findActivePasswordResetTokenByHash(
+    tokenHash: string,
+    now: string,
+  ): Promise<StoredPasswordResetToken | undefined> {
+    const row = await this.database.db
+      .selectFrom("password_reset_tokens")
+      .selectAll()
+      .where("token_hash", "=", tokenHash)
+      .where("used_at", "is", null)
+      .where("expires_at", ">", new Date(now))
+      .executeTakeFirst();
+    return row ? mapPasswordResetToken(row) : undefined;
+  }
+
+  async markPasswordResetTokenUsed(
+    tokenId: string,
+    usedAt: string,
+  ): Promise<void> {
+    await this.database.db
+      .updateTable("password_reset_tokens")
+      .set({ used_at: usedAt })
+      .where("id", "=", tokenId)
+      .where("used_at", "is", null)
+      .execute();
+  }
+
+  async createEmailOutboxItem(input: {
+    htmlBody?: string;
+    subject: string;
+    textBody: string;
+    to: string;
+  }): Promise<StoredEmailOutboxItem> {
+    const row = await this.database.db
+      .insertInto("email_outbox")
+      .values({
+        id: randomUUID(),
+        to_email: input.to.toLowerCase(),
+        subject: input.subject,
+        text_body: input.textBody,
+        html_body: input.htmlBody ?? null,
+        status: "queued",
+        created_at: new Date().toISOString(),
+        sent_at: null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapEmailOutboxItem(row);
+  }
+
+  async listEmailOutboxItems(): Promise<StoredEmailOutboxItem[]> {
+    const rows = await this.database.db
+      .selectFrom("email_outbox")
+      .selectAll()
+      .orderBy("created_at", "desc")
+      .execute();
+    return rows.map(mapEmailOutboxItem);
   }
 
   async listBuildings(organizationId: string): Promise<Building[]> {
@@ -1050,6 +1149,36 @@ function mapSession(row: Selectable<SessionRow>): StoredSession {
     userAgent: row.user_agent ?? undefined,
     ipAddress: row.ip_address ?? undefined,
   }) as StoredSession;
+}
+
+function mapPasswordResetToken(
+  row: Selectable<PasswordResetTokenRow>,
+): StoredPasswordResetToken {
+  return defined({
+    id: row.id,
+    tokenHash: row.token_hash,
+    userId: row.user_id,
+    createdAt: iso(row.created_at),
+    expiresAt: iso(row.expires_at),
+    usedAt: row.used_at ? iso(row.used_at) : undefined,
+    requestedIp: row.requested_ip ?? undefined,
+    userAgent: row.user_agent ?? undefined,
+  }) as StoredPasswordResetToken;
+}
+
+function mapEmailOutboxItem(
+  row: Selectable<EmailOutboxRow>,
+): StoredEmailOutboxItem {
+  return defined({
+    id: row.id,
+    to: row.to_email,
+    subject: row.subject,
+    textBody: row.text_body,
+    htmlBody: row.html_body ?? undefined,
+    status: row.status,
+    createdAt: iso(row.created_at),
+    sentAt: row.sent_at ? iso(row.sent_at) : undefined,
+  }) as StoredEmailOutboxItem;
 }
 
 function mapBuilding(row: Selectable<BuildingRow>): Building {

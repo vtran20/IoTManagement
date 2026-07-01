@@ -26,6 +26,10 @@ export type MaybePromise<T> = T | Promise<T>;
 export interface PersistenceService {
   findUserByEmail(email: string): MaybePromise<StoredUser | undefined>;
   findUserById(userId: string): MaybePromise<StoredUser | undefined>;
+  updateUserPasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): MaybePromise<StoredUser | undefined>;
   findPrimaryMembershipForUser(
     userId: string,
   ): MaybePromise<Membership | undefined>;
@@ -54,6 +58,28 @@ export interface PersistenceService {
     now: string,
   ): MaybePromise<StoredSession | undefined>;
   revokeSession(sessionId: string, revokedAt: string): MaybePromise<void>;
+  createPasswordResetToken(input: {
+    expiresAt: string;
+    requestedIp?: string;
+    tokenHash: string;
+    userAgent?: string;
+    userId: string;
+  }): MaybePromise<StoredPasswordResetToken>;
+  findActivePasswordResetTokenByHash(
+    tokenHash: string,
+    now: string,
+  ): MaybePromise<StoredPasswordResetToken | undefined>;
+  markPasswordResetTokenUsed(
+    tokenId: string,
+    usedAt: string,
+  ): MaybePromise<void>;
+  createEmailOutboxItem(input: {
+    htmlBody?: string;
+    subject: string;
+    textBody: string;
+    to: string;
+  }): MaybePromise<StoredEmailOutboxItem>;
+  listEmailOutboxItems(): MaybePromise<StoredEmailOutboxItem[]>;
 
   listBuildings(organizationId: string): MaybePromise<Building[]>;
   createBuilding(input: {
@@ -256,4 +282,26 @@ export interface StoredSession {
   revokedAt?: string;
   userAgent?: string;
   ipAddress?: string;
+}
+
+export interface StoredPasswordResetToken {
+  id: string;
+  tokenHash: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+  usedAt?: string;
+  requestedIp?: string;
+  userAgent?: string;
+}
+
+export interface StoredEmailOutboxItem {
+  id: string;
+  to: string;
+  subject: string;
+  textBody: string;
+  htmlBody?: string;
+  status: "queued" | "sent" | "failed";
+  createdAt: string;
+  sentAt?: string;
 }

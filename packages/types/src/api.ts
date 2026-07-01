@@ -74,6 +74,24 @@ export interface CurrentUserResponse {
   user: User;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  newPassword: string;
+  token: string;
+}
+
+export interface SuccessResponse {
+  success: true;
+}
+
 export interface CreateBuildingRequest {
   name: string;
   address?: string;

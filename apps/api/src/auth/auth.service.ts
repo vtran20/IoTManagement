@@ -2,6 +2,7 @@ import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { LoginResponse } from "@iot-management/types";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
+import { EMAIL_SERVICE, EmailService } from "../email/email.service";
 import {
   PERSISTENCE_SERVICE,
   PersistenceService,
@@ -9,8 +10,15 @@ import {
 } from "../persistence/persistence.service";
 import { validateApiEnv } from "../config/env.schema";
 import { signToken, verifyToken } from "./token";
-import { verifyPassword } from "./password";
+import { createPasswordHash, verifyPassword } from "./password";
+import {
+  assertPasswordIsNotReused,
+  assertPasswordPolicy,
+} from "./password-policy";
 import { LoginDto } from "./dto/login.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import {
   createCsrfToken,
   createSessionToken,
@@ -18,6 +26,8 @@ import {
   isValidCsrfToken,
   sessionDurationMs,
 } from "./session";
+
+const passwordResetDurationMs = 1000 * 60 * 30;
 
 export interface LoginResult {
   response: LoginResponse;
@@ -36,6 +46,8 @@ export class AuthService {
   constructor(
     @Inject(PERSISTENCE_SERVICE)
     private readonly persistence: PersistenceService,
+    @Inject(EMAIL_SERVICE)
+    private readonly emailService: EmailService,
   ) {}
 
   async login(
@@ -221,4 +233,116 @@ export class AuthService {
       );
     }
   }
+
+  async changePassword(
+    context: RequestContext,
+    dto: ChangePasswordDto,
+  ): Promise<{ success: true }> {
+    if (!dto.currentPassword) {
+      throw new ApiError(
+        "VALIDATION_FAILED",
+        "Current password is required",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const user = await this.persistence.findUserById(context.user.id);
+    if (!user || !verifyPassword(dto.currentPassword, user.passwordHash)) {
+      throw new ApiError(
+        "CURRENT_PASSWORD_INVALID",
+        "Current password is incorrect",
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const candidatePassword = dto.newPassword;
+    if (candidatePassword) {
+      assertPasswordIsNotReused(candidatePassword, user.passwordHash);
+    }
+    const newPassword = assertPasswordPolicy(candidatePassword);
+    await this.persistence.updateUserPasswordHash(
+      user.id,
+      createPasswordHash(newPassword),
+    );
+
+    return { success: true };
+  }
+
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+    metadata: { ipAddress?: string; userAgent?: string } = {},
+  ): Promise<{ success: true }> {
+    const email = dto.email?.toLowerCase();
+    const user = email
+      ? await this.persistence.findUserByEmail(email)
+      : undefined;
+    if (!user) {
+      return { success: true };
+    }
+
+    const token = createSessionToken();
+    await this.persistence.createPasswordResetToken({
+      expiresAt: new Date(Date.now() + passwordResetDurationMs).toISOString(),
+      requestedIp: metadata.ipAddress,
+      tokenHash: hashSessionToken(token),
+      userAgent: metadata.userAgent,
+      userId: user.id,
+    });
+    await this.emailService.sendPasswordReset({
+      email: user.email,
+      resetUrl: `${webBaseUrl()}/reset-password?token=${token}`,
+    });
+
+    return { success: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ success: true }> {
+    if (!dto.token) {
+      throw resetTokenInvalid();
+    }
+
+    const resetToken =
+      await this.persistence.findActivePasswordResetTokenByHash(
+        hashSessionToken(dto.token),
+        new Date().toISOString(),
+      );
+    if (!resetToken) {
+      throw resetTokenInvalid();
+    }
+
+    const user = await this.persistence.findUserById(resetToken.userId);
+    if (!user) {
+      throw resetTokenInvalid();
+    }
+
+    if (dto.newPassword) {
+      assertPasswordIsNotReused(dto.newPassword, user.passwordHash);
+    }
+    const newPassword = assertPasswordPolicy(dto.newPassword);
+    await this.persistence.updateUserPasswordHash(
+      user.id,
+      createPasswordHash(newPassword),
+    );
+    await this.persistence.markPasswordResetTokenUsed(
+      resetToken.id,
+      new Date().toISOString(),
+    );
+
+    return { success: true };
+  }
+}
+
+function resetTokenInvalid(): ApiError {
+  return new ApiError(
+    "RESET_TOKEN_INVALID",
+    "Reset token is invalid or expired",
+    HttpStatus.BAD_REQUEST,
+  );
+}
+
+function webBaseUrl(): string {
+  return (process.env.WEB_BASE_URL ?? "http://localhost:3000").replace(
+    /\/$/,
+    "",
+  );
 }

@@ -17,6 +17,14 @@ export function SettingsForm() {
         <h2>Rates</h2>
         <p>Organization rates</p>
       </section>
+      <section className="data-panel settings-links">
+        <a className="mode-button" href="/settings/profile">
+          Profile
+        </a>
+        <a className="mode-button" href="/settings/security">
+          Security
+        </a>
+      </section>
       <form className="data-panel settings-form" onSubmit={submit}>
         {saved ? <p className="success-state">Settings saved</p> : null}
         <label className="field">

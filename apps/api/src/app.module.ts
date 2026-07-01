@@ -8,6 +8,7 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { StructuredLogger } from "./common/logging/logger";
 import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
+import { DevModule } from "./dev/dev.module";
 import { HealthController } from "./health/health.controller";
 import { HealthService } from "./health/health.service";
 import { JobsModule } from "./jobs/jobs.module";
@@ -32,6 +33,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     SimulationsModule,
     AnalyticsModule,
     DashboardModule,
+    DevModule,
     JobsModule,
     AlertsModule,
     ReportsModule,
