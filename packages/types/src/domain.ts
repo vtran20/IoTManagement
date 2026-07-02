@@ -63,6 +63,75 @@ export type AlertSeverity = (typeof alertSeverities)[number];
 export const alertStatuses = ["open", "acknowledged", "resolved"] as const;
 export type AlertStatus = (typeof alertStatuses)[number];
 
+export const leakIncidentSources = [
+  "manual_report",
+  "meter_anomaly",
+  "moisture_sensor",
+] as const;
+export type LeakIncidentSource = (typeof leakIncidentSources)[number];
+
+export const leakIncidentStatuses = [
+  "open",
+  "acknowledged",
+  "investigating",
+  "contained",
+  "monitoring",
+  "resolved",
+] as const;
+export type LeakIncidentStatus = (typeof leakIncidentStatuses)[number];
+
+export const leakIncidentResolutionCategories = [
+  "leak_fixed",
+  "false_positive",
+  "planned_usage",
+  "sensor_fault",
+  "other",
+] as const;
+export type LeakIncidentResolutionCategory =
+  (typeof leakIncidentResolutionCategories)[number];
+
+export const incidentActivityTypes = [
+  "opened",
+  "acknowledged",
+  "investigating",
+  "contained",
+  "monitoring",
+  "resolved",
+  "note",
+] as const;
+export type IncidentActivityType = (typeof incidentActivityTypes)[number];
+
+export interface LeakIncident {
+  id: EntityId;
+  organizationId: EntityId;
+  buildingId: EntityId;
+  unitId?: EntityId;
+  meterId?: EntityId;
+  source: LeakIncidentSource;
+  severity: AlertSeverity;
+  status: LeakIncidentStatus;
+  title: string;
+  description: string;
+  detectedAt: ISODateTime;
+  acknowledgedAt?: ISODateTime;
+  investigatingAt?: ISODateTime;
+  containedAt?: ISODateTime;
+  monitoringAt?: ISODateTime;
+  resolvedAt?: ISODateTime;
+  resolutionCategory?: LeakIncidentResolutionCategory;
+  resolutionNote?: string;
+}
+
+export interface IncidentActivity {
+  id: EntityId;
+  organizationId: EntityId;
+  incidentId: EntityId;
+  actorUserId?: EntityId;
+  type: IncidentActivityType;
+  summary: string;
+  createdAt: ISODateTime;
+}
+
 export interface Organization {
   id: EntityId;
   name: string;

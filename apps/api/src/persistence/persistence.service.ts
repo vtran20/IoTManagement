@@ -5,6 +5,8 @@ import type {
   AlertStatus,
   Building,
   Floor,
+  IncidentActivity,
+  LeakIncident,
   Membership,
   Meter,
   MeterReading,
@@ -344,6 +346,56 @@ export interface PersistenceService {
     unitId?: string;
     utilityType?: UtilityType;
   }): MaybePromise<UsageAggregate[]>;
+
+  createLeakIncident(input: {
+    buildingId: string;
+    description: string;
+    detectedAt: string;
+    meterId?: string;
+    organizationId: string;
+    severity: LeakIncident["severity"];
+    source: LeakIncident["source"];
+    title: string;
+    unitId?: string;
+  }): MaybePromise<LeakIncident>;
+  listLeakIncidents(input: {
+    buildingId?: string;
+    organizationId: string;
+    source?: LeakIncident["source"];
+  }): MaybePromise<LeakIncident[]>;
+  findLeakIncidentById(
+    organizationId: string,
+    incidentId: string,
+  ): MaybePromise<LeakIncident | undefined>;
+  updateLeakIncident(
+    organizationId: string,
+    incidentId: string,
+    input: Partial<
+      Pick<
+        LeakIncident,
+        | "acknowledgedAt"
+        | "containedAt"
+        | "investigatingAt"
+        | "monitoringAt"
+        | "resolutionCategory"
+        | "resolutionNote"
+        | "resolvedAt"
+        | "status"
+      >
+    >,
+  ): MaybePromise<LeakIncident | undefined>;
+  createIncidentActivity(input: {
+    actorUserId?: string;
+    createdAt: string;
+    incidentId: string;
+    organizationId: string;
+    summary: string;
+    type: IncidentActivity["type"];
+  }): MaybePromise<IncidentActivity>;
+  listIncidentActivities(input: {
+    incidentId: string;
+    organizationId: string;
+  }): MaybePromise<IncidentActivity[]>;
   listDashboardTrendAggregates(
     input: DashboardAggregateQuery,
   ): MaybePromise<DashboardTrendAggregate[]>;

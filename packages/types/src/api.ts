@@ -7,6 +7,9 @@ import type {
   EntityId,
   Floor,
   ISODateTime,
+  LeakIncident,
+  LeakIncidentResolutionCategory,
+  LeakIncidentSource,
   Meter,
   MeterReading,
   MeterSource,
@@ -302,6 +305,27 @@ export type AlertEventResponse = AlertEvent;
 export interface ListAlertsQuery extends PageRequest {
   status?: AlertStatus;
   severity?: AlertSeverity;
+}
+
+export interface CreateManualLeakIncidentRequest {
+  buildingId: EntityId;
+  unitId?: EntityId;
+  meterId?: EntityId;
+  severity: AlertSeverity;
+  title: string;
+  description: string;
+}
+
+export interface ListLeakIncidentsQuery extends PageRequest {
+  buildingId?: EntityId;
+  source?: LeakIncidentSource;
+}
+
+export type LeakIncidentResponse = LeakIncident;
+
+export interface ResolveLeakIncidentRequest {
+  resolutionCategory: LeakIncidentResolutionCategory;
+  resolutionNote?: string;
 }
 
 export interface CreateAlertRuleRequest {

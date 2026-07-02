@@ -46,6 +46,60 @@ export class OpenApiController {
             tags: ["Dashboard"],
           },
         },
+        "/api/v1/incidents": {
+          get: {
+            summary: "List leak incidents for the current organization",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/manual": {
+          post: {
+            summary: "Create a manual leak incident",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}": {
+          get: {
+            summary: "Get a leak incident and its activity timeline",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}/acknowledge": {
+          post: {
+            summary: "Acknowledge an open leak incident",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}/investigate": {
+          post: {
+            summary: "Start investigating an acknowledged leak incident",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}/contain": {
+          post: {
+            summary: "Mark an investigated leak incident as contained",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}/monitor": {
+          post: {
+            summary: "Start post-repair monitoring for a contained incident",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}/resolve": {
+          post: {
+            summary: "Resolve a monitored leak incident with an outcome note",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incidents/{incidentId}/notes": {
+          post: {
+            summary: "Add an immutable note to a leak incident",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/meters": {
           get: {
             summary: "List meters for the current organization",

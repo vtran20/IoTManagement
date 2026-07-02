@@ -7,9 +7,11 @@ export interface DatabaseSchema {
   alert_events: AlertEventRow;
   alert_rules: AlertRuleRow;
   audit_logs: AuditLogRow;
+  incident_activities: IncidentActivityRow;
   buildings: BuildingRow;
   floors: FloorRow;
   invitations: InvitationRow;
+  leak_incidents: LeakIncidentRow;
   memberships: MembershipRow;
   meter_readings: MeterReadingRow;
   meters: MeterRow;
@@ -87,6 +89,56 @@ export interface InvitationRow {
   expires_at: Timestamp;
   accepted_at: Timestamp | null;
   revoked_at: Timestamp | null;
+}
+
+export interface LeakIncidentRow {
+  id: string;
+  organization_id: string;
+  building_id: string;
+  unit_id: string | null;
+  meter_id: string | null;
+  source: "manual_report" | "meter_anomaly" | "moisture_sensor";
+  severity: "info" | "warning" | "critical";
+  status:
+    | "open"
+    | "acknowledged"
+    | "investigating"
+    | "contained"
+    | "monitoring"
+    | "resolved";
+  title: string;
+  description: string;
+  detected_at: Timestamp;
+  acknowledged_at: Timestamp | null;
+  investigating_at: Timestamp | null;
+  contained_at: Timestamp | null;
+  monitoring_at: Timestamp | null;
+  resolved_at: Timestamp | null;
+  resolution_category:
+    | "leak_fixed"
+    | "false_positive"
+    | "planned_usage"
+    | "sensor_fault"
+    | "other"
+    | null;
+  resolution_note: string | null;
+}
+
+export interface IncidentActivityRow {
+  id: string;
+  organization_id: string;
+  incident_id: string;
+  actor_user_id: string | null;
+  type:
+    | "opened"
+    | "acknowledged"
+    | "investigating"
+    | "contained"
+    | "monitoring"
+    | "resolved"
+    | "note";
+  summary: string;
+  created_at: Timestamp;
 }
 
 export interface AuditLogRow {

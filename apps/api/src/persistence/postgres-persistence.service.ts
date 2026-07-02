@@ -3,6 +3,8 @@ import type {
   AlertRule,
   Building,
   Floor,
+  IncidentActivity,
+  LeakIncident,
   Membership,
   Meter,
   MeterReading,
@@ -24,6 +26,8 @@ import type {
   EmailOutboxRow,
   FloorRow,
   InvitationRow,
+  IncidentActivityRow,
+  LeakIncidentRow,
   MembershipRow,
   MeterReadingRow,
   MeterRow,
@@ -1454,6 +1458,158 @@ export class PostgresPersistenceService
     return mapAlertRule(row);
   }
 
+  async createLeakIncident(input: {
+    buildingId: string;
+    description: string;
+    detectedAt: string;
+    meterId?: string;
+    organizationId: string;
+    severity: LeakIncident["severity"];
+    source: LeakIncident["source"];
+    title: string;
+    unitId?: string;
+  }): Promise<LeakIncident> {
+    const row = await this.database.db
+      .insertInto("leak_incidents")
+      .values({
+        id: await this.nextId("leakIncident", input.title, "leak_incidents"),
+        organization_id: input.organizationId,
+        building_id: input.buildingId,
+        unit_id: input.unitId ?? null,
+        meter_id: input.meterId ?? null,
+        source: input.source,
+        severity: input.severity,
+        status: "open",
+        title: input.title,
+        description: input.description,
+        detected_at: input.detectedAt,
+        acknowledged_at: null,
+        investigating_at: null,
+        contained_at: null,
+        monitoring_at: null,
+        resolved_at: null,
+        resolution_category: null,
+        resolution_note: null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapLeakIncident(row);
+  }
+
+  async listLeakIncidents(input: {
+    buildingId?: string;
+    organizationId: string;
+    source?: LeakIncident["source"];
+  }): Promise<LeakIncident[]> {
+    let query = this.database.db
+      .selectFrom("leak_incidents")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId);
+    if (input.buildingId) {
+      query = query.where("building_id", "=", input.buildingId);
+    }
+    if (input.source) {
+      query = query.where("source", "=", input.source);
+    }
+    const rows = await query.orderBy("detected_at", "desc").execute();
+    return rows.map(mapLeakIncident);
+  }
+
+  async findLeakIncidentById(
+    organizationId: string,
+    incidentId: string,
+  ): Promise<LeakIncident | undefined> {
+    const row = await this.database.db
+      .selectFrom("leak_incidents")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", incidentId)
+      .executeTakeFirst();
+    return row ? mapLeakIncident(row) : undefined;
+  }
+
+  async updateLeakIncident(
+    organizationId: string,
+    incidentId: string,
+    input: Partial<
+      Pick<
+        LeakIncident,
+        | "acknowledgedAt"
+        | "containedAt"
+        | "investigatingAt"
+        | "monitoringAt"
+        | "resolutionCategory"
+        | "resolutionNote"
+        | "resolvedAt"
+        | "status"
+      >
+    >,
+  ): Promise<LeakIncident | undefined> {
+    const changes = defined({
+      acknowledged_at: input.acknowledgedAt,
+      contained_at: input.containedAt,
+      investigating_at: input.investigatingAt,
+      monitoring_at: input.monitoringAt,
+      resolution_category: input.resolutionCategory,
+      resolution_note: input.resolutionNote,
+      resolved_at: input.resolvedAt,
+      status: input.status,
+    });
+    if (!Object.keys(changes).length) {
+      return this.findLeakIncidentById(organizationId, incidentId);
+    }
+    const row = await this.database.db
+      .updateTable("leak_incidents")
+      .set(changes)
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", incidentId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapLeakIncident(row) : undefined;
+  }
+
+  async createIncidentActivity(input: {
+    actorUserId?: string;
+    createdAt: string;
+    incidentId: string;
+    organizationId: string;
+    summary: string;
+    type: IncidentActivity["type"];
+  }): Promise<IncidentActivity> {
+    const row = await this.database.db
+      .insertInto("incident_activities")
+      .values({
+        id: await this.nextId(
+          "incidentActivity",
+          `${input.incidentId}-${input.type}`,
+          "incident_activities",
+        ),
+        organization_id: input.organizationId,
+        incident_id: input.incidentId,
+        actor_user_id: input.actorUserId ?? null,
+        type: input.type,
+        summary: input.summary,
+        created_at: input.createdAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapIncidentActivity(row);
+  }
+
+  async listIncidentActivities(input: {
+    incidentId: string;
+    organizationId: string;
+  }): Promise<IncidentActivity[]> {
+    const rows = await this.database.db
+      .selectFrom("incident_activities")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("incident_id", "=", input.incidentId)
+      .orderBy("created_at")
+      .execute();
+    return rows.map(mapIncidentActivity);
+  }
+
   async listAlertRules(input: {
     organizationId: string;
   }): Promise<AlertRule[]> {
@@ -1867,6 +2023,45 @@ function mapFloor(row: Selectable<FloorRow>): Floor {
     lifecycleStatus: row.lifecycle_status,
     archivedAt: row.archived_at ? iso(row.archived_at) : undefined,
   };
+}
+
+function mapLeakIncident(row: Selectable<LeakIncidentRow>): LeakIncident {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    buildingId: row.building_id,
+    unitId: row.unit_id ?? undefined,
+    meterId: row.meter_id ?? undefined,
+    source: row.source,
+    severity: row.severity,
+    status: row.status,
+    title: row.title,
+    description: row.description,
+    detectedAt: iso(row.detected_at),
+    acknowledgedAt: row.acknowledged_at ? iso(row.acknowledged_at) : undefined,
+    investigatingAt: row.investigating_at
+      ? iso(row.investigating_at)
+      : undefined,
+    containedAt: row.contained_at ? iso(row.contained_at) : undefined,
+    monitoringAt: row.monitoring_at ? iso(row.monitoring_at) : undefined,
+    resolvedAt: row.resolved_at ? iso(row.resolved_at) : undefined,
+    resolutionCategory: row.resolution_category ?? undefined,
+    resolutionNote: row.resolution_note ?? undefined,
+  }) as LeakIncident;
+}
+
+function mapIncidentActivity(
+  row: Selectable<IncidentActivityRow>,
+): IncidentActivity {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    incidentId: row.incident_id,
+    actorUserId: row.actor_user_id ?? undefined,
+    type: row.type,
+    summary: row.summary,
+    createdAt: iso(row.created_at),
+  }) as IncidentActivity;
 }
 
 function mapUnit(row: Selectable<UnitRow>): Unit {

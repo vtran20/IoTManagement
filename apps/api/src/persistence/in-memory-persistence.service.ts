@@ -5,6 +5,8 @@ import type {
   AlertStatus,
   Building,
   Floor,
+  IncidentActivity,
+  LeakIncident,
   Membership,
   Meter,
   MeterReading,
@@ -48,6 +50,8 @@ export class InMemoryPersistenceService implements PersistenceService {
     emailOutbox: 1,
     floor: 1,
     invitation: 1,
+    incidentActivity: 1,
+    leakIncident: 1,
     meter: 1,
     passwordResetToken: 1,
     reading: 1,
@@ -167,6 +171,8 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly passwordResetTokens: StoredPasswordResetToken[] = [];
   private readonly emailOutboxItems: StoredEmailOutboxItem[] = [];
   private readonly invitations: StoredInvitation[] = [];
+  private readonly incidentActivities: IncidentActivity[] = [];
+  private readonly leakIncidents: LeakIncident[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -970,6 +976,106 @@ export class InMemoryPersistenceService implements PersistenceService {
     return [...grouped.values()]
       .sort((left, right) => right.usageValue - left.usageValue)
       .slice(0, input.limit);
+  }
+
+  createLeakIncident(input: {
+    buildingId: string;
+    description: string;
+    detectedAt: string;
+    meterId?: string;
+    organizationId: string;
+    severity: LeakIncident["severity"];
+    source: LeakIncident["source"];
+    title: string;
+    unitId?: string;
+  }): LeakIncident {
+    const incident: LeakIncident = {
+      ...input,
+      id: this.nextId("leakIncident", input.title),
+      status: "open",
+    };
+    this.leakIncidents.push(incident);
+    return incident;
+  }
+
+  listLeakIncidents(input: {
+    buildingId?: string;
+    organizationId: string;
+    source?: LeakIncident["source"];
+  }): LeakIncident[] {
+    return this.leakIncidents
+      .filter(
+        (incident) =>
+          incident.organizationId === input.organizationId &&
+          (!input.buildingId || incident.buildingId === input.buildingId) &&
+          (!input.source || incident.source === input.source),
+      )
+      .sort((left, right) => right.detectedAt.localeCompare(left.detectedAt));
+  }
+
+  findLeakIncidentById(
+    organizationId: string,
+    incidentId: string,
+  ): LeakIncident | undefined {
+    return this.leakIncidents.find(
+      (incident) =>
+        incident.organizationId === organizationId &&
+        incident.id === incidentId,
+    );
+  }
+
+  updateLeakIncident(
+    organizationId: string,
+    incidentId: string,
+    input: Partial<
+      Pick<
+        LeakIncident,
+        | "acknowledgedAt"
+        | "containedAt"
+        | "investigatingAt"
+        | "monitoringAt"
+        | "resolutionCategory"
+        | "resolutionNote"
+        | "resolvedAt"
+        | "status"
+      >
+    >,
+  ): LeakIncident | undefined {
+    const incident = this.findLeakIncidentById(organizationId, incidentId);
+    if (!incident) {
+      return undefined;
+    }
+    Object.assign(incident, input);
+    return incident;
+  }
+
+  createIncidentActivity(input: {
+    actorUserId?: string;
+    createdAt: string;
+    incidentId: string;
+    organizationId: string;
+    summary: string;
+    type: IncidentActivity["type"];
+  }): IncidentActivity {
+    const activity: IncidentActivity = {
+      ...input,
+      id: this.nextId("incidentActivity", input.type),
+    };
+    this.incidentActivities.push(activity);
+    return activity;
+  }
+
+  listIncidentActivities(input: {
+    incidentId: string;
+    organizationId: string;
+  }): IncidentActivity[] {
+    return this.incidentActivities
+      .filter(
+        (activity) =>
+          activity.organizationId === input.organizationId &&
+          activity.incidentId === input.incidentId,
+      )
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
   createAlertRule(

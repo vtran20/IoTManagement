@@ -19,6 +19,7 @@ import { DevModule } from "./dev/dev.module";
 import { HealthController } from "./health/health.controller";
 import { HealthService } from "./health/health.service";
 import { InvitationsModule } from "./invitations/invitations.module";
+import { IncidentsModule } from "./incidents/incidents.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetersModule } from "./meters/meters.module";
 import { OpenApiModule } from "./openapi/openapi.module";
@@ -45,6 +46,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     AnalyticsModule,
     DashboardModule,
     InvitationsModule,
+    IncidentsModule,
     DevModule,
     JobsModule,
     AlertsModule,

@@ -87,6 +87,7 @@ describe("Security and operational hardening", () => {
         "/api/v1/auth/login": expect.any(Object),
         "/api/v1/audit/events": expect.any(Object),
         "/api/v1/buildings": expect.any(Object),
+        "/api/v1/incidents": expect.any(Object),
         "/api/v1/meters": expect.any(Object),
       },
     });
