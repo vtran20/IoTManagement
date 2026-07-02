@@ -37,6 +37,10 @@ import type {
 } from "../database/schema";
 import { validateApiEnv } from "../config/env.schema";
 import type {
+  DashboardAggregateQuery,
+  DashboardBuildingAggregate,
+  DashboardTrendAggregate,
+  DashboardUnitAggregate,
   PersistenceService,
   StoredAuditLog,
   StoredEmailOutboxItem,
@@ -1199,6 +1203,231 @@ export class PostgresPersistenceService
       .orderBy("meter_id")
       .execute();
     return rows.map(mapUsageAggregate);
+  }
+
+  async listDashboardTrendAggregates(
+    input: DashboardAggregateQuery,
+  ): Promise<DashboardTrendAggregate[]> {
+    let query = this.database.db
+      .selectFrom("usage_aggregates")
+      .select([
+        "usage_aggregates.period_start as period_start",
+        "usage_aggregates.period_end as period_end",
+        "usage_aggregates.utility_type as utility_type",
+        sql<string>`sum(usage_aggregates.usage_value)`.as("usage_value"),
+        sql<string>`coalesce(sum(usage_aggregates.cost_estimate), 0)`.as(
+          "cost_estimate",
+        ),
+        sql<string>`coalesce(sum(case when usage_aggregates.cost_estimate is null then usage_aggregates.usage_value else 0 end), 0)`.as(
+          "usage_without_cost_estimate",
+        ),
+      ])
+      .where("usage_aggregates.organization_id", "=", input.organizationId)
+      .where("usage_aggregates.period_type", "=", input.periodType);
+    if (input.buildingId) {
+      query = query.where(
+        "usage_aggregates.building_id",
+        "=",
+        input.buildingId,
+      );
+    }
+    if (input.utilityType) {
+      query = query.where(
+        "usage_aggregates.utility_type",
+        "=",
+        input.utilityType,
+      );
+    }
+    if (input.from) {
+      query = query.where(
+        "usage_aggregates.period_start",
+        ">=",
+        new Date(input.from),
+      );
+    }
+    if (input.to) {
+      query = query.where(
+        "usage_aggregates.period_start",
+        "<",
+        new Date(input.to),
+      );
+    }
+    const rows = await query
+      .groupBy([
+        "usage_aggregates.period_start",
+        "usage_aggregates.period_end",
+        "usage_aggregates.utility_type",
+      ])
+      .orderBy("usage_aggregates.period_start")
+      .orderBy("usage_aggregates.utility_type")
+      .execute();
+    return rows.map((row) => ({
+      costEstimate: Number(row.cost_estimate),
+      periodEnd: iso(row.period_end),
+      periodStart: iso(row.period_start),
+      usageValue: Number(row.usage_value),
+      usageWithoutCostEstimate: Number(row.usage_without_cost_estimate),
+      utilityType: row.utility_type,
+    }));
+  }
+
+  async listDashboardBuildingAggregates(
+    input: DashboardAggregateQuery,
+  ): Promise<DashboardBuildingAggregate[]> {
+    let query = this.database.db
+      .selectFrom("usage_aggregates")
+      .innerJoin("buildings", (join) =>
+        join
+          .onRef("buildings.id", "=", "usage_aggregates.building_id")
+          .onRef(
+            "buildings.organization_id",
+            "=",
+            "usage_aggregates.organization_id",
+          ),
+      )
+      .select([
+        "usage_aggregates.building_id as building_id",
+        "buildings.name as building_name",
+        "usage_aggregates.utility_type as utility_type",
+        sql<string>`sum(usage_aggregates.usage_value)`.as("usage_value"),
+        sql<string>`coalesce(sum(usage_aggregates.cost_estimate), 0)`.as(
+          "cost_estimate",
+        ),
+        sql<string>`coalesce(sum(case when usage_aggregates.cost_estimate is null then usage_aggregates.usage_value else 0 end), 0)`.as(
+          "usage_without_cost_estimate",
+        ),
+      ])
+      .where("usage_aggregates.organization_id", "=", input.organizationId)
+      .where("usage_aggregates.period_type", "=", input.periodType);
+    if (input.buildingId) {
+      query = query.where(
+        "usage_aggregates.building_id",
+        "=",
+        input.buildingId,
+      );
+    }
+    if (input.utilityType) {
+      query = query.where(
+        "usage_aggregates.utility_type",
+        "=",
+        input.utilityType,
+      );
+    }
+    if (input.from) {
+      query = query.where(
+        "usage_aggregates.period_start",
+        ">=",
+        new Date(input.from),
+      );
+    }
+    if (input.to) {
+      query = query.where(
+        "usage_aggregates.period_start",
+        "<",
+        new Date(input.to),
+      );
+    }
+    const rows = await query
+      .groupBy([
+        "usage_aggregates.building_id",
+        "buildings.name",
+        "usage_aggregates.utility_type",
+      ])
+      .orderBy("buildings.name")
+      .execute();
+    return rows.map((row) => ({
+      buildingId: row.building_id,
+      buildingName: row.building_name,
+      costEstimate: Number(row.cost_estimate),
+      usageValue: Number(row.usage_value),
+      usageWithoutCostEstimate: Number(row.usage_without_cost_estimate),
+      utilityType: row.utility_type,
+    }));
+  }
+
+  async listDashboardUnitAggregates(
+    input: DashboardAggregateQuery,
+  ): Promise<DashboardUnitAggregate[]> {
+    let query = this.database.db
+      .selectFrom("usage_aggregates")
+      .innerJoin("buildings", (join) =>
+        join
+          .onRef("buildings.id", "=", "usage_aggregates.building_id")
+          .onRef(
+            "buildings.organization_id",
+            "=",
+            "usage_aggregates.organization_id",
+          ),
+      )
+      .innerJoin("units", (join) =>
+        join
+          .onRef("units.id", "=", "usage_aggregates.unit_id")
+          .onRef(
+            "units.organization_id",
+            "=",
+            "usage_aggregates.organization_id",
+          ),
+      )
+      .select([
+        "usage_aggregates.unit_id as unit_id",
+        "units.name as unit_name",
+        "usage_aggregates.building_id as building_id",
+        "buildings.name as building_name",
+        "usage_aggregates.utility_type as utility_type",
+        sql<string>`sum(usage_aggregates.usage_value)`.as("usage_value"),
+      ])
+      .where("usage_aggregates.organization_id", "=", input.organizationId)
+      .where("usage_aggregates.period_type", "=", input.periodType)
+      .where("usage_aggregates.unit_id", "is not", null);
+    if (input.buildingId) {
+      query = query.where(
+        "usage_aggregates.building_id",
+        "=",
+        input.buildingId,
+      );
+    }
+    if (input.utilityType) {
+      query = query.where(
+        "usage_aggregates.utility_type",
+        "=",
+        input.utilityType,
+      );
+    }
+    if (input.from) {
+      query = query.where(
+        "usage_aggregates.period_start",
+        ">=",
+        new Date(input.from),
+      );
+    }
+    if (input.to) {
+      query = query.where(
+        "usage_aggregates.period_start",
+        "<",
+        new Date(input.to),
+      );
+    }
+    if (input.limit) {
+      query = query.limit(input.limit);
+    }
+    const rows = await query
+      .groupBy([
+        "usage_aggregates.unit_id",
+        "units.name",
+        "usage_aggregates.building_id",
+        "buildings.name",
+        "usage_aggregates.utility_type",
+      ])
+      .orderBy(sql`sum(usage_aggregates.usage_value)`, "desc")
+      .execute();
+    return rows.map((row) => ({
+      buildingId: row.building_id,
+      buildingName: row.building_name,
+      unitId: row.unit_id!,
+      unitName: row.unit_name,
+      usageValue: Number(row.usage_value),
+      utilityType: row.utility_type,
+    }));
   }
 
   async createAlertRule(

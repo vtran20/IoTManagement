@@ -22,6 +22,10 @@ import type {
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
 import type {
+  DashboardAggregateQuery,
+  DashboardBuildingAggregate,
+  DashboardTrendAggregate,
+  DashboardUnitAggregate,
   PersistenceService,
   StoredAuditLog,
   StoredEmailOutboxItem,
@@ -877,6 +881,95 @@ export class InMemoryPersistenceService implements PersistenceService {
           ? left.meterId.localeCompare(right.meterId)
           : left.periodStart.localeCompare(right.periodStart),
       );
+  }
+
+  listDashboardTrendAggregates(
+    input: DashboardAggregateQuery,
+  ): DashboardTrendAggregate[] {
+    const grouped = new Map<string, DashboardTrendAggregate>();
+    for (const aggregate of this.listUsageAggregates(input)) {
+      const key = `${aggregate.periodStart}:${aggregate.utilityType}`;
+      const existing = grouped.get(key);
+      grouped.set(key, {
+        costEstimate:
+          (existing?.costEstimate ?? 0) + (aggregate.costEstimate ?? 0),
+        periodEnd: aggregate.periodEnd,
+        periodStart: aggregate.periodStart,
+        usageValue: (existing?.usageValue ?? 0) + aggregate.usageValue,
+        usageWithoutCostEstimate:
+          (existing?.usageWithoutCostEstimate ?? 0) +
+          (aggregate.costEstimate === undefined ? aggregate.usageValue : 0),
+        utilityType: aggregate.utilityType,
+      });
+    }
+    return [...grouped.values()].sort((left, right) =>
+      left.periodStart === right.periodStart
+        ? left.utilityType.localeCompare(right.utilityType)
+        : left.periodStart.localeCompare(right.periodStart),
+    );
+  }
+
+  listDashboardBuildingAggregates(
+    input: DashboardAggregateQuery,
+  ): DashboardBuildingAggregate[] {
+    const grouped = new Map<string, DashboardBuildingAggregate>();
+    for (const aggregate of this.listUsageAggregates(input)) {
+      const key = `${aggregate.buildingId}:${aggregate.utilityType}`;
+      const existing = grouped.get(key);
+      const building = this.buildings.find(
+        (item) =>
+          item.id === aggregate.buildingId &&
+          item.organizationId === input.organizationId,
+      );
+      grouped.set(key, {
+        buildingId: aggregate.buildingId,
+        buildingName: building?.name ?? aggregate.buildingId,
+        costEstimate:
+          (existing?.costEstimate ?? 0) + (aggregate.costEstimate ?? 0),
+        usageValue: (existing?.usageValue ?? 0) + aggregate.usageValue,
+        usageWithoutCostEstimate:
+          (existing?.usageWithoutCostEstimate ?? 0) +
+          (aggregate.costEstimate === undefined ? aggregate.usageValue : 0),
+        utilityType: aggregate.utilityType,
+      });
+    }
+    return [...grouped.values()].sort((left, right) =>
+      left.buildingName.localeCompare(right.buildingName),
+    );
+  }
+
+  listDashboardUnitAggregates(
+    input: DashboardAggregateQuery,
+  ): DashboardUnitAggregate[] {
+    const grouped = new Map<string, DashboardUnitAggregate>();
+    for (const aggregate of this.listUsageAggregates(input)) {
+      if (!aggregate.unitId) {
+        continue;
+      }
+      const key = `${aggregate.unitId}:${aggregate.utilityType}`;
+      const existing = grouped.get(key);
+      const unit = this.units.find(
+        (item) =>
+          item.id === aggregate.unitId &&
+          item.organizationId === input.organizationId,
+      );
+      const building = this.buildings.find(
+        (item) =>
+          item.id === aggregate.buildingId &&
+          item.organizationId === input.organizationId,
+      );
+      grouped.set(key, {
+        buildingId: aggregate.buildingId,
+        buildingName: building?.name ?? aggregate.buildingId,
+        unitId: aggregate.unitId,
+        unitName: unit?.name ?? aggregate.unitId,
+        usageValue: (existing?.usageValue ?? 0) + aggregate.usageValue,
+        utilityType: aggregate.utilityType,
+      });
+    }
+    return [...grouped.values()]
+      .sort((left, right) => right.usageValue - left.usageValue)
+      .slice(0, input.limit);
   }
 
   createAlertRule(

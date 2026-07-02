@@ -35,6 +35,43 @@ export interface StoredAuditLog {
   targetType: string;
 }
 
+export interface DashboardAggregateQuery {
+  buildingId?: string;
+  from?: string;
+  limit?: number;
+  organizationId: string;
+  periodType: UsageAggregate["periodType"];
+  to?: string;
+  utilityType?: UtilityType;
+}
+
+export interface DashboardTrendAggregate {
+  costEstimate: number;
+  periodEnd: string;
+  periodStart: string;
+  usageValue: number;
+  usageWithoutCostEstimate: number;
+  utilityType: UtilityType;
+}
+
+export interface DashboardBuildingAggregate {
+  buildingId: string;
+  buildingName: string;
+  costEstimate: number;
+  usageValue: number;
+  usageWithoutCostEstimate: number;
+  utilityType: UtilityType;
+}
+
+export interface DashboardUnitAggregate {
+  buildingId: string;
+  buildingName: string;
+  unitId: string;
+  unitName: string;
+  usageValue: number;
+  utilityType: UtilityType;
+}
+
 export interface PersistenceService {
   findUserByEmail(email: string): MaybePromise<StoredUser | undefined>;
   findUserById(userId: string): MaybePromise<StoredUser | undefined>;
@@ -307,6 +344,15 @@ export interface PersistenceService {
     unitId?: string;
     utilityType?: UtilityType;
   }): MaybePromise<UsageAggregate[]>;
+  listDashboardTrendAggregates(
+    input: DashboardAggregateQuery,
+  ): MaybePromise<DashboardTrendAggregate[]>;
+  listDashboardBuildingAggregates(
+    input: DashboardAggregateQuery,
+  ): MaybePromise<DashboardBuildingAggregate[]>;
+  listDashboardUnitAggregates(
+    input: DashboardAggregateQuery,
+  ): MaybePromise<DashboardUnitAggregate[]>;
 
   createAlertRule(
     input: Omit<AlertRule, "enabled" | "id"> & {

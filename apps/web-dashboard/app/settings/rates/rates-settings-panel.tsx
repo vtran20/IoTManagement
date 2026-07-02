@@ -9,9 +9,11 @@ import {
   mutateJson,
   useCurrentSession,
 } from "../../../lib/use-api-resource";
+import { useInvalidateDashboardOverview } from "../../../lib/dashboard-query";
 
 export function RatesSettingsPanel() {
   const session = useCurrentSession();
+  const invalidateDashboardOverview = useInvalidateDashboardOverview();
   const [rates, setRates] = useState<UtilityRatesResponse>();
   const [waterRate, setWaterRate] = useState("");
   const [electricRate, setElectricRate] = useState("");
@@ -58,6 +60,7 @@ export function RatesSettingsPanel() {
       setRates(updated);
       setWaterRate(String(updated.waterPerGallon));
       setElectricRate(String(updated.electricPerKwh));
+      invalidateDashboardOverview();
       setMessage("Rates saved");
     } catch {
       setMessage("Rates could not be saved.");

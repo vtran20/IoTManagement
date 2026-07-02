@@ -13,9 +13,11 @@ import {
   mutateJson,
   useCurrentSession,
 } from "../../lib/use-api-resource";
+import { useInvalidateDashboardOverview } from "../../lib/dashboard-query";
 
 export function BuildingsManager() {
   const session = useCurrentSession();
+  const invalidateDashboardOverview = useInvalidateDashboardOverview();
   const [items, setItems] = useState<Building[]>([]);
   const [meters, setMeters] = useState<Meter[]>([]);
   const [status, setStatus] = useState<"error" | "loading" | "ready">(
@@ -77,6 +79,7 @@ export function BuildingsManager() {
           lifecycleStatus: building.lifecycleStatus ?? "active",
         },
       ]);
+      invalidateDashboardOverview();
       form.reset();
     } catch {
       setMessage("Building could not be saved.");
@@ -94,6 +97,7 @@ export function BuildingsManager() {
       setItems((current) =>
         current.map((item) => (item.id === buildingId ? building : item)),
       );
+      invalidateDashboardOverview();
     } catch {
       setMessage("Building status could not be updated.");
     }

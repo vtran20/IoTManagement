@@ -1,10 +1,24 @@
-import { Controller, Get, Inject, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Inject,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { AuthGuard } from "../common/guards/auth.guard";
+import { DashboardTimingInterceptor } from "../common/interceptors/dashboard-timing.interceptor";
 import { RequestWithContext } from "../common/request-context";
-import { DashboardService, DashboardUsageQuery } from "./dashboard.service";
+import {
+  DashboardOverviewQuery,
+  DashboardService,
+  DashboardUsageQuery,
+} from "./dashboard.service";
 
 @Controller("dashboard")
 @UseGuards(AuthGuard)
+@UseInterceptors(DashboardTimingInterceptor)
 export class DashboardController {
   constructor(
     @Inject(DashboardService)
@@ -14,6 +28,17 @@ export class DashboardController {
   @Get("summary")
   summary(@Req() request: RequestWithContext) {
     return this.dashboardService.summary(request.context!.organization.id);
+  }
+
+  @Get("overview")
+  overview(
+    @Req() request: RequestWithContext,
+    @Query() query: DashboardOverviewQuery,
+  ) {
+    return this.dashboardService.overview(
+      request.context!.organization.id,
+      query,
+    );
   }
 
   @Get("trends")

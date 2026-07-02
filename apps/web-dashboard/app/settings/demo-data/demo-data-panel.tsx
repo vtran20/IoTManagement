@@ -8,9 +8,11 @@ import {
   mutateJson,
   useCurrentSession,
 } from "../../../lib/use-api-resource";
+import { useInvalidateDashboardOverview } from "../../../lib/dashboard-query";
 
 export function DemoDataPanel() {
   const session = useCurrentSession();
+  const invalidateDashboardOverview = useInvalidateDashboardOverview();
   const [result, setResult] = useState<DemoSeedResponse>();
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,6 +28,7 @@ export function DemoDataPanel() {
         { method: "POST" },
       );
       setResult(response);
+      invalidateDashboardOverview();
       setMessage(`Demo data seeded for ${response.reportMonth}`);
     } catch {
       setMessage("Demo data could not be seeded.");

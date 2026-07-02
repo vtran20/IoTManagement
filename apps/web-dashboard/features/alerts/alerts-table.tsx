@@ -12,9 +12,11 @@ import {
   mutateJson,
   useCurrentSession,
 } from "../../lib/use-api-resource";
+import { useInvalidateDashboardOverview } from "../../lib/dashboard-query";
 
 export function AlertsTable() {
   const session = useCurrentSession();
+  const invalidateDashboardOverview = useInvalidateDashboardOverview();
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [status, setStatus] = useState<"error" | "loading" | "ready">(
@@ -55,6 +57,7 @@ export function AlertsTable() {
       setAlerts((current) =>
         current.map((item) => (item.id === alertId ? alert : item)),
       );
+      invalidateDashboardOverview();
     } catch {
       setMessage("Alert could not be acknowledged.");
     }
@@ -70,6 +73,7 @@ export function AlertsTable() {
       setAlerts((current) =>
         current.map((item) => (item.id === alertId ? alert : item)),
       );
+      invalidateDashboardOverview();
     } catch {
       setMessage("Alert could not be resolved.");
     }
@@ -94,6 +98,7 @@ export function AlertsTable() {
         method: "POST",
       });
       setRules((current) => [...current, rule]);
+      invalidateDashboardOverview();
       form.reset();
     } catch {
       setMessage("Alert rule could not be created.");

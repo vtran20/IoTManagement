@@ -1,10 +1,12 @@
 import type {
+  AggregatePeriodType,
   AlertEvent,
   EntityId,
   ISODateTime,
   MeterStatus,
   UtilityType,
 } from "./domain";
+import type { PageResponse } from "./api";
 
 export interface UtilitySummary {
   utilityType: UtilityType;
@@ -58,6 +60,28 @@ export interface DeviceHealthItem {
 
 export interface DeviceHealthResponse {
   meters: DeviceHealthItem[];
+}
+
+export interface DashboardOverviewRange {
+  from: ISODateTime;
+  periodType: AggregatePeriodType;
+  to: ISODateTime;
+}
+
+export interface DashboardOverviewQuery {
+  buildingId?: EntityId;
+  from?: ISODateTime;
+  to?: ISODateTime;
+  utilityType?: UtilityType;
+}
+
+export interface DashboardOverviewResponse {
+  buildings: PageResponse<BuildingBreakdownItem>;
+  deviceHealth: DeviceHealthResponse;
+  range: DashboardOverviewRange;
+  summary: DashboardSummaryResponse;
+  trends: PageResponse<UsageTrendPoint>;
+  units: PageResponse<UnitRankingItem>;
 }
 
 export interface DashboardAlertsResponse {

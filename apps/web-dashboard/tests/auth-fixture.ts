@@ -143,6 +143,92 @@ export async function mockAuthenticatedSession(
       status: 200,
     });
   });
+  await page.route("**/api/v1/dashboard/overview**", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        buildings: {
+          items: [
+            {
+              buildingId: buildings[0]?.id ?? "building_north_ridge",
+              buildingName: buildings[0]?.name ?? "North Ridge",
+              costEstimate: 1284.4,
+              usageValue: 128440,
+              utilityType: "water",
+            },
+            {
+              buildingId: buildings[1]?.id ?? "building_lakeview",
+              buildingName: buildings[1]?.name ?? "Lakeview Apartments",
+              costEstimate: 842.18,
+              usageValue: 42817,
+              utilityType: "electric",
+            },
+          ],
+        },
+        deviceHealth: {
+          meters: meters.map((meter) => ({
+            externalId: meter.externalId,
+            lastReadingAt: meter.lastReadingAt,
+            meterId: meter.id,
+            status: meter.status,
+            utilityType: meter.utilityType,
+          })),
+        },
+        range: {
+          from: "2026-05-31T00:00:00.000Z",
+          periodType: "day",
+          to: "2026-06-30T00:00:00.000Z",
+        },
+        summary: {
+          criticalAlertCount: 1,
+          generatedAt: "2026-06-30T12:00:00.000Z",
+          offlineMeterCount: 1,
+          openAlertCount: 2,
+          organizationId: "org_north",
+          staleMeterCount: 1,
+          utilitySummaries: [
+            { costEstimate: 1284.4, usageValue: 128440, utilityType: "water" },
+            {
+              costEstimate: 842.18,
+              usageValue: 42817,
+              utilityType: "electric",
+            },
+          ],
+        },
+        trends: {
+          items: [
+            {
+              costEstimate: 212.22,
+              periodEnd: "2026-06-02T00:00:00.000Z",
+              periodStart: "2026-06-01T00:00:00.000Z",
+              usageValue: 128440,
+              utilityType: "water",
+            },
+            {
+              costEstimate: 188.3,
+              periodEnd: "2026-06-02T00:00:00.000Z",
+              periodStart: "2026-06-01T00:00:00.000Z",
+              usageValue: 42817,
+              utilityType: "electric",
+            },
+          ],
+        },
+        units: {
+          items: [
+            {
+              buildingId: buildings[0]?.id ?? "building_north_ridge",
+              buildingName: buildings[0]?.name ?? "North Ridge",
+              unitId: units[0]?.id ?? "unit_1201",
+              unitName: units[0]?.name ?? "Apartment 1201",
+              usageValue: 128440,
+              utilityType: "water",
+            },
+          ],
+        },
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
   await page.route("**/api/v1/settings/rates", async (route) => {
     if (route.request().method() === "PATCH") {
       rates = {

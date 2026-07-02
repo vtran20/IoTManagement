@@ -3,32 +3,19 @@
 import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CurrentUserResponse } from "@iot-management/types";
 import { apiFetch } from "../lib/auth-client";
+import { useCurrentSession } from "../lib/use-api-resource";
 
 export function AccountMenu() {
   const router = useRouter();
-  const [session, setSession] = useState<CurrentUserResponse | undefined>();
+  const session = useCurrentSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    apiFetch("/auth/me", { method: "GET" })
-      .then(async (response) => {
-        if (!response.ok) {
-          router.replace("/login");
-          return;
-        }
-        const body = (await response.json()) as CurrentUserResponse;
-        if (active) {
-          setSession(body);
-        }
-      })
-      .catch(() => router.replace("/login"));
-    return () => {
-      active = false;
-    };
-  }, [router]);
+    if (session.status === "error") {
+      router.replace("/login");
+    }
+  }, [router, session.status]);
 
   async function logout() {
     setIsLoggingOut(true);
@@ -47,7 +34,7 @@ export function AccountMenu() {
     }
   }
 
-  const initials = (session?.user.name ?? "User")
+  const initials = (session.data?.user.name ?? "User")
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -58,8 +45,8 @@ export function AccountMenu() {
     <div className="account-block">
       <div className="avatar">{initials}</div>
       <div>
-        <strong>{session?.user.name ?? "Loading account"}</strong>
-        <span>{session?.user.email ?? "Checking session"}</span>
+        <strong>{session.data?.user.name ?? "Loading account"}</strong>
+        <span>{session.data?.user.email ?? "Checking session"}</span>
       </div>
       <button
         className="logout-button"

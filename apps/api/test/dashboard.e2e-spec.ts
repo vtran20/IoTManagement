@@ -75,6 +75,52 @@ describe("Dashboard API", () => {
       .expect(({ body }) => expect(body.items).toHaveLength(1));
 
     await request(app.getHttpServer())
+      .post("/api/v1/analytics/aggregate")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ periodType: "day" })
+      .expect(201)
+      .expect(({ body }) => expect(body.items).toHaveLength(1));
+
+    await request(app.getHttpServer())
+      .get("/api/v1/dashboard/overview")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect("Server-Timing", /dashboard;dur=/)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.objectContaining({
+            buildings: expect.objectContaining({
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  buildingId: building.body.id,
+                  usageValue: 15,
+                }),
+              ]),
+            }),
+            deviceHealth: expect.objectContaining({
+              meters: expect.arrayContaining([
+                expect.objectContaining({ meterId: meter.body.id }),
+              ]),
+            }),
+            range: expect.objectContaining({ periodType: "day" }),
+            summary: expect.objectContaining({
+              organizationId: "org_north",
+            }),
+            trends: expect.objectContaining({
+              items: expect.arrayContaining([
+                expect.objectContaining({ usageValue: 15 }),
+              ]),
+            }),
+            units: expect.objectContaining({
+              items: expect.arrayContaining([
+                expect.objectContaining({ unitId: unit.body.id }),
+              ]),
+            }),
+          }),
+        );
+      });
+
+    await request(app.getHttpServer())
       .get("/api/v1/dashboard/summary")
       .set("Authorization", `Bearer ${ownerToken}`)
       .expect(200)

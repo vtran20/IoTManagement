@@ -9,6 +9,8 @@ import type {
   DeviceHealthResponse,
   DemoSeedResponse,
   DashboardSummaryResponse,
+  DashboardOverviewQuery,
+  DashboardOverviewResponse,
   DashboardAlertsResponse,
   BuildingBreakdownItem,
   UnitRankingItem,
@@ -89,6 +91,10 @@ export function createEndpoints(client: ApiClient) {
       deviceHealth: () =>
         client.get<DeviceHealthResponse>("/dashboard/device-health"),
       alerts: () => client.get<DashboardAlertsResponse>("/dashboard/alerts"),
+      overview: (query?: DashboardOverviewQuery) =>
+        client.get<DashboardOverviewResponse>("/dashboard/overview", {
+          query,
+        }),
       summary: () => client.get<DashboardSummaryResponse>("/dashboard/summary"),
       trends: (query?: ListUsageQuery) =>
         client.get<PageResponse<UsageTrendPoint>>("/dashboard/trends", {

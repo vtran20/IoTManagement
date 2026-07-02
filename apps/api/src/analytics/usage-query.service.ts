@@ -15,6 +15,7 @@ import {
 import { CostEstimateService } from "./cost-estimate.service";
 
 export interface UsageQueryInput extends ListUsageQuery {
+  limit?: number;
   organizationId: string;
   periodType?: AggregatePeriodType;
 }
@@ -31,109 +32,64 @@ export class UsageQueryService {
   async getTrends(
     input: UsageQueryInput,
   ): Promise<PageResponse<UsageTrendPoint>> {
-    const grouped = new Map<string, UsageTrendPoint>();
-    for (const aggregate of await this.persistence.listUsageAggregates({
+    const items = await this.persistence.listDashboardTrendAggregates({
       ...input,
       periodType: input.periodType ?? "hour",
-    })) {
-      const key = `${aggregate.periodStart}:${aggregate.utilityType}`;
-      const existing = grouped.get(key);
-      const usageValue = roundUsage(
-        (existing?.usageValue ?? 0) + aggregate.usageValue,
-      );
-      const costEstimate = roundMoney(
-        (existing?.costEstimate ?? 0) +
-          (aggregate.costEstimate ??
-            this.costEstimate.estimate(
-              aggregate.utilityType,
-              aggregate.usageValue,
-            )),
-      );
-      grouped.set(key, {
-        costEstimate,
-        periodEnd: aggregate.periodEnd,
-        periodStart: aggregate.periodStart,
-        usageValue,
-        utilityType: aggregate.utilityType,
-      });
-    }
+    });
 
     return {
-      items: [...grouped.values()].sort((left, right) =>
-        left.periodStart === right.periodStart
-          ? left.utilityType.localeCompare(right.utilityType)
-          : left.periodStart.localeCompare(right.periodStart),
-      ),
+      items: items.map((item) => ({
+        costEstimate: roundMoney(
+          item.costEstimate +
+            this.costEstimate.estimate(
+              item.utilityType,
+              item.usageWithoutCostEstimate,
+            ),
+        ),
+        periodEnd: item.periodEnd,
+        periodStart: item.periodStart,
+        usageValue: roundUsage(item.usageValue),
+        utilityType: item.utilityType,
+      })),
     };
   }
 
   async getBuildingBreakdown(
     input: UsageQueryInput,
   ): Promise<PageResponse<BuildingBreakdownItem>> {
-    const grouped = new Map<string, BuildingBreakdownItem>();
-    for (const aggregate of await this.persistence.listUsageAggregates({
+    const items = await this.persistence.listDashboardBuildingAggregates({
       ...input,
       periodType: input.periodType ?? "hour",
-    })) {
-      const building = await this.persistence.findBuildingById(
-        input.organizationId,
-        aggregate.buildingId,
-      );
-      const key = `${aggregate.buildingId}:${aggregate.utilityType}`;
-      const existing = grouped.get(key);
-      const usageValue = roundUsage(
-        (existing?.usageValue ?? 0) + aggregate.usageValue,
-      );
-      grouped.set(key, {
-        buildingId: aggregate.buildingId,
-        buildingName: building?.name ?? aggregate.buildingId,
-        costEstimate: this.costEstimate.estimate(
-          aggregate.utilityType,
-          usageValue,
+    });
+    return {
+      items: items.map((item) => ({
+        buildingId: item.buildingId,
+        buildingName: item.buildingName,
+        costEstimate: roundMoney(
+          item.costEstimate +
+            this.costEstimate.estimate(
+              item.utilityType,
+              item.usageWithoutCostEstimate,
+            ),
         ),
-        usageValue,
-        utilityType: aggregate.utilityType,
-      });
-    }
-    return { items: [...grouped.values()] };
+        usageValue: roundUsage(item.usageValue),
+        utilityType: item.utilityType,
+      })),
+    };
   }
 
   async getUnitRankings(
     input: UsageQueryInput,
   ): Promise<PageResponse<UnitRankingItem>> {
-    const grouped = new Map<string, UnitRankingItem>();
-    for (const aggregate of await this.persistence.listUsageAggregates({
+    const items = await this.persistence.listDashboardUnitAggregates({
       ...input,
       periodType: input.periodType ?? "hour",
-    })) {
-      if (!aggregate.unitId) {
-        continue;
-      }
-      const unit = await this.persistence.findUnitById(
-        input.organizationId,
-        aggregate.unitId,
-      );
-      const building = await this.persistence.findBuildingById(
-        input.organizationId,
-        aggregate.buildingId,
-      );
-      const key = `${aggregate.unitId}:${aggregate.utilityType}`;
-      const existing = grouped.get(key);
-      grouped.set(key, {
-        buildingId: aggregate.buildingId,
-        buildingName: building?.name ?? aggregate.buildingId,
-        unitId: aggregate.unitId,
-        unitName: unit?.name ?? aggregate.unitId,
-        usageValue: roundUsage(
-          (existing?.usageValue ?? 0) + aggregate.usageValue,
-        ),
-        utilityType: aggregate.utilityType,
-      });
-    }
+    });
     return {
-      items: [...grouped.values()].sort(
-        (left, right) => right.usageValue - left.usageValue,
-      ),
+      items: items.map((item) => ({
+        ...item,
+        usageValue: roundUsage(item.usageValue),
+      })),
     };
   }
 

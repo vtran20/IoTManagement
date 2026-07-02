@@ -300,6 +300,56 @@ describe("UsageQueryService", () => {
     ]);
   });
 
+  it("limits unit rankings after grouping by unit and utility", async () => {
+    const persistence = new InMemoryPersistenceService();
+    const building = persistence.createBuilding({
+      name: "Rankings Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    for (const [externalId, unitName, usageValue] of [
+      ["ranking-water-high", "201", 20],
+      ["ranking-water-low", "202", 10],
+    ] as const) {
+      const unit = persistence.createUnit({
+        buildingId: building.id,
+        name: unitName,
+        occupancyStatus: "occupied",
+        organizationId: "org_north",
+      });
+      const meter = persistence.createMeter({
+        buildingId: building.id,
+        externalId,
+        organizationId: "org_north",
+        source: "simulated",
+        unitId: unit.id,
+        utilityType: "water",
+      });
+      persistence.createUsageAggregate({
+        buildingId: building.id,
+        meterId: meter.id,
+        organizationId: "org_north",
+        periodEnd: "2026-06-29T11:00:00.000Z",
+        periodStart: "2026-06-29T10:00:00.000Z",
+        periodType: "hour",
+        unitId: unit.id,
+        usageValue,
+        utilityType: "water",
+      });
+    }
+
+    const service = new UsageQueryService(
+      persistence,
+      new CostEstimateService(),
+    );
+
+    await expect(
+      service.getUnitRankings({ limit: 1, organizationId: "org_north" }),
+    ).resolves.toEqual({
+      items: [expect.objectContaining({ unitName: "201", usageValue: 20 })],
+    });
+  });
+
   it("reports online, stale, offline, and disabled device health states", async () => {
     const persistence = new InMemoryPersistenceService();
     const building = persistence.createBuilding({

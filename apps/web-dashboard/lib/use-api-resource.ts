@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { CurrentUserResponse } from "@iot-management/types";
 import { apiFetch } from "./auth-client";
 
@@ -39,7 +40,21 @@ export function useApiResource<T>(path: string): ResourceState<T> {
 }
 
 export function useCurrentSession() {
-  return useApiResource<CurrentUserResponse>("/auth/me");
+  const query = useQuery({
+    queryFn: () => fetchJson<CurrentUserResponse>("/auth/me"),
+    queryKey: ["auth", "me"],
+    staleTime: 5 * 60_000,
+  });
+  if (query.isPending) {
+    return { status: "loading" } as ResourceState<CurrentUserResponse>;
+  }
+  if (query.isError || !query.data) {
+    return { status: "error" } as ResourceState<CurrentUserResponse>;
+  }
+  return {
+    data: query.data,
+    status: "ready",
+  } as ResourceState<CurrentUserResponse>;
 }
 
 export function canMutate(role?: string): boolean {

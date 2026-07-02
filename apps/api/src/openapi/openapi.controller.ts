@@ -39,6 +39,13 @@ export class OpenApiController {
             tags: ["Buildings"],
           },
         },
+        "/api/v1/dashboard/overview": {
+          get: {
+            summary:
+              "Return the current organization's dashboard summary, trends, rankings, and device health in one response",
+            tags: ["Dashboard"],
+          },
+        },
         "/api/v1/meters": {
           get: {
             summary: "List meters for the current organization",

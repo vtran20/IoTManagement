@@ -154,4 +154,121 @@ describe("PostgresPersistenceService", () => {
       event,
     );
   });
+
+  it("returns dashboard aggregates grouped in PostgreSQL with portfolio names", async () => {
+    const firstBuilding = await persistence.createBuilding({
+      name: "Grouped First Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    const secondBuilding = await persistence.createBuilding({
+      name: "Grouped Second Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    const firstUnit = await persistence.createUnit({
+      buildingId: firstBuilding.id,
+      name: "1101",
+      occupancyStatus: "occupied",
+      organizationId: "org_north",
+    });
+    const secondUnit = await persistence.createUnit({
+      buildingId: secondBuilding.id,
+      name: "2201",
+      occupancyStatus: "occupied",
+      organizationId: "org_north",
+    });
+    const firstMeter = await persistence.createMeter({
+      buildingId: firstBuilding.id,
+      externalId: "grouped-first-water",
+      organizationId: "org_north",
+      source: "simulated",
+      unitId: firstUnit.id,
+      utilityType: "water",
+    });
+    const secondMeter = await persistence.createMeter({
+      buildingId: secondBuilding.id,
+      externalId: "grouped-second-water",
+      organizationId: "org_north",
+      source: "simulated",
+      unitId: secondUnit.id,
+      utilityType: "water",
+    });
+
+    for (const [buildingId, meterId, unitId, usageValue] of [
+      [firstBuilding.id, firstMeter.id, firstUnit.id, 12],
+      [secondBuilding.id, secondMeter.id, secondUnit.id, 8],
+    ] as const) {
+      await persistence.createUsageAggregate({
+        buildingId,
+        meterId,
+        organizationId: "org_north",
+        periodEnd: "2026-06-30T00:00:00.000Z",
+        periodStart: "2026-06-29T00:00:00.000Z",
+        periodType: "day",
+        unitId,
+        usageValue,
+        utilityType: "water",
+      });
+    }
+
+    const query = {
+      from: "2026-06-01T00:00:00.000Z",
+      organizationId: "org_north",
+      periodType: "day" as const,
+      to: "2026-07-01T00:00:00.000Z",
+    };
+
+    await expect(
+      persistence.listDashboardTrendAggregates(query),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        periodStart: "2026-06-29T00:00:00.000Z",
+        usageValue: 20,
+        utilityType: "water",
+      }),
+    ]);
+    await expect(
+      persistence.listDashboardBuildingAggregates(query),
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          buildingName: "Grouped First Tower",
+          usageValue: 12,
+        }),
+        expect.objectContaining({
+          buildingName: "Grouped Second Tower",
+          usageValue: 8,
+        }),
+      ]),
+    );
+    await expect(
+      persistence.listDashboardUnitAggregates({ ...query, limit: 1 }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        buildingName: "Grouped First Tower",
+        unitName: "1101",
+        usageValue: 12,
+      }),
+    ]);
+  });
+
+  it("installs dashboard performance indexes", async () => {
+    const result = await pool.query<{ indexname: string }>(
+      `SELECT indexname
+       FROM pg_indexes
+       WHERE schemaname = $1
+         AND tablename IN ('usage_aggregates', 'alert_events')`,
+      [schema],
+    );
+
+    expect(result.rows.map((row) => row.indexname)).toEqual(
+      expect.arrayContaining([
+        "usage_aggregates_dashboard_window_idx",
+        "usage_aggregates_dashboard_building_idx",
+        "usage_aggregates_dashboard_utility_idx",
+        "alert_events_dashboard_open_idx",
+      ]),
+    );
+  });
 });
