@@ -31,24 +31,39 @@ export class UsageQueryService {
   async getTrends(
     input: UsageQueryInput,
   ): Promise<PageResponse<UsageTrendPoint>> {
-    return {
-      items: (
-        await this.persistence.listUsageAggregates({
-          ...input,
-          periodType: input.periodType ?? "hour",
-        })
-      ).map((aggregate) => ({
-        costEstimate:
-          aggregate.costEstimate ??
-          this.costEstimate.estimate(
-            aggregate.utilityType,
-            aggregate.usageValue,
-          ),
+    const grouped = new Map<string, UsageTrendPoint>();
+    for (const aggregate of await this.persistence.listUsageAggregates({
+      ...input,
+      periodType: input.periodType ?? "hour",
+    })) {
+      const key = `${aggregate.periodStart}:${aggregate.utilityType}`;
+      const existing = grouped.get(key);
+      const usageValue = roundUsage(
+        (existing?.usageValue ?? 0) + aggregate.usageValue,
+      );
+      const costEstimate = roundMoney(
+        (existing?.costEstimate ?? 0) +
+          (aggregate.costEstimate ??
+            this.costEstimate.estimate(
+              aggregate.utilityType,
+              aggregate.usageValue,
+            )),
+      );
+      grouped.set(key, {
+        costEstimate,
         periodEnd: aggregate.periodEnd,
         periodStart: aggregate.periodStart,
-        usageValue: aggregate.usageValue,
+        usageValue,
         utilityType: aggregate.utilityType,
-      })),
+      });
+    }
+
+    return {
+      items: [...grouped.values()].sort((left, right) =>
+        left.periodStart === right.periodStart
+          ? left.utilityType.localeCompare(right.utilityType)
+          : left.periodStart.localeCompare(right.periodStart),
+      ),
     };
   }
 
@@ -155,4 +170,8 @@ export class UsageQueryService {
 
 function roundUsage(value: number): number {
   return Math.round(value * 1000) / 1000;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
 }

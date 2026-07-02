@@ -163,6 +163,64 @@ describe("AggregationService", () => {
 });
 
 describe("UsageQueryService", () => {
+  it("aggregates trend points by period and utility", async () => {
+    const persistence = new InMemoryPersistenceService();
+    const firstBuilding = persistence.createBuilding({
+      name: "First Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    const secondBuilding = persistence.createBuilding({
+      name: "Second Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    const firstMeter = persistence.createMeter({
+      buildingId: firstBuilding.id,
+      externalId: "trend-water-one",
+      organizationId: "org_north",
+      source: "simulated",
+      utilityType: "water",
+    });
+    const secondMeter = persistence.createMeter({
+      buildingId: secondBuilding.id,
+      externalId: "trend-water-two",
+      organizationId: "org_north",
+      source: "simulated",
+      utilityType: "water",
+    });
+    for (const [buildingId, meterId, usageValue] of [
+      [firstBuilding.id, firstMeter.id, 12],
+      [secondBuilding.id, secondMeter.id, 8],
+    ] as const) {
+      persistence.createUsageAggregate({
+        buildingId,
+        meterId,
+        organizationId: "org_north",
+        periodEnd: "2026-04-02T13:00:00.000Z",
+        periodStart: "2026-04-02T12:00:00.000Z",
+        periodType: "hour",
+        usageValue,
+        utilityType: "water",
+      });
+    }
+
+    const service = new UsageQueryService(
+      persistence,
+      new CostEstimateService(),
+    );
+
+    expect(
+      (await service.getTrends({ organizationId: "org_north" })).items,
+    ).toEqual([
+      expect.objectContaining({
+        periodStart: "2026-04-02T12:00:00.000Z",
+        usageValue: 20,
+        utilityType: "water",
+      }),
+    ]);
+  });
+
   it("returns trends, building breakdown, unit rankings, and device health", async () => {
     const persistence = new InMemoryPersistenceService();
     const building = persistence.createBuilding({

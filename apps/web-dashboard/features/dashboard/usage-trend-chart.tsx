@@ -2,6 +2,7 @@ import type {
   DashboardSummaryResponse,
   UsageTrendPoint,
 } from "@iot-management/types";
+import { dashboardPanelIconFor } from "../../lib/iconography";
 
 export function UsageTrendChart({
   summary,
@@ -15,11 +16,18 @@ export function UsageTrendChart({
     0,
   );
   const points = trends.slice(0, 6);
+  const axisPeriods = trendAxisPeriods(points.length ? points : trends).slice(
+    0,
+    6,
+  );
+  const ChartIcon = dashboardPanelIconFor("Total Utility Usage");
   return (
     <article className="chart-card usage-card">
       <div className="card-heading">
         <div>
-          <span className="chart-icon" />
+          <span className="chart-icon">
+            <ChartIcon aria-hidden="true" />
+          </span>
           <h2>Total Utility Usage</h2>
         </div>
         <div className="legend">
@@ -55,17 +63,21 @@ export function UsageTrendChart({
         />
       </svg>
       <div className="months">
-        {(points.length ? points : trends).slice(0, 6).map((point) => (
-          <span key={`${point.periodStart}:${point.utilityType}`}>
+        {axisPeriods.map((periodStart) => (
+          <span key={periodStart}>
             {new Intl.DateTimeFormat("en-US", {
               month: "short",
               timeZone: "UTC",
-            }).format(new Date(point.periodStart))}
+            }).format(new Date(periodStart))}
           </span>
         ))}
       </div>
     </article>
   );
+}
+
+export function trendAxisPeriods(trends: UsageTrendPoint[]): string[] {
+  return [...new Set(trends.map((point) => point.periodStart))];
 }
 
 function formatMoney(value: number): string {
