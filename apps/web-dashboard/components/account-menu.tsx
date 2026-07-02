@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CurrentUserResponse } from "@iot-management/types";
@@ -66,7 +67,8 @@ export function AccountMenu() {
         onClick={logout}
         type="button"
       >
-        {isLoggingOut ? "..." : "Logout"}
+        <LogOut aria-hidden="true" className="button-icon" />
+        <span>{isLoggingOut ? "..." : "Logout"}</span>
       </button>
     </div>
   );

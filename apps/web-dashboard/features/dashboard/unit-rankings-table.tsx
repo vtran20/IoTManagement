@@ -1,10 +1,14 @@
 import type { UnitRankingItem } from "@iot-management/types";
+import { dashboardPanelIconFor } from "../../lib/iconography";
 
 export function UnitRankingsTable({ rows }: { rows: UnitRankingItem[] }) {
+  const TableIcon = dashboardPanelIconFor("Top Units");
   return (
     <article className="small-card table-card">
       <div className="small-heading">
-        <span className="metric-icon" />
+        <span className="metric-icon">
+          <TableIcon aria-hidden="true" />
+        </span>
         <div>
           <p>Top Units</p>
           <strong>By usage</strong>

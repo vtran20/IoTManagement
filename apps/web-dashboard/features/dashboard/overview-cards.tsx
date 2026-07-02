@@ -3,6 +3,7 @@ import type {
   DeviceHealthResponse,
   UtilityType,
 } from "@iot-management/types";
+import { dashboardMetricIconFor } from "../../lib/iconography";
 
 export function OverviewCards({
   deviceHealth,
@@ -37,7 +38,14 @@ export function OverviewCards({
       {cards.map(([label, value, previous]) => (
         <article className="metric-card" key={label}>
           <div className="metric-label-row">
-            <span className="metric-icon" />
+            {(() => {
+              const Icon = dashboardMetricIconFor(label);
+              return (
+                <span className="metric-icon">
+                  <Icon aria-hidden="true" />
+                </span>
+              );
+            })()}
             <h2>{label}</h2>
           </div>
           <p className="previous">{previous}</p>

@@ -1,4 +1,7 @@
-const navItems = [
+import { ChevronRight } from "lucide-react";
+import { navigationIconFor } from "../lib/iconography";
+
+export const navItems = [
   ["Dashboard", "/dashboard"],
   ["Buildings", "/buildings"],
   ["Units", "/units"],
@@ -8,14 +11,18 @@ const navItems = [
   ["Settings", "/settings"],
 ] as const;
 
-export function Nav() {
+export function Nav({ ariaLabel = "Operations" }: { ariaLabel?: string }) {
   return (
-    <nav className="nav-group" aria-label="Operations">
+    <nav className="nav-group" aria-label={ariaLabel}>
       <p>Operations</p>
       {navItems.map(([label, href]) => (
         <a className="nav-item" href={href} key={href}>
-          <span className="nav-dot" />
-          {label}
+          {(() => {
+            const Icon = navigationIconFor(label);
+            return <Icon aria-hidden="true" className="nav-icon" />;
+          })()}
+          <span>{label}</span>
+          <ChevronRight aria-hidden="true" className="nav-chevron" />
         </a>
       ))}
     </nav>

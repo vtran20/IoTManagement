@@ -1,10 +1,18 @@
 import type { MonthlyUsageReportResponse } from "@iot-management/types";
+import {
+  dashboardMetricIconFor,
+  dashboardPanelIconFor,
+} from "../../lib/iconography";
 
 export function MonthlyUsageReport({
   report,
 }: {
   report: MonthlyUsageReportResponse;
 }) {
+  const WaterIcon = dashboardMetricIconFor("Water Usage");
+  const ElectricIcon = dashboardMetricIconFor("Electric Usage");
+  const CostIcon = dashboardPanelIconFor("Estimated Cost");
+  const RowsIcon = dashboardPanelIconFor("Report Rows");
   const reportMonth = new Intl.DateTimeFormat("en-US", {
     month: "long",
     timeZone: "UTC",
@@ -27,7 +35,9 @@ export function MonthlyUsageReport({
       >
         <article className="metric-card">
           <div className="metric-label-row">
-            <span className="metric-icon" />
+            <span className="metric-icon">
+              <WaterIcon aria-hidden="true" />
+            </span>
             <h2>Water Usage</h2>
           </div>
           <p className="previous">{reportMonth}</p>
@@ -35,7 +45,9 @@ export function MonthlyUsageReport({
         </article>
         <article className="metric-card">
           <div className="metric-label-row">
-            <span className="metric-icon" />
+            <span className="metric-icon">
+              <ElectricIcon aria-hidden="true" />
+            </span>
             <h2>Electric Usage</h2>
           </div>
           <p className="previous">{reportMonth}</p>
@@ -43,7 +55,9 @@ export function MonthlyUsageReport({
         </article>
         <article className="metric-card">
           <div className="metric-label-row">
-            <span className="metric-icon" />
+            <span className="metric-icon">
+              <CostIcon aria-hidden="true" />
+            </span>
             <h2>Estimated Cost</h2>
           </div>
           <p className="previous">Water and electric</p>
@@ -51,7 +65,9 @@ export function MonthlyUsageReport({
         </article>
         <article className="metric-card">
           <div className="metric-label-row">
-            <span className="metric-icon" />
+            <span className="metric-icon">
+              <RowsIcon aria-hidden="true" />
+            </span>
             <h2>Report Rows</h2>
           </div>
           <p className="previous">Export format: {report.format}</p>

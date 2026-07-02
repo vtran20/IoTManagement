@@ -63,6 +63,10 @@ Do not implement production code before design and planning checkpoints are sati
 
 - Build the real working dashboard as the first screen after login.
 - Keep the interface operational, calm, dense, and easy to scan.
+- Strictly follow the shadcnblocks admin dashboard reference for shell UI: white left sidebar, compact grouped navigation, small line icons, chevrons for expandable/secondary rows, slim top bar, dark mobile drawer backdrop, 284px mobile drawer width, and bottom account block.
+- For mobile/tablet, never hide navigation without a reference-style drawer or sidebar trigger. The drawer must close through the trigger, Escape, and outside/backdrop click.
+- Prefer real lucide icons over CSS-drawn pseudo-icons. Do not create bordered pseudo-icons with `::before`/`::after`.
+- Prevent text/data overlap in charts with realistic labels, especially building and unit names. Reserve label space on desktop and stack label above chart marks on mobile.
 - Include loading, empty, error, and stale-data states.
 - Use tables for units, meters, alerts, and reports.
 - Use charts for utility usage, cost, anomalies, comparisons, and trends.

@@ -1,4 +1,5 @@
 import type { BuildingBreakdownItem } from "@iot-management/types";
+import { dashboardPanelIconFor } from "../../lib/iconography";
 
 export function BuildingBreakdownChart({
   rows,
@@ -6,11 +7,14 @@ export function BuildingBreakdownChart({
   rows: BuildingBreakdownItem[];
 }) {
   const grouped = groupByBuilding(rows);
+  const ChartIcon = dashboardPanelIconFor("Usage by Building");
   return (
     <article className="chart-card channel-card">
       <div className="card-heading compact">
         <div>
-          <span className="chart-icon" />
+          <span className="chart-icon">
+            <ChartIcon aria-hidden="true" />
+          </span>
           <h2>Usage by Building</h2>
         </div>
       </div>
@@ -21,7 +25,7 @@ export function BuildingBreakdownChart({
       <div className="bar-stack-list">
         {grouped.map(({ electric, name, water }) => (
           <div className="bar-row" key={name}>
-            <span>{name}</span>
+            <span title={name}>{name}</span>
             <div className="stack">
               <span style={{ width: `${water}%` }} />
               <span style={{ width: `${electric}%` }} />

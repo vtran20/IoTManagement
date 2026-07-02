@@ -23,6 +23,45 @@ test("app shell navigation exposes core operations pages", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Meters" })).toBeVisible();
 });
 
+test("app shell keeps navigation reachable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await mockAuthenticatedSession(page);
+  await page.goto("/dashboard");
+
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  const mobileNavigation = page.getByRole("navigation", {
+    name: "Mobile navigation",
+  });
+  await expect(mobileNavigation).toBeVisible();
+  await expect(
+    mobileNavigation.getByRole("link", { name: "Dashboard" }),
+  ).toBeVisible();
+  await expect(
+    mobileNavigation.getByRole("link", { name: "Meters" }),
+  ).toBeVisible();
+
+  await page.mouse.click(360, 120);
+  await expect(mobileNavigation).toBeHidden();
+});
+
+test("app shell keeps desktop sidebar visible on wide screens", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockAuthenticatedSession(page);
+  await page.goto("/dashboard");
+
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeHidden();
+});
+
 test("login handles bad credentials and successful owner login", async ({
   page,
 }) => {
