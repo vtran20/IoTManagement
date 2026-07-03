@@ -100,6 +100,16 @@ export class OpenApiController {
             tags: ["Water Protection"],
           },
         },
+        "/api/v1/leak-detection-policies": {
+          get: {
+            summary: "List continuous-flow detection policies",
+            tags: ["Water Protection"],
+          },
+          post: {
+            summary: "Create a continuous-flow detection policy",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/meters": {
           get: {
             summary: "List meters for the current organization",

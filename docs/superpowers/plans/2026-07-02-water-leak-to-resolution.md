@@ -22,10 +22,10 @@
 
 ### Phase 2: Meter-Based Detection
 
-- [ ] Add continuous-flow detection policies scoped to organization, building, unit, or meter.
-- [ ] Evaluate only valid water readings for the affected meter; ignore duplicate, invalid, and gapped intervals.
-- [ ] Open one deduplicated incident per unresolved policy/resource pair and attach every matching reading window as evidence.
-- [ ] Extend simulation with reproducible water-leak scenarios and calculate excess water and estimated cost.
+- [x] Add continuous-flow detection policies scoped to organization, building, unit, or meter.
+- [x] Evaluate only valid water readings for the affected meter; ignore duplicate, invalid, and gapped intervals.
+- [x] Open one deduplicated incident per unresolved policy/resource pair and attach every matching reading window as evidence.
+- [x] Reuse the existing reproducible water-leak simulation scenario; accepted simulated readings now calculate excess water and estimated cost.
 
 ### Phase 3: Repair Work Orders
 

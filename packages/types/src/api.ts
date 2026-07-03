@@ -2,6 +2,7 @@ import type {
   AlertEvent,
   AlertRule,
   AlertSeverity,
+  AlertScopeType,
   AlertStatus,
   Building,
   EntityId,
@@ -10,6 +11,7 @@ import type {
   LeakIncident,
   LeakIncidentResolutionCategory,
   LeakIncidentSource,
+  LeakDetectionPolicy,
   Meter,
   MeterReading,
   MeterSource,
@@ -327,6 +329,19 @@ export interface ResolveLeakIncidentRequest {
   resolutionCategory: LeakIncidentResolutionCategory;
   resolutionNote?: string;
 }
+
+export interface CreateLeakDetectionPolicyRequest {
+  name: string;
+  scopeType: AlertScopeType;
+  scopeId?: EntityId;
+  minimumIntervalUsage: number;
+  minimumConsecutiveIntervals: number;
+  maximumIntervalGapMinutes: number;
+  severity: AlertSeverity;
+  enabled?: boolean;
+}
+
+export type LeakDetectionPolicyResponse = LeakDetectionPolicy;
 
 export interface CreateAlertRuleRequest {
   name: string;

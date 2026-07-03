@@ -8,10 +8,12 @@ export interface DatabaseSchema {
   alert_rules: AlertRuleRow;
   audit_logs: AuditLogRow;
   incident_activities: IncidentActivityRow;
+  incident_evidence: IncidentEvidenceRow;
   buildings: BuildingRow;
   floors: FloorRow;
   invitations: InvitationRow;
   leak_incidents: LeakIncidentRow;
+  leak_detection_policies: LeakDetectionPolicyRow;
   memberships: MembershipRow;
   meter_readings: MeterReadingRow;
   meters: MeterRow;
@@ -122,6 +124,21 @@ export interface LeakIncidentRow {
     | "other"
     | null;
   resolution_note: string | null;
+  estimated_excess_water: Numeric | null;
+  estimated_excess_cost: Numeric | null;
+}
+
+export interface LeakDetectionPolicyRow {
+  id: string;
+  organization_id: string;
+  name: string;
+  scope_type: "organization" | "building" | "unit" | "meter";
+  scope_id: string | null;
+  minimum_interval_usage: Numeric;
+  minimum_consecutive_intervals: number;
+  maximum_interval_gap_minutes: number;
+  severity: "info" | "warning" | "critical";
+  enabled: boolean;
 }
 
 export interface IncidentActivityRow {
@@ -138,6 +155,20 @@ export interface IncidentActivityRow {
     | "resolved"
     | "note";
   summary: string;
+  created_at: Timestamp;
+}
+
+export interface IncidentEvidenceRow {
+  id: string;
+  organization_id: string;
+  incident_id: string;
+  policy_id: string;
+  meter_id: string;
+  reading_ids: unknown;
+  window_started_at: Timestamp;
+  window_ended_at: Timestamp;
+  observed_usage: Numeric;
+  threshold_usage: Numeric;
   created_at: Timestamp;
 }
 

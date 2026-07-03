@@ -4,7 +4,9 @@ import type {
   Building,
   Floor,
   IncidentActivity,
+  IncidentEvidence,
   LeakIncident,
+  LeakDetectionPolicy,
   Membership,
   Meter,
   MeterReading,
@@ -27,7 +29,9 @@ import type {
   FloorRow,
   InvitationRow,
   IncidentActivityRow,
+  IncidentEvidenceRow,
   LeakIncidentRow,
+  LeakDetectionPolicyRow,
   MembershipRow,
   MeterReadingRow,
   MeterRow,
@@ -1468,6 +1472,8 @@ export class PostgresPersistenceService
     source: LeakIncident["source"];
     title: string;
     unitId?: string;
+    estimatedExcessWater?: number;
+    estimatedExcessCost?: number;
   }): Promise<LeakIncident> {
     const row = await this.database.db
       .insertInto("leak_incidents")
@@ -1490,10 +1496,124 @@ export class PostgresPersistenceService
         resolved_at: null,
         resolution_category: null,
         resolution_note: null,
+        estimated_excess_water: input.estimatedExcessWater ?? null,
+        estimated_excess_cost: input.estimatedExcessCost ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
     return mapLeakIncident(row);
+  }
+
+  async createLeakDetectionPolicy(
+    input: Omit<LeakDetectionPolicy, "enabled" | "id"> & {
+      enabled?: boolean;
+    },
+  ): Promise<LeakDetectionPolicy> {
+    const row = await this.database.db
+      .insertInto("leak_detection_policies")
+      .values({
+        id: await this.nextId(
+          "leakDetectionPolicy",
+          input.name,
+          "leak_detection_policies",
+        ),
+        organization_id: input.organizationId,
+        name: input.name,
+        scope_type: input.scopeType,
+        scope_id: input.scopeId ?? null,
+        minimum_interval_usage: input.minimumIntervalUsage,
+        minimum_consecutive_intervals: input.minimumConsecutiveIntervals,
+        maximum_interval_gap_minutes: input.maximumIntervalGapMinutes,
+        severity: input.severity,
+        enabled: input.enabled ?? true,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapLeakDetectionPolicy(row);
+  }
+
+  async listLeakDetectionPolicies(input: {
+    organizationId: string;
+  }): Promise<LeakDetectionPolicy[]> {
+    const rows = await this.database.db
+      .selectFrom("leak_detection_policies")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .orderBy("name")
+      .execute();
+    return rows.map(mapLeakDetectionPolicy);
+  }
+
+  async findOpenLeakIncidentForPolicyMeter(input: {
+    meterId: string;
+    organizationId: string;
+    policyId: string;
+  }): Promise<LeakIncident | undefined> {
+    const row = await this.database.db
+      .selectFrom("incident_evidence")
+      .innerJoin(
+        "leak_incidents",
+        "leak_incidents.id",
+        "incident_evidence.incident_id",
+      )
+      .selectAll("leak_incidents")
+      .where("incident_evidence.organization_id", "=", input.organizationId)
+      .where("incident_evidence.policy_id", "=", input.policyId)
+      .where("incident_evidence.meter_id", "=", input.meterId)
+      .where("leak_incidents.status", "!=", "resolved")
+      .orderBy("leak_incidents.detected_at", "desc")
+      .executeTakeFirst();
+    return row ? mapLeakIncident(row) : undefined;
+  }
+
+  async createIncidentEvidence(input: {
+    createdAt: string;
+    incidentId: string;
+    meterId: string;
+    observedUsage: number;
+    organizationId: string;
+    policyId: string;
+    readingIds: string[];
+    thresholdUsage: number;
+    windowEndedAt: string;
+    windowStartedAt: string;
+  }): Promise<IncidentEvidence> {
+    const row = await this.database.db
+      .insertInto("incident_evidence")
+      .values({
+        id: await this.nextId(
+          "incidentEvidence",
+          `${input.incidentId}-${input.windowEndedAt}`,
+          "incident_evidence",
+        ),
+        organization_id: input.organizationId,
+        incident_id: input.incidentId,
+        policy_id: input.policyId,
+        meter_id: input.meterId,
+        reading_ids: JSON.stringify(input.readingIds),
+        window_started_at: input.windowStartedAt,
+        window_ended_at: input.windowEndedAt,
+        observed_usage: input.observedUsage,
+        threshold_usage: input.thresholdUsage,
+        created_at: input.createdAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapIncidentEvidence(row);
+  }
+
+  async listIncidentEvidence(input: {
+    incidentId: string;
+    organizationId: string;
+  }): Promise<IncidentEvidence[]> {
+    const rows = await this.database.db
+      .selectFrom("incident_evidence")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("incident_id", "=", input.incidentId)
+      .orderBy("created_at")
+      .execute();
+    return rows.map(mapIncidentEvidence);
   }
 
   async listLeakIncidents(input: {
@@ -2047,7 +2167,50 @@ function mapLeakIncident(row: Selectable<LeakIncidentRow>): LeakIncident {
     resolvedAt: row.resolved_at ? iso(row.resolved_at) : undefined,
     resolutionCategory: row.resolution_category ?? undefined,
     resolutionNote: row.resolution_note ?? undefined,
+    estimatedExcessWater:
+      row.estimated_excess_water === null
+        ? undefined
+        : Number(row.estimated_excess_water),
+    estimatedExcessCost:
+      row.estimated_excess_cost === null
+        ? undefined
+        : Number(row.estimated_excess_cost),
   }) as LeakIncident;
+}
+
+function mapLeakDetectionPolicy(
+  row: Selectable<LeakDetectionPolicyRow>,
+): LeakDetectionPolicy {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    name: row.name,
+    scopeType: row.scope_type,
+    scopeId: row.scope_id ?? undefined,
+    minimumIntervalUsage: Number(row.minimum_interval_usage),
+    minimumConsecutiveIntervals: row.minimum_consecutive_intervals,
+    maximumIntervalGapMinutes: row.maximum_interval_gap_minutes,
+    severity: row.severity,
+    enabled: row.enabled,
+  }) as LeakDetectionPolicy;
+}
+
+function mapIncidentEvidence(
+  row: Selectable<IncidentEvidenceRow>,
+): IncidentEvidence {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    incidentId: row.incident_id,
+    policyId: row.policy_id,
+    meterId: row.meter_id,
+    readingIds: parseJsonArray(row.reading_ids),
+    windowStartedAt: iso(row.window_started_at),
+    windowEndedAt: iso(row.window_ended_at),
+    observedUsage: Number(row.observed_usage),
+    thresholdUsage: Number(row.threshold_usage),
+    createdAt: iso(row.created_at),
+  };
 }
 
 function mapIncidentActivity(
@@ -2180,6 +2343,22 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function parseJsonArray(value: unknown): string[] {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function slug(seed: string): string {

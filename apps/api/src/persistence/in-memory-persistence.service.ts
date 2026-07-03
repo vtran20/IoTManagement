@@ -6,7 +6,9 @@ import type {
   Building,
   Floor,
   IncidentActivity,
+  IncidentEvidence,
   LeakIncident,
+  LeakDetectionPolicy,
   Membership,
   Meter,
   MeterReading,
@@ -51,7 +53,9 @@ export class InMemoryPersistenceService implements PersistenceService {
     floor: 1,
     invitation: 1,
     incidentActivity: 1,
+    incidentEvidence: 1,
     leakIncident: 1,
+    leakDetectionPolicy: 1,
     meter: 1,
     passwordResetToken: 1,
     reading: 1,
@@ -172,7 +176,9 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly emailOutboxItems: StoredEmailOutboxItem[] = [];
   private readonly invitations: StoredInvitation[] = [];
   private readonly incidentActivities: IncidentActivity[] = [];
+  private readonly incidentEvidence: IncidentEvidence[] = [];
   private readonly leakIncidents: LeakIncident[] = [];
+  private readonly leakDetectionPolicies: LeakDetectionPolicy[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -988,6 +994,8 @@ export class InMemoryPersistenceService implements PersistenceService {
     source: LeakIncident["source"];
     title: string;
     unitId?: string;
+    estimatedExcessWater?: number;
+    estimatedExcessCost?: number;
   }): LeakIncident {
     const incident: LeakIncident = {
       ...input,
@@ -996,6 +1004,82 @@ export class InMemoryPersistenceService implements PersistenceService {
     };
     this.leakIncidents.push(incident);
     return incident;
+  }
+
+  createLeakDetectionPolicy(
+    input: Omit<LeakDetectionPolicy, "enabled" | "id"> & {
+      enabled?: boolean;
+    },
+  ): LeakDetectionPolicy {
+    const policy: LeakDetectionPolicy = {
+      ...input,
+      enabled: input.enabled ?? true,
+      id: this.nextId("leakDetectionPolicy", input.name),
+    };
+    this.leakDetectionPolicies.push(policy);
+    return policy;
+  }
+
+  listLeakDetectionPolicies(input: {
+    organizationId: string;
+  }): LeakDetectionPolicy[] {
+    return this.leakDetectionPolicies.filter(
+      (policy) => policy.organizationId === input.organizationId,
+    );
+  }
+
+  findOpenLeakIncidentForPolicyMeter(input: {
+    meterId: string;
+    organizationId: string;
+    policyId: string;
+  }): LeakIncident | undefined {
+    const incidentIds = this.incidentEvidence
+      .filter(
+        (item) =>
+          item.organizationId === input.organizationId &&
+          item.policyId === input.policyId &&
+          item.meterId === input.meterId,
+      )
+      .map((item) => item.incidentId);
+    return this.leakIncidents.find(
+      (incident) =>
+        incident.organizationId === input.organizationId &&
+        incidentIds.includes(incident.id) &&
+        incident.status !== "resolved",
+    );
+  }
+
+  createIncidentEvidence(input: {
+    createdAt: string;
+    incidentId: string;
+    meterId: string;
+    observedUsage: number;
+    organizationId: string;
+    policyId: string;
+    readingIds: string[];
+    thresholdUsage: number;
+    windowEndedAt: string;
+    windowStartedAt: string;
+  }): IncidentEvidence {
+    const evidence: IncidentEvidence = {
+      ...input,
+      id: this.nextId("incidentEvidence", input.incidentId),
+    };
+    this.incidentEvidence.push(evidence);
+    return evidence;
+  }
+
+  listIncidentEvidence(input: {
+    incidentId: string;
+    organizationId: string;
+  }): IncidentEvidence[] {
+    return this.incidentEvidence
+      .filter(
+        (evidence) =>
+          evidence.organizationId === input.organizationId &&
+          evidence.incidentId === input.incidentId,
+      )
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
   listLeakIncidents(input: {

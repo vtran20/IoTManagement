@@ -6,6 +6,7 @@ import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
 import { MeterHealthService } from "../meters/meter-health.service";
+import { LeakDetectionService } from "../incidents/leak-detection.service";
 import {
   PERSISTENCE_SERVICE,
   PersistenceService,
@@ -23,6 +24,8 @@ export class ReadingsService {
     private readonly validation: ReadingValidationService,
     @Inject(MeterHealthService)
     private readonly meterHealth: MeterHealthService,
+    @Inject(LeakDetectionService)
+    private readonly leakDetection: LeakDetectionService,
   ) {}
 
   async ingest(
@@ -71,6 +74,11 @@ export class ReadingsService {
       organizationId: context.organization.id,
       meterId: meter.id,
       measuredAt: dto.measuredAt,
+    });
+    await this.leakDetection.evaluateAcceptedReading({
+      meter,
+      organizationId: context.organization.id,
+      reading,
     });
 
     return {

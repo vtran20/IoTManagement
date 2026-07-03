@@ -6,7 +6,9 @@ import type {
   Building,
   Floor,
   IncidentActivity,
+  IncidentEvidence,
   LeakIncident,
+  LeakDetectionPolicy,
   Membership,
   Meter,
   MeterReading,
@@ -347,6 +349,13 @@ export interface PersistenceService {
     utilityType?: UtilityType;
   }): MaybePromise<UsageAggregate[]>;
 
+  createLeakDetectionPolicy(
+    input: Omit<LeakDetectionPolicy, "enabled" | "id"> & { enabled?: boolean },
+  ): MaybePromise<LeakDetectionPolicy>;
+  listLeakDetectionPolicies(input: {
+    organizationId: string;
+  }): MaybePromise<LeakDetectionPolicy[]>;
+
   createLeakIncident(input: {
     buildingId: string;
     description: string;
@@ -357,12 +366,35 @@ export interface PersistenceService {
     source: LeakIncident["source"];
     title: string;
     unitId?: string;
+    estimatedExcessWater?: number;
+    estimatedExcessCost?: number;
   }): MaybePromise<LeakIncident>;
   listLeakIncidents(input: {
     buildingId?: string;
     organizationId: string;
     source?: LeakIncident["source"];
   }): MaybePromise<LeakIncident[]>;
+  findOpenLeakIncidentForPolicyMeter(input: {
+    meterId: string;
+    organizationId: string;
+    policyId: string;
+  }): MaybePromise<LeakIncident | undefined>;
+  createIncidentEvidence(input: {
+    createdAt: string;
+    incidentId: string;
+    meterId: string;
+    observedUsage: number;
+    organizationId: string;
+    policyId: string;
+    readingIds: string[];
+    thresholdUsage: number;
+    windowEndedAt: string;
+    windowStartedAt: string;
+  }): MaybePromise<IncidentEvidence>;
+  listIncidentEvidence(input: {
+    incidentId: string;
+    organizationId: string;
+  }): MaybePromise<IncidentEvidence[]>;
   findLeakIncidentById(
     organizationId: string,
     incidentId: string,

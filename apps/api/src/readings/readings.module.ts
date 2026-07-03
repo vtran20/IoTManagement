@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { IncidentsModule } from "../incidents/incidents.module";
 import { MeterHealthService } from "../meters/meter-health.service";
 import { PersistenceModule } from "../persistence/persistence.module";
 import { ReadingValidationService } from "./reading-validation.service";
@@ -9,7 +10,7 @@ import { ReadingsService } from "./readings.service";
 @Module({
   controllers: [ReadingsController],
   exports: [ReadingsService],
-  imports: [AuthModule, PersistenceModule],
+  imports: [AuthModule, IncidentsModule, PersistenceModule],
   providers: [MeterHealthService, ReadingValidationService, ReadingsService],
 })
 export class ReadingsModule {}

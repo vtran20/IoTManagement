@@ -120,6 +120,8 @@ export interface LeakIncident {
   resolvedAt?: ISODateTime;
   resolutionCategory?: LeakIncidentResolutionCategory;
   resolutionNote?: string;
+  estimatedExcessWater?: number;
+  estimatedExcessCost?: number;
 }
 
 export interface IncidentActivity {
@@ -129,6 +131,33 @@ export interface IncidentActivity {
   actorUserId?: EntityId;
   type: IncidentActivityType;
   summary: string;
+  createdAt: ISODateTime;
+}
+
+export interface LeakDetectionPolicy {
+  id: EntityId;
+  organizationId: EntityId;
+  name: string;
+  scopeType: AlertScopeType;
+  scopeId?: EntityId;
+  minimumIntervalUsage: number;
+  minimumConsecutiveIntervals: number;
+  maximumIntervalGapMinutes: number;
+  severity: AlertSeverity;
+  enabled: boolean;
+}
+
+export interface IncidentEvidence {
+  id: EntityId;
+  organizationId: EntityId;
+  incidentId: EntityId;
+  policyId: EntityId;
+  meterId: EntityId;
+  readingIds: EntityId[];
+  windowStartedAt: ISODateTime;
+  windowEndedAt: ISODateTime;
+  observedUsage: number;
+  thresholdUsage: number;
   createdAt: ISODateTime;
 }
 
