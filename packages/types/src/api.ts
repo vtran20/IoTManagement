@@ -9,6 +9,8 @@ import type {
   Floor,
   ISODateTime,
   LeakIncident,
+  IncidentActivity,
+  IncidentEvidence,
   LeakIncidentResolutionCategory,
   LeakIncidentSource,
   LeakDetectionPolicy,
@@ -327,6 +329,16 @@ export interface ListLeakIncidentsQuery extends PageRequest {
 }
 
 export type LeakIncidentResponse = LeakIncident;
+
+export interface LeakIncidentDetailResponse extends LeakIncident {
+  activities: IncidentActivity[];
+  evidence: IncidentEvidence[];
+  workOrders: WorkOrder[];
+}
+
+export interface CreateIncidentNoteRequest {
+  note: string;
+}
 
 export interface CreateWorkOrderRequest {
   assignedMembershipId?: EntityId;

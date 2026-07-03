@@ -41,4 +41,29 @@ describe("createApiClient", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("requests typed water incident and repair work-order endpoints", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [] }),
+    });
+    const client = createApiClient({
+      baseUrl: "http://localhost:3001/",
+      fetcher,
+    });
+
+    await client.incidents.list({ source: "meter_anomaly" });
+    await client.workOrders.list({ overdue: true, priority: "critical" });
+
+    expect(fetcher).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:3001/api/v1/incidents?source=meter_anomaly",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:3001/api/v1/work-orders?overdue=true&priority=critical",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

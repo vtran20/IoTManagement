@@ -3,6 +3,8 @@ import { navigationIconFor } from "../lib/iconography";
 
 export const navItems = [
   ["Dashboard", "/dashboard"],
+  ["Incidents", "/incidents"],
+  ["Work Orders", "/work-orders"],
   ["Buildings", "/buildings"],
   ["Units", "/units"],
   ["Meters", "/meters"],

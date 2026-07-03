@@ -23,10 +23,12 @@ export const navigationIconNames = {
   Alerts: "BellRing",
   Buildings: "Building2",
   Dashboard: "LayoutDashboard",
+  Incidents: "Droplets",
   Meters: "Gauge",
   Reports: "FileBarChart",
   Settings: "Settings",
   Units: "DoorOpen",
+  "Work Orders": "ListOrdered",
 } as const;
 
 export const dashboardMetricIconNames = {

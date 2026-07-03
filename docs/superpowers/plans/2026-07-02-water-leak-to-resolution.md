@@ -34,8 +34,8 @@
 
 ### Phase 4: Water Operations Dashboard
 
-- [ ] Add incident list, detail, and work-order dashboard routes with loading, empty, error, stale-data, and viewer read-only states.
-- [ ] Link legacy leak alerts to incidents and show evidence, status actions, meter usage context, and repair history.
+- [x] Add incident list, detail, and work-order dashboard routes with loading, empty, error, stale-data, and viewer read-only states.
+- [x] Link legacy leak alerts to incidents and show evidence, status actions, meter usage context, and repair history.
 
 ### Phase 5: Notifications And Escalation
 

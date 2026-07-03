@@ -18,6 +18,13 @@ import type {
   HealthResponse,
   IngestReadingRequest,
   IngestReadingResponse,
+  CreateIncidentNoteRequest,
+  CreateManualLeakIncidentRequest,
+  CreateWorkOrderRequest,
+  LeakIncidentDetailResponse,
+  LeakIncidentResponse,
+  ListLeakIncidentsQuery,
+  ListWorkOrdersQuery,
   ListAlertsQuery,
   ListBuildingsQuery,
   ListMetersQuery,
@@ -32,6 +39,7 @@ import type {
   MeterResponse,
   PageResponse,
   ReadingResponse,
+  ResolveLeakIncidentRequest,
   ReportResponse,
   RunSimulationRequest,
   RunSimulationResponse,
@@ -41,6 +49,8 @@ import type {
   UpdateFloorRequest,
   UpdateMeterRequest,
   UpdateUnitRequest,
+  UpdateWorkOrderRequest,
+  WorkOrderResponse,
   AlertEventResponse,
   AlertRuleResponse,
   FloorResponse,
@@ -117,6 +127,36 @@ export function createEndpoints(client: ApiClient) {
         client.patch<FloorResponse>(`/floors/${floorId}`, { body }),
     },
     health: () => client.get<HealthResponse>("/health"),
+    incidents: {
+      acknowledge: (incidentId: string) =>
+        client.post<LeakIncidentResponse>(
+          `/incidents/${incidentId}/acknowledge`,
+        ),
+      addNote: (incidentId: string, body: CreateIncidentNoteRequest) =>
+        client.post(`/incidents/${incidentId}/notes`, { body }),
+      contain: (incidentId: string) =>
+        client.post<LeakIncidentResponse>(`/incidents/${incidentId}/contain`),
+      createManual: (body: CreateManualLeakIncidentRequest) =>
+        client.post<LeakIncidentResponse>("/incidents/manual", { body }),
+      createWorkOrder: (incidentId: string, body: CreateWorkOrderRequest) =>
+        client.post<WorkOrderResponse>(`/incidents/${incidentId}/work-orders`, {
+          body,
+        }),
+      get: (incidentId: string) =>
+        client.get<LeakIncidentDetailResponse>(`/incidents/${incidentId}`),
+      investigate: (incidentId: string) =>
+        client.post<LeakIncidentResponse>(
+          `/incidents/${incidentId}/investigate`,
+        ),
+      list: (query?: ListLeakIncidentsQuery) =>
+        client.get<PageResponse<LeakIncidentResponse>>("/incidents", { query }),
+      monitor: (incidentId: string) =>
+        client.post<LeakIncidentResponse>(`/incidents/${incidentId}/monitor`),
+      resolve: (incidentId: string, body: ResolveLeakIncidentRequest) =>
+        client.post<LeakIncidentResponse>(`/incidents/${incidentId}/resolve`, {
+          body,
+        }),
+    },
     meters: {
       create: (body: CreateMeterRequest) =>
         client.post<MeterResponse>("/meters", { body }),
@@ -162,6 +202,16 @@ export function createEndpoints(client: ApiClient) {
         client.get<PageResponse<UnitResponse>>("/units", { query }),
       update: (unitId: string, body: UpdateUnitRequest) =>
         client.patch<UnitResponse>(`/units/${unitId}`, { body }),
+    },
+    workOrders: {
+      get: (workOrderId: string) =>
+        client.get<WorkOrderResponse>(`/work-orders/${workOrderId}`),
+      list: (query?: ListWorkOrdersQuery) =>
+        client.get<PageResponse<WorkOrderResponse>>("/work-orders", { query }),
+      update: (workOrderId: string, body: UpdateWorkOrderRequest) =>
+        client.patch<WorkOrderResponse>(`/work-orders/${workOrderId}`, {
+          body,
+        }),
     },
   };
 }

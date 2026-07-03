@@ -690,6 +690,45 @@ kbd {
   margin: 0;
 }
 
+.page-header p a,
+.table-link,
+.back-link {
+  color: #27272a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.table-link {
+  font-weight: 600;
+}
+
+.back-link {
+  display: inline-block;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.stale-note {
+  color: #a16207;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
+.severity-critical {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.severity-warning {
+  border-color: #fde68a;
+  color: #a16207;
+}
+
+.severity-info {
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
 .data-panel {
   overflow-x: auto;
   padding: 16px;
@@ -970,6 +1009,84 @@ td span {
   margin: 0 0 12px;
 }
 
+.water-detail-grid {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.incident-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.detail-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.detail-list div,
+.evidence-row,
+.incident-timeline li {
+  border-bottom: 1px solid #eeeeef;
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+}
+
+.detail-list div:last-child,
+.incident-timeline li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detail-list dt,
+.detail-list dd,
+.evidence-row span,
+.incident-timeline span {
+  color: #71717a;
+  font-size: 13px;
+  margin: 0;
+}
+
+.evidence-row {
+  margin-top: 12px;
+}
+
+.incident-timeline {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.work-order-form {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(170px, 1fr) minmax(200px, 2fr) 140px auto;
+}
+
+.completion-action {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 280px;
+}
+
+.completion-action input {
+  background: #ffffff;
+  border: 1px solid #dedee3;
+  border-radius: 8px;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
 @media (max-width: 1100px) {
   .admin-shell {
     grid-template-columns: 1fr;
@@ -1000,6 +1117,14 @@ td span {
   .small-card,
   .table-card {
     grid-column: 1 / -1;
+  }
+
+  .water-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .work-order-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1063,5 +1188,20 @@ td span {
   .portfolio-detail-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .incident-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .work-order-form {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-action {
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 180px;
   }
 }

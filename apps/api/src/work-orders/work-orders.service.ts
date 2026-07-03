@@ -4,7 +4,6 @@ import type {
   WorkOrder,
   WorkOrderResponse,
 } from "@iot-management/types";
-import { workOrderPriorities, workOrderStatuses } from "@iot-management/types";
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
@@ -15,6 +14,20 @@ import {
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
 import { UpdateWorkOrderDto } from "./dto/update-work-order.dto";
 import { getWorkOrderTransition } from "./work-order-lifecycle";
+
+const workOrderPriorities: WorkOrder["priority"][] = [
+  "low",
+  "medium",
+  "high",
+  "critical",
+];
+const workOrderStatuses: WorkOrder["status"][] = [
+  "open",
+  "assigned",
+  "in_progress",
+  "completed",
+  "cancelled",
+];
 
 @Injectable()
 export class WorkOrdersService {
