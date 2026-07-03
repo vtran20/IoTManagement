@@ -7,13 +7,17 @@ import type {
   Floor,
   IncidentActivity,
   IncidentEvidence,
+  IncidentCorrelationSettings,
   IncidentNotification,
   IncidentResponderSettings,
+  IncidentSensorEvidence,
   LeakIncident,
   LeakDetectionPolicy,
   Membership,
   Meter,
   MeterReading,
+  MoistureSensor,
+  MoistureSensorEvent,
   ReadingKind,
   ReadingQuality,
   ReadingUnit,
@@ -399,6 +403,57 @@ export interface PersistenceService {
     incidentId: string;
     organizationId: string;
   }): MaybePromise<IncidentEvidence[]>;
+  createMoistureSensor(
+    input: Omit<MoistureSensor, "id">,
+  ): MaybePromise<MoistureSensor>;
+  listMoistureSensors(input: {
+    buildingId?: string;
+    organizationId: string;
+  }): MaybePromise<MoistureSensor[]>;
+  findMoistureSensorById(
+    organizationId: string,
+    sensorId: string,
+  ): MaybePromise<MoistureSensor | undefined>;
+  findMoistureSensorByExternalId(
+    organizationId: string,
+    externalId: string,
+  ): MaybePromise<MoistureSensor | undefined>;
+  updateMoistureSensor(
+    organizationId: string,
+    sensorId: string,
+    input: Partial<Pick<MoistureSensor, "name" | "status" | "updatedAt">>,
+  ): MaybePromise<MoistureSensor | undefined>;
+  createMoistureSensorEvent(
+    input: Omit<MoistureSensorEvent, "id">,
+  ): MaybePromise<{
+    created: boolean;
+    event: MoistureSensorEvent;
+  }>;
+  listMoistureSensorEvents(input: {
+    organizationId: string;
+    sensorId: string;
+  }): MaybePromise<MoistureSensorEvent[]>;
+  createIncidentSensorEvidence(input: {
+    createdAt: string;
+    incidentId: string;
+    organizationId: string;
+    sensorEventId: string;
+    sensorId: string;
+  }): MaybePromise<IncidentSensorEvidence>;
+  listIncidentSensorEvidence(input: {
+    incidentId: string;
+    organizationId: string;
+  }): MaybePromise<IncidentSensorEvidence[]>;
+  findIncidentSensorEvidenceByEvent(
+    organizationId: string,
+    sensorEventId: string,
+  ): MaybePromise<IncidentSensorEvidence | undefined>;
+  getIncidentCorrelationSettings(
+    organizationId: string,
+  ): MaybePromise<IncidentCorrelationSettings>;
+  upsertIncidentCorrelationSettings(
+    input: IncidentCorrelationSettings,
+  ): MaybePromise<IncidentCorrelationSettings>;
   findLeakIncidentById(
     organizationId: string,
     incidentId: string,

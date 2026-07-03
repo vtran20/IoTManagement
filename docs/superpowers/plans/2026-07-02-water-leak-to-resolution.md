@@ -44,8 +44,8 @@
 
 ### Phase 6: Moisture Sensors And Correlation
 
-- [ ] Add a simulated moisture-sensor registry and immutable normalized sensor events.
-- [ ] Correlate sensor and meter evidence into a single incident when they share a resource context inside a configurable time window.
+- [x] Add a simulated moisture-sensor registry and immutable normalized sensor events.
+- [x] Correlate sensor and meter evidence into a single incident when they share a resource context inside a configurable time window.
 
 ### Phase 7: Analytics And Reporting
 

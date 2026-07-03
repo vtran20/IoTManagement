@@ -4,6 +4,7 @@ import type {
   CreateBuildingRequest,
   CreateFloorRequest,
   CreateMeterRequest,
+  CreateMoistureSensorRequest,
   CreateReportRequest,
   CreateUnitRequest,
   DeviceHealthResponse,
@@ -18,6 +19,7 @@ import type {
   HealthResponse,
   IngestReadingRequest,
   IngestReadingResponse,
+  IngestMoistureSensorEventRequest,
   IncidentNotificationResponse,
   IncidentResponderSettingsResponse,
   CreateIncidentNoteRequest,
@@ -39,6 +41,8 @@ import type {
   LoginRequest,
   LoginResponse,
   MeterResponse,
+  MoistureSensorIngestResponse,
+  MoistureSensorResponse,
   PageResponse,
   ReadingResponse,
   ResolveLeakIncidentRequest,
@@ -50,6 +54,9 @@ import type {
   UpdateBuildingRequest,
   UpdateFloorRequest,
   UpdateMeterRequest,
+  UpdateMoistureSensorRequest,
+  UpdateIncidentCorrelationSettingsRequest,
+  IncidentCorrelationSettingsResponse,
   UpdateIncidentResponderSettingsRequest,
   UpdateUnitRequest,
   UpdateWorkOrderRequest,
@@ -171,6 +178,17 @@ export function createEndpoints(client: ApiClient) {
           { body },
         ),
     },
+    incidentCorrelationSettings: {
+      get: () =>
+        client.get<IncidentCorrelationSettingsResponse>(
+          "/incident-correlation-settings",
+        ),
+      update: (body: UpdateIncidentCorrelationSettingsRequest) =>
+        client.patch<IncidentCorrelationSettingsResponse>(
+          "/incident-correlation-settings",
+          { body },
+        ),
+    },
     meters: {
       create: (body: CreateMeterRequest) =>
         client.post<MeterResponse>("/meters", { body }),
@@ -186,6 +204,25 @@ export function createEndpoints(client: ApiClient) {
         ),
       update: (meterId: string, body: UpdateMeterRequest) =>
         client.patch<MeterResponse>(`/meters/${meterId}`, { body }),
+    },
+    moistureSensors: {
+      create: (body: CreateMoistureSensorRequest) =>
+        client.post<MoistureSensorResponse>("/moisture-sensors", { body }),
+      get: (sensorId: string) =>
+        client.get<MoistureSensorResponse>(`/moisture-sensors/${sensorId}`),
+      ingest: (sensorId: string, body: IngestMoistureSensorEventRequest) =>
+        client.post<MoistureSensorIngestResponse>(
+          `/moisture-sensors/${sensorId}/events`,
+          { body },
+        ),
+      list: (buildingId?: string) =>
+        client.get<{ items: MoistureSensorResponse[] }>("/moisture-sensors", {
+          query: buildingId ? { buildingId } : undefined,
+        }),
+      update: (sensorId: string, body: UpdateMoistureSensorRequest) =>
+        client.patch<MoistureSensorResponse>(`/moisture-sensors/${sensorId}`, {
+          body,
+        }),
     },
     notifications: {
       list: () =>

@@ -11,6 +11,8 @@ import type {
   LeakIncident,
   IncidentActivity,
   IncidentEvidence,
+  IncidentSensorEvidence,
+  IncidentCorrelationSettings,
   IncidentNotification,
   IncidentResponderSettings,
   LeakIncidentResolutionCategory,
@@ -20,6 +22,9 @@ import type {
   MeterReading,
   MeterSource,
   MeterStatus,
+  MoistureSensor,
+  MoistureSensorEvent,
+  MoistureSensorStatus,
   Membership,
   Organization,
   ReadingKind,
@@ -335,7 +340,41 @@ export type LeakIncidentResponse = LeakIncident;
 export interface LeakIncidentDetailResponse extends LeakIncident {
   activities: IncidentActivity[];
   evidence: IncidentEvidence[];
+  sensorEvidence: IncidentSensorEvidence[];
   workOrders: WorkOrder[];
+}
+
+export interface CreateMoistureSensorRequest {
+  buildingId: EntityId;
+  unitId?: EntityId;
+  externalId: string;
+  name: string;
+}
+
+export interface UpdateMoistureSensorRequest {
+  name?: string;
+  status?: MoistureSensorStatus;
+}
+
+export interface IngestMoistureSensorEventRequest {
+  state: "dry" | "wet";
+  measuredAt: ISODateTime;
+}
+
+export type MoistureSensorResponse = MoistureSensor;
+export type MoistureSensorEventResponse = MoistureSensorEvent;
+
+export interface MoistureSensorIngestResponse {
+  event: MoistureSensorEvent;
+  incident?: LeakIncident;
+  correlated: boolean;
+  duplicate: boolean;
+}
+
+export type IncidentCorrelationSettingsResponse = IncidentCorrelationSettings;
+
+export interface UpdateIncidentCorrelationSettingsRequest {
+  moistureCorrelationWindowMinutes?: number;
 }
 
 export interface CreateIncidentNoteRequest {

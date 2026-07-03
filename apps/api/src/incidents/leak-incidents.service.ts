@@ -182,21 +182,26 @@ export class LeakIncidentsService {
     if (!incident) {
       throw tenantResourceNotFound("Leak incident");
     }
-    const [activities, evidence, workOrders] = await Promise.all([
-      this.persistence.listIncidentActivities({
-        incidentId,
-        organizationId: context.organization.id,
-      }),
-      this.persistence.listIncidentEvidence({
-        incidentId,
-        organizationId: context.organization.id,
-      }),
-      this.persistence.listWorkOrders({
-        incidentId,
-        organizationId: context.organization.id,
-      }),
-    ]);
-    return { ...incident, activities, evidence, workOrders };
+    const [activities, evidence, sensorEvidence, workOrders] =
+      await Promise.all([
+        this.persistence.listIncidentActivities({
+          incidentId,
+          organizationId: context.organization.id,
+        }),
+        this.persistence.listIncidentEvidence({
+          incidentId,
+          organizationId: context.organization.id,
+        }),
+        this.persistence.listIncidentSensorEvidence({
+          incidentId,
+          organizationId: context.organization.id,
+        }),
+        this.persistence.listWorkOrders({
+          incidentId,
+          organizationId: context.organization.id,
+        }),
+      ]);
+    return { ...incident, activities, evidence, sensorEvidence, workOrders };
   }
 
   private async transition(

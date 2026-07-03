@@ -11,6 +11,8 @@ export interface DatabaseSchema {
   incident_evidence: IncidentEvidenceRow;
   incident_notifications: IncidentNotificationRow;
   incident_responder_settings: IncidentResponderSettingsRow;
+  incident_correlation_settings: IncidentCorrelationSettingsRow;
+  incident_sensor_evidence: IncidentSensorEvidenceRow;
   buildings: BuildingRow;
   floors: FloorRow;
   invitations: InvitationRow;
@@ -18,6 +20,8 @@ export interface DatabaseSchema {
   leak_detection_policies: LeakDetectionPolicyRow;
   memberships: MembershipRow;
   meter_readings: MeterReadingRow;
+  moisture_sensor_events: MoistureSensorEventRow;
+  moisture_sensors: MoistureSensorRow;
   meters: MeterRow;
   organizations: OrganizationRow;
   organization_utility_rates: OrganizationUtilityRatesRow;
@@ -96,6 +100,43 @@ export interface IncidentNotificationRow {
   email_outbox_id: string | null;
   created_at: Timestamp;
   read_at: Timestamp | null;
+}
+
+export interface IncidentCorrelationSettingsRow {
+  organization_id: string;
+  moisture_correlation_window_minutes: number;
+  updated_at: Timestamp;
+}
+
+export interface IncidentSensorEvidenceRow {
+  id: string;
+  organization_id: string;
+  incident_id: string;
+  sensor_id: string;
+  sensor_event_id: string;
+  created_at: Timestamp;
+}
+
+export interface MoistureSensorRow {
+  id: string;
+  organization_id: string;
+  building_id: string;
+  unit_id: string | null;
+  external_id: string;
+  name: string;
+  source: "simulated";
+  status: "online" | "offline" | "disabled";
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface MoistureSensorEventRow {
+  id: string;
+  organization_id: string;
+  sensor_id: string;
+  state: "dry" | "wet";
+  measured_at: Timestamp;
+  received_at: Timestamp;
 }
 
 export interface MembershipRow {

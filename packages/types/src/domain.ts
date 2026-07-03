@@ -203,6 +203,56 @@ export interface IncidentEvidence {
   createdAt: ISODateTime;
 }
 
+export const moistureSensorSources = ["simulated"] as const;
+export type MoistureSensorSource = (typeof moistureSensorSources)[number];
+
+export const moistureSensorStatuses = [
+  "online",
+  "offline",
+  "disabled",
+] as const;
+export type MoistureSensorStatus = (typeof moistureSensorStatuses)[number];
+
+export const moistureStates = ["dry", "wet"] as const;
+export type MoistureState = (typeof moistureStates)[number];
+
+export interface MoistureSensor {
+  id: EntityId;
+  organizationId: EntityId;
+  buildingId: EntityId;
+  unitId?: EntityId;
+  externalId: string;
+  name: string;
+  source: MoistureSensorSource;
+  status: MoistureSensorStatus;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export interface MoistureSensorEvent {
+  id: EntityId;
+  organizationId: EntityId;
+  sensorId: EntityId;
+  state: MoistureState;
+  measuredAt: ISODateTime;
+  receivedAt: ISODateTime;
+}
+
+export interface IncidentSensorEvidence {
+  id: EntityId;
+  organizationId: EntityId;
+  incidentId: EntityId;
+  sensorId: EntityId;
+  sensorEventId: EntityId;
+  createdAt: ISODateTime;
+}
+
+export interface IncidentCorrelationSettings {
+  organizationId: EntityId;
+  moistureCorrelationWindowMinutes: number;
+  updatedAt: ISODateTime;
+}
+
 export const incidentNotificationChannels = ["in_app", "email"] as const;
 export type IncidentNotificationChannel =
   (typeof incidentNotificationChannels)[number];

@@ -5,13 +5,17 @@ import type {
   Floor,
   IncidentActivity,
   IncidentEvidence,
+  IncidentCorrelationSettings,
   IncidentNotification,
   IncidentResponderSettings,
+  IncidentSensorEvidence,
   LeakIncident,
   LeakDetectionPolicy,
   Membership,
   Meter,
   MeterReading,
+  MoistureSensor,
+  MoistureSensorEvent,
   Organization,
   Unit,
   UsageAggregate,
@@ -33,13 +37,17 @@ import type {
   InvitationRow,
   IncidentActivityRow,
   IncidentEvidenceRow,
+  IncidentCorrelationSettingsRow,
   IncidentNotificationRow,
   IncidentResponderSettingsRow,
+  IncidentSensorEvidenceRow,
   LeakIncidentRow,
   LeakDetectionPolicyRow,
   MembershipRow,
   MeterReadingRow,
   MeterRow,
+  MoistureSensorEventRow,
+  MoistureSensorRow,
   OrganizationUtilityRatesRow,
   OrganizationRow,
   PasswordResetTokenRow,
@@ -1638,6 +1646,240 @@ export class PostgresPersistenceService
     return rows.map(mapIncidentEvidence);
   }
 
+  async createMoistureSensor(
+    input: Omit<MoistureSensor, "id">,
+  ): Promise<MoistureSensor> {
+    const row = await this.database.db
+      .insertInto("moisture_sensors")
+      .values({
+        id: await this.nextId(
+          "moistureSensor",
+          input.externalId,
+          "moisture_sensors",
+        ),
+        organization_id: input.organizationId,
+        building_id: input.buildingId,
+        unit_id: input.unitId ?? null,
+        external_id: input.externalId,
+        name: input.name,
+        source: input.source,
+        status: input.status,
+        created_at: input.createdAt,
+        updated_at: input.updatedAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapMoistureSensor(row);
+  }
+
+  async listMoistureSensors(input: {
+    buildingId?: string;
+    organizationId: string;
+  }): Promise<MoistureSensor[]> {
+    let query = this.database.db
+      .selectFrom("moisture_sensors")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId);
+    if (input.buildingId)
+      query = query.where("building_id", "=", input.buildingId);
+    return (await query.orderBy("name").execute()).map(mapMoistureSensor);
+  }
+
+  async findMoistureSensorById(
+    organizationId: string,
+    sensorId: string,
+  ): Promise<MoistureSensor | undefined> {
+    const row = await this.database.db
+      .selectFrom("moisture_sensors")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", sensorId)
+      .executeTakeFirst();
+    return row ? mapMoistureSensor(row) : undefined;
+  }
+
+  async findMoistureSensorByExternalId(
+    organizationId: string,
+    externalId: string,
+  ): Promise<MoistureSensor | undefined> {
+    const row = await this.database.db
+      .selectFrom("moisture_sensors")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("external_id", "=", externalId)
+      .executeTakeFirst();
+    return row ? mapMoistureSensor(row) : undefined;
+  }
+
+  async updateMoistureSensor(
+    organizationId: string,
+    sensorId: string,
+    input: Partial<Pick<MoistureSensor, "name" | "status" | "updatedAt">>,
+  ): Promise<MoistureSensor | undefined> {
+    const row = await this.database.db
+      .updateTable("moisture_sensors")
+      .set(
+        defined({
+          name: input.name,
+          status: input.status,
+          updated_at: input.updatedAt,
+        }),
+      )
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", sensorId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapMoistureSensor(row) : undefined;
+  }
+
+  async createMoistureSensorEvent(
+    input: Omit<MoistureSensorEvent, "id">,
+  ): Promise<{ created: boolean; event: MoistureSensorEvent }> {
+    const row = await this.database.db
+      .insertInto("moisture_sensor_events")
+      .values({
+        id: await this.nextId(
+          "moistureSensorEvent",
+          `${input.sensorId}-${input.measuredAt}`,
+          "moisture_sensor_events",
+        ),
+        organization_id: input.organizationId,
+        sensor_id: input.sensorId,
+        state: input.state,
+        measured_at: input.measuredAt,
+        received_at: input.receivedAt,
+      })
+      .onConflict((conflict) =>
+        conflict.columns(["sensor_id", "measured_at"]).doNothing(),
+      )
+      .returningAll()
+      .executeTakeFirst();
+    if (row) return { created: true, event: mapMoistureSensorEvent(row) };
+    const existing = await this.database.db
+      .selectFrom("moisture_sensor_events")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("sensor_id", "=", input.sensorId)
+      .where("measured_at", "=", new Date(input.measuredAt))
+      .executeTakeFirstOrThrow();
+    return { created: false, event: mapMoistureSensorEvent(existing) };
+  }
+
+  async listMoistureSensorEvents(input: {
+    organizationId: string;
+    sensorId: string;
+  }): Promise<MoistureSensorEvent[]> {
+    const rows = await this.database.db
+      .selectFrom("moisture_sensor_events")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("sensor_id", "=", input.sensorId)
+      .orderBy("measured_at", "desc")
+      .execute();
+    return rows.map(mapMoistureSensorEvent);
+  }
+
+  async createIncidentSensorEvidence(input: {
+    createdAt: string;
+    incidentId: string;
+    organizationId: string;
+    sensorEventId: string;
+    sensorId: string;
+  }): Promise<IncidentSensorEvidence> {
+    const row = await this.database.db
+      .insertInto("incident_sensor_evidence")
+      .values({
+        id: await this.nextId(
+          "incidentSensorEvidence",
+          input.sensorEventId,
+          "incident_sensor_evidence",
+        ),
+        organization_id: input.organizationId,
+        incident_id: input.incidentId,
+        sensor_id: input.sensorId,
+        sensor_event_id: input.sensorEventId,
+        created_at: input.createdAt,
+      })
+      .onConflict((conflict) => conflict.column("sensor_event_id").doNothing())
+      .returningAll()
+      .executeTakeFirst();
+    if (row) return mapIncidentSensorEvidence(row);
+    const existing = await this.database.db
+      .selectFrom("incident_sensor_evidence")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("sensor_event_id", "=", input.sensorEventId)
+      .executeTakeFirstOrThrow();
+    return mapIncidentSensorEvidence(existing);
+  }
+
+  async listIncidentSensorEvidence(input: {
+    incidentId: string;
+    organizationId: string;
+  }): Promise<IncidentSensorEvidence[]> {
+    const rows = await this.database.db
+      .selectFrom("incident_sensor_evidence")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("incident_id", "=", input.incidentId)
+      .orderBy("created_at")
+      .execute();
+    return rows.map(mapIncidentSensorEvidence);
+  }
+
+  async findIncidentSensorEvidenceByEvent(
+    organizationId: string,
+    sensorEventId: string,
+  ): Promise<IncidentSensorEvidence | undefined> {
+    const row = await this.database.db
+      .selectFrom("incident_sensor_evidence")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("sensor_event_id", "=", sensorEventId)
+      .executeTakeFirst();
+    return row ? mapIncidentSensorEvidence(row) : undefined;
+  }
+
+  async getIncidentCorrelationSettings(
+    organizationId: string,
+  ): Promise<IncidentCorrelationSettings> {
+    const row = await this.database.db
+      .selectFrom("incident_correlation_settings")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .executeTakeFirst();
+    return row
+      ? mapIncidentCorrelationSettings(row)
+      : {
+          organizationId,
+          moistureCorrelationWindowMinutes: 30,
+          updatedAt: "2026-06-29T00:00:00.000Z",
+        };
+  }
+
+  async upsertIncidentCorrelationSettings(
+    input: IncidentCorrelationSettings,
+  ): Promise<IncidentCorrelationSettings> {
+    const row = await this.database.db
+      .insertInto("incident_correlation_settings")
+      .values({
+        organization_id: input.organizationId,
+        moisture_correlation_window_minutes:
+          input.moistureCorrelationWindowMinutes,
+        updated_at: input.updatedAt,
+      })
+      .onConflict((conflict) =>
+        conflict.column("organization_id").doUpdateSet({
+          moisture_correlation_window_minutes:
+            input.moistureCorrelationWindowMinutes,
+          updated_at: input.updatedAt,
+        }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapIncidentCorrelationSettings(row);
+  }
+
   async listLeakIncidents(input: {
     buildingId?: string;
     organizationId: string;
@@ -2537,6 +2779,57 @@ function mapIncidentEvidence(
     observedUsage: Number(row.observed_usage),
     thresholdUsage: Number(row.threshold_usage),
     createdAt: iso(row.created_at),
+  };
+}
+
+function mapMoistureSensor(row: Selectable<MoistureSensorRow>): MoistureSensor {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    buildingId: row.building_id,
+    unitId: row.unit_id ?? undefined,
+    externalId: row.external_id,
+    name: row.name,
+    source: row.source,
+    status: row.status,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  }) as MoistureSensor;
+}
+
+function mapMoistureSensorEvent(
+  row: Selectable<MoistureSensorEventRow>,
+): MoistureSensorEvent {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    sensorId: row.sensor_id,
+    state: row.state,
+    measuredAt: iso(row.measured_at),
+    receivedAt: iso(row.received_at),
+  };
+}
+
+function mapIncidentSensorEvidence(
+  row: Selectable<IncidentSensorEvidenceRow>,
+): IncidentSensorEvidence {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    incidentId: row.incident_id,
+    sensorId: row.sensor_id,
+    sensorEventId: row.sensor_event_id,
+    createdAt: iso(row.created_at),
+  };
+}
+
+function mapIncidentCorrelationSettings(
+  row: Selectable<IncidentCorrelationSettingsRow>,
+): IncidentCorrelationSettings {
+  return {
+    organizationId: row.organization_id,
+    moistureCorrelationWindowMinutes: row.moisture_correlation_window_minutes,
+    updatedAt: iso(row.updated_at),
   };
 }
 

@@ -7,13 +7,17 @@ import type {
   Floor,
   IncidentActivity,
   IncidentEvidence,
+  IncidentCorrelationSettings,
   IncidentNotification,
   IncidentResponderSettings,
+  IncidentSensorEvidence,
   LeakIncident,
   LeakDetectionPolicy,
   Membership,
   Meter,
   MeterReading,
+  MoistureSensor,
+  MoistureSensorEvent,
   Organization,
   ReadingKind,
   ReadingQuality,
@@ -58,10 +62,13 @@ export class InMemoryPersistenceService implements PersistenceService {
     incidentActivity: 1,
     incidentEvidence: 1,
     incidentNotification: 1,
+    incidentSensorEvidence: 1,
     leakIncident: 1,
     leakDetectionPolicy: 1,
     workOrder: 1,
     meter: 1,
+    moistureSensor: 1,
+    moistureSensorEvent: 1,
     passwordResetToken: 1,
     reading: 1,
     session: 1,
@@ -182,6 +189,13 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly invitations: StoredInvitation[] = [];
   private readonly incidentActivities: IncidentActivity[] = [];
   private readonly incidentEvidence: IncidentEvidence[] = [];
+  private readonly incidentSensorEvidence: IncidentSensorEvidence[] = [];
+  private readonly moistureSensorEvents: MoistureSensorEvent[] = [];
+  private readonly moistureSensors: MoistureSensor[] = [];
+  private readonly incidentCorrelationSettings = new Map<
+    string,
+    IncidentCorrelationSettings
+  >();
   private readonly incidentNotifications: IncidentNotification[] = [];
   private readonly incidentResponderSettings = new Map<
     string,
@@ -1101,6 +1115,149 @@ export class InMemoryPersistenceService implements PersistenceService {
           evidence.incidentId === input.incidentId,
       )
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  createMoistureSensor(input: Omit<MoistureSensor, "id">): MoistureSensor {
+    const sensor: MoistureSensor = {
+      ...input,
+      id: this.nextId("moistureSensor", input.externalId),
+    };
+    this.moistureSensors.push(sensor);
+    return sensor;
+  }
+
+  listMoistureSensors(input: {
+    buildingId?: string;
+    organizationId: string;
+  }): MoistureSensor[] {
+    return this.moistureSensors.filter(
+      (sensor) =>
+        sensor.organizationId === input.organizationId &&
+        (!input.buildingId || sensor.buildingId === input.buildingId),
+    );
+  }
+
+  findMoistureSensorById(
+    organizationId: string,
+    sensorId: string,
+  ): MoistureSensor | undefined {
+    return this.moistureSensors.find(
+      (sensor) =>
+        sensor.organizationId === organizationId && sensor.id === sensorId,
+    );
+  }
+
+  findMoistureSensorByExternalId(
+    organizationId: string,
+    externalId: string,
+  ): MoistureSensor | undefined {
+    return this.moistureSensors.find(
+      (sensor) =>
+        sensor.organizationId === organizationId &&
+        sensor.externalId === externalId,
+    );
+  }
+
+  updateMoistureSensor(
+    organizationId: string,
+    sensorId: string,
+    input: Partial<Pick<MoistureSensor, "name" | "status" | "updatedAt">>,
+  ): MoistureSensor | undefined {
+    const sensor = this.findMoistureSensorById(organizationId, sensorId);
+    if (sensor) Object.assign(sensor, input);
+    return sensor;
+  }
+
+  createMoistureSensorEvent(input: Omit<MoistureSensorEvent, "id">): {
+    created: boolean;
+    event: MoistureSensorEvent;
+  } {
+    const existing = this.moistureSensorEvents.find(
+      (event) =>
+        event.sensorId === input.sensorId &&
+        event.measuredAt === input.measuredAt,
+    );
+    if (existing) return { created: false, event: existing };
+    const event: MoistureSensorEvent = {
+      ...input,
+      id: this.nextId("moistureSensorEvent", input.sensorId),
+    };
+    this.moistureSensorEvents.push(event);
+    return { created: true, event };
+  }
+
+  listMoistureSensorEvents(input: {
+    organizationId: string;
+    sensorId: string;
+  }): MoistureSensorEvent[] {
+    return this.moistureSensorEvents
+      .filter(
+        (event) =>
+          event.organizationId === input.organizationId &&
+          event.sensorId === input.sensorId,
+      )
+      .sort((left, right) => right.measuredAt.localeCompare(left.measuredAt));
+  }
+
+  createIncidentSensorEvidence(input: {
+    createdAt: string;
+    incidentId: string;
+    organizationId: string;
+    sensorEventId: string;
+    sensorId: string;
+  }): IncidentSensorEvidence {
+    const existing = this.findIncidentSensorEvidenceByEvent(
+      input.organizationId,
+      input.sensorEventId,
+    );
+    if (existing) return existing;
+    const evidence: IncidentSensorEvidence = {
+      ...input,
+      id: this.nextId("incidentSensorEvidence", input.sensorEventId),
+    };
+    this.incidentSensorEvidence.push(evidence);
+    return evidence;
+  }
+
+  listIncidentSensorEvidence(input: {
+    incidentId: string;
+    organizationId: string;
+  }): IncidentSensorEvidence[] {
+    return this.incidentSensorEvidence.filter(
+      (evidence) =>
+        evidence.organizationId === input.organizationId &&
+        evidence.incidentId === input.incidentId,
+    );
+  }
+
+  findIncidentSensorEvidenceByEvent(
+    organizationId: string,
+    sensorEventId: string,
+  ): IncidentSensorEvidence | undefined {
+    return this.incidentSensorEvidence.find(
+      (evidence) =>
+        evidence.organizationId === organizationId &&
+        evidence.sensorEventId === sensorEventId,
+    );
+  }
+
+  getIncidentCorrelationSettings(
+    organizationId: string,
+  ): IncidentCorrelationSettings {
+    return (
+      this.incidentCorrelationSettings.get(organizationId) ?? {
+        organizationId,
+        moistureCorrelationWindowMinutes: 30,
+        updatedAt: "2026-06-29T00:00:00.000Z",
+      }
+    );
+  }
+
+  upsertIncidentCorrelationSettings(
+    input: IncidentCorrelationSettings,
+  ): IncidentCorrelationSettings {
+    this.incidentCorrelationSettings.set(input.organizationId, input);
+    return input;
   }
 
   listLeakIncidents(input: {

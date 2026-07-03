@@ -128,6 +128,46 @@ export class OpenApiController {
             tags: ["Water Protection"],
           },
         },
+        "/api/v1/moisture-sensors": {
+          get: {
+            summary: "List moisture sensors for the current organization",
+            tags: ["Water Protection"],
+          },
+          post: {
+            summary: "Register a simulated moisture sensor",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/moisture-sensors/{sensorId}": {
+          get: {
+            summary: "Get a moisture sensor",
+            tags: ["Water Protection"],
+          },
+          patch: {
+            summary: "Update a moisture sensor",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/moisture-sensors/{sensorId}/events": {
+          get: {
+            summary: "List immutable moisture sensor events",
+            tags: ["Water Protection"],
+          },
+          post: {
+            summary: "Ingest a normalized moisture sensor event",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incident-correlation-settings": {
+          get: {
+            summary: "Get moisture sensor correlation settings",
+            tags: ["Water Protection"],
+          },
+          patch: {
+            summary: "Update moisture sensor correlation settings",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/work-orders": {
           get: {
             summary: "List tenant-scoped leak repair work orders",

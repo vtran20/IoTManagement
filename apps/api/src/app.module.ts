@@ -22,6 +22,7 @@ import { InvitationsModule } from "./invitations/invitations.module";
 import { IncidentsModule } from "./incidents/incidents.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MetersModule } from "./meters/meters.module";
+import { MoistureSensorsModule } from "./moisture-sensors/moisture-sensors.module";
 import { OpenApiModule } from "./openapi/openapi.module";
 import { PersistenceModule } from "./persistence/persistence.module";
 import { PortfolioModule } from "./portfolio/portfolio.module";
@@ -42,6 +43,7 @@ import { WorkOrdersModule } from "./work-orders/work-orders.module";
     TenantsModule,
     PortfolioModule,
     MetersModule,
+    MoistureSensorsModule,
     ReadingsModule,
     SimulationsModule,
     AnalyticsModule,

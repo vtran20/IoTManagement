@@ -91,4 +91,25 @@ describe("createApiClient", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("requests typed moisture sensor ingestion", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+    const client = createApiClient({
+      baseUrl: "http://localhost:3001/",
+      fetcher,
+    });
+
+    await client.moistureSensors.ingest("sensor_1", {
+      measuredAt: "2026-07-03T12:00:00.000Z",
+      state: "wet",
+    });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "http://localhost:3001/api/v1/moisture-sensors/sensor_1/events",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });
