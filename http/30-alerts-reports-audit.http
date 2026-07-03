@@ -1,0 +1,70 @@
+### MUTATES DATA: create water high-usage alert rule
+POST {{baseUrl}}/alerts/rules
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "HTTP Client high water usage",
+  "utilityType": "water",
+  "scopeType": "building",
+  "scopeId": "{{testBuildingId}}",
+  "conditionType": "high_usage",
+  "threshold": 1,
+  "windowMinutes": 60,
+  "enabled": true
+}
+
+> {% client.global.set("testAlertRuleId", response.body.id); %}
+
+### List alert rules
+GET {{baseUrl}}/alerts/rules
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update alert rule
+PATCH {{baseUrl}}/alerts/rules/{{testAlertRuleId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "threshold": 1.5,
+  "enabled": true
+}
+
+### MUTATES DATA: evaluate alert rules
+POST {{baseUrl}}/alerts/evaluate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "now": "2026-07-04T01:00:00.000Z"
+}
+
+> {%
+  if (response.body.events && response.body.events.length > 0) {
+    client.global.set("testAlertId", response.body.events[0].id);
+  }
+%}
+
+### List alerts
+GET {{baseUrl}}/alerts?status=open
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: acknowledge first evaluated alert
+POST {{baseUrl}}/alerts/{{testAlertId}}/acknowledge
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: resolve first evaluated alert
+POST {{baseUrl}}/alerts/{{testAlertId}}/resolve
+Authorization: Bearer {{ownerToken}}
+
+### Monthly usage report
+GET {{baseUrl}}/reports/monthly-usage?month={{reportMonth}}&buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Monthly usage CSV export
+GET {{baseUrl}}/reports/monthly-usage/export?month={{reportMonth}}&buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Audit events
+GET {{baseUrl}}/audit/events?limit=50
+Authorization: Bearer {{ownerToken}}

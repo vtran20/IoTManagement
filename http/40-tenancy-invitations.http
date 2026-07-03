@@ -1,0 +1,70 @@
+### Current organization
+GET {{baseUrl}}/organizations/current
+Authorization: Bearer {{ownerToken}}
+
+> {% client.global.set("organizationId", response.body.id); %}
+
+### Get current organization by ID
+GET {{baseUrl}}/organizations/{{organizationId}}
+Authorization: Bearer {{ownerToken}}
+
+### List memberships
+GET {{baseUrl}}/memberships
+Authorization: Bearer {{ownerToken}}
+
+> {%
+  const manager = response.body.items.find((item) => item.role === "manager");
+  if (manager) client.global.set("managerMembershipId", manager.id);
+%}
+
+### MUTATES DATA: create a membership
+POST {{baseUrl}}/memberships
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "email": "http-client-member-{{$random.uuid}}@example.test",
+  "role": "viewer"
+}
+
+> {% client.global.set("testMembershipId", response.body.id); %}
+
+### MUTATES DATA: update membership role
+PATCH {{baseUrl}}/memberships/{{testMembershipId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "role": "manager"
+}
+
+### MUTATES DATA: disable membership
+POST {{baseUrl}}/memberships/{{testMembershipId}}/disable
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: reactivate membership
+POST {{baseUrl}}/memberships/{{testMembershipId}}/reactivate
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: create invitation
+POST {{baseUrl}}/invitations
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "email": "http-client-invite-{{$random.uuid}}@example.test",
+  "role": "viewer"
+}
+
+### Invitation preview using a token from the development outbox
+GET {{baseUrl}}/invitations/{{invitationToken}}
+
+### MUTATES DATA: accept invitation using a token from the development outbox
+POST {{baseUrl}}/invitations/accept
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "name": "HTTP Client Invitee",
+  "password": "{{newPassword}}"
+}

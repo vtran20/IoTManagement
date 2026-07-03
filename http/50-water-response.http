@@ -1,0 +1,147 @@
+### MUTATES DATA: create continuous-flow policy
+POST {{baseUrl}}/leak-detection-policies
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "HTTP Client continuous flow",
+  "scopeType": "meter",
+  "scopeId": "{{testMeterId}}",
+  "minimumIntervalUsage": 0.5,
+  "minimumConsecutiveIntervals": 3,
+  "maximumIntervalGapMinutes": 20,
+  "severity": "warning",
+  "enabled": true
+}
+
+### List leak-detection policies
+GET {{baseUrl}}/leak-detection-policies
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: create manual water incident
+POST {{baseUrl}}/incidents/manual
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "buildingId": "{{testBuildingId}}",
+  "unitId": "{{testUnitId}}",
+  "meterId": "{{testMeterId}}",
+  "severity": "warning",
+  "title": "HTTP Client water investigation",
+  "description": "Created by IntelliJ HTTP Client suite."
+}
+
+> {% client.global.set("testIncidentId", response.body.id); %}
+
+### List incidents
+GET {{baseUrl}}/incidents?buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Get incident detail
+GET {{baseUrl}}/incidents/{{testIncidentId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: add incident note
+POST {{baseUrl}}/incidents/{{testIncidentId}}/notes
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "note": "Reviewed through the IntelliJ HTTP Client."
+}
+
+### MUTATES DATA: acknowledge incident
+POST {{baseUrl}}/incidents/{{testIncidentId}}/acknowledge
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: start investigation
+POST {{baseUrl}}/incidents/{{testIncidentId}}/investigate
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: create repair work order
+POST {{baseUrl}}/incidents/{{testIncidentId}}/work-orders
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "title": "Inspect HTTP Client water issue",
+  "description": "Inspect the fixture meter and nearby plumbing.",
+  "priority": "high"
+}
+
+> {% client.global.set("testWorkOrderId", response.body.id); %}
+
+### List work orders
+GET {{baseUrl}}/work-orders?incidentId={{testIncidentId}}
+Authorization: Bearer {{ownerToken}}
+
+### Get work order
+GET {{baseUrl}}/work-orders/{{testWorkOrderId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: start work order
+PATCH {{baseUrl}}/work-orders/{{testWorkOrderId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "status": "in_progress"
+}
+
+### MUTATES DATA: complete work order
+PATCH {{baseUrl}}/work-orders/{{testWorkOrderId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "status": "completed",
+  "completionNote": "Fixture inspection completed."
+}
+
+### MUTATES DATA: contain incident
+POST {{baseUrl}}/incidents/{{testIncidentId}}/contain
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: monitor incident
+POST {{baseUrl}}/incidents/{{testIncidentId}}/monitor
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: resolve incident
+POST {{baseUrl}}/incidents/{{testIncidentId}}/resolve
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "resolutionCategory": "false_positive",
+  "resolutionNote": "HTTP Client workflow completed."
+}
+
+### List notifications
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{ownerToken}}
+
+> {%
+  if (response.body.items && response.body.items.length > 0) {
+    client.global.set("testNotificationId", response.body.items[0].id);
+  }
+%}
+
+### MUTATES DATA: mark notification read
+POST {{baseUrl}}/notifications/{{testNotificationId}}/read
+Authorization: Bearer {{ownerToken}}
+
+### Get responder settings
+GET {{baseUrl}}/incident-responder-settings
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update responder settings
+PATCH {{baseUrl}}/incident-responder-settings
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "emailEnabled": true,
+  "criticalAcknowledgementDeadlineMinutes": 15,
+  "warningAcknowledgementDeadlineMinutes": 60
+}

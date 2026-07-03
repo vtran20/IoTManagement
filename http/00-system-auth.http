@@ -1,0 +1,91 @@
+### Health
+GET {{baseUrl}}/health
+
+> {% client.test("health is ok", () => client.assert(response.status === 200)); %}
+
+### OpenAPI document
+GET {{baseUrl}}/openapi.json
+
+> {% client.test("openapi document loads", () => client.assert(response.status === 200)); %}
+
+### Owner login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}"
+}
+
+> {%
+  client.test("owner login succeeds", () => client.assert(response.status === 201));
+  client.global.set("ownerToken", response.body.accessToken);
+%}
+
+### Manager login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{managerEmail}}",
+  "password": "{{managerPassword}}"
+}
+
+> {% client.global.set("managerToken", response.body.accessToken); %}
+
+### Viewer login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{viewerEmail}}",
+  "password": "{{viewerPassword}}"
+}
+
+> {% client.global.set("viewerToken", response.body.accessToken); %}
+
+### South owner login for tenant-isolation checks
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{southOwnerEmail}}",
+  "password": "{{southOwnerPassword}}"
+}
+
+> {% client.global.set("southOwnerToken", response.body.accessToken); %}
+
+### Current owner session
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{ownerToken}}
+
+### CSRF token for cookie-authenticated requests
+GET {{baseUrl}}/auth/csrf
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: change owner password
+POST {{baseUrl}}/auth/change-password
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{ownerPassword}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### Request password reset email
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}"
+}
+
+### MUTATES DATA: reset password using a token from the development outbox
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}",
+  "newPassword": "{{newPassword}}"
+}

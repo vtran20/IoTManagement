@@ -1,0 +1,67 @@
+### MUTATES DATA: load deterministic demo data
+POST {{baseUrl}}/simulations/demo-seed
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: run a short simulated meter scenario
+POST {{baseUrl}}/simulations/run
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "scenario": "normal",
+  "intervals": 2,
+  "intervalMinutes": 15,
+  "meterExternalIds": ["{{testMeterExternalId}}"],
+  "startAt": "2026-07-04T00:00:00.000Z"
+}
+
+### MUTATES DATA: aggregate hourly usage
+POST {{baseUrl}}/analytics/aggregate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "periodType": "hour"
+}
+
+### Dashboard summary
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{ownerToken}}
+
+### Dashboard overview
+GET {{baseUrl}}/dashboard/overview?buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Dashboard trends
+GET {{baseUrl}}/dashboard/trends?buildingId={{testBuildingId}}&utilityType=water
+Authorization: Bearer {{ownerToken}}
+
+### Dashboard building breakdown
+GET {{baseUrl}}/dashboard/buildings?utilityType=water
+Authorization: Bearer {{ownerToken}}
+
+### Dashboard unit rankings
+GET {{baseUrl}}/dashboard/units?buildingId={{testBuildingId}}&utilityType=water
+Authorization: Bearer {{ownerToken}}
+
+### Dashboard device health
+GET {{baseUrl}}/dashboard/device-health
+Authorization: Bearer {{ownerToken}}
+
+### Dashboard alerts
+GET {{baseUrl}}/dashboard/alerts
+Authorization: Bearer {{ownerToken}}
+
+### Get utility rates
+GET {{baseUrl}}/settings/rates
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update utility rates
+PATCH {{baseUrl}}/settings/rates
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "waterPerGallon": 0.012,
+  "electricPerKwh": 0.18
+}

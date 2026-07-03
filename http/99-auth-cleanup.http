@@ -1,0 +1,5 @@
+### MUTATES DATA: logout owner (run last)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{ownerToken}}
+
+> {% client.test("owner logout succeeds", () => client.assert(response.status === 201)); %}

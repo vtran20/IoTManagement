@@ -1,0 +1,68 @@
+### MUTATES DATA: create simulated moisture sensor
+POST {{baseUrl}}/moisture-sensors
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "buildingId": "{{testBuildingId}}",
+  "unitId": "{{testUnitId}}",
+  "externalId": "http-client-moisture-{{$random.uuid}}",
+  "name": "HTTP Client unit 101 sensor"
+}
+
+> {% client.global.set("testSensorId", response.body.id); %}
+
+### List moisture sensors
+GET {{baseUrl}}/moisture-sensors?buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Get moisture sensor
+GET {{baseUrl}}/moisture-sensors/{{testSensorId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update moisture sensor
+PATCH {{baseUrl}}/moisture-sensors/{{testSensorId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "HTTP Client unit 101 moisture sensor",
+  "status": "online"
+}
+
+### MUTATES DATA: ingest dry sensor event
+POST {{baseUrl}}/moisture-sensors/{{testSensorId}}/events
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "state": "dry",
+  "measuredAt": "2026-07-05T12:00:00.000Z"
+}
+
+### MUTATES DATA: ingest wet sensor event
+POST {{baseUrl}}/moisture-sensors/{{testSensorId}}/events
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "state": "wet",
+  "measuredAt": "2026-07-05T12:15:00.000Z"
+}
+
+### List immutable sensor events
+GET {{baseUrl}}/moisture-sensors/{{testSensorId}}/events
+Authorization: Bearer {{ownerToken}}
+
+### Get correlation settings
+GET {{baseUrl}}/incident-correlation-settings
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update correlation window
+PATCH {{baseUrl}}/incident-correlation-settings
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "moistureCorrelationWindowMinutes": 30
+}

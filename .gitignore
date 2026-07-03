@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 .idea/
+http-client.private.env.json
 .next/
 .turbo/
 coverage/

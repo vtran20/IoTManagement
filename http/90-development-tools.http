@@ -1,0 +1,10 @@
+### Development email outbox
+GET {{baseUrl}}/dev/email-outbox
+
+### Viewer can list water incidents but cannot mutate them
+GET {{baseUrl}}/incidents
+Authorization: Bearer {{viewerToken}}
+
+### Tenant-isolation example: South owner cannot read North fixture building
+GET {{baseUrl}}/buildings/{{testBuildingId}}
+Authorization: Bearer {{southOwnerToken}}

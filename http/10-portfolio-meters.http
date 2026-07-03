@@ -1,0 +1,177 @@
+### MUTATES DATA: create fixture building
+POST {{baseUrl}}/buildings
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "HTTP Client Test Building",
+  "address": "100 Test Drive",
+  "timezone": "America/Detroit"
+}
+
+> {% client.global.set("testBuildingId", response.body.id); %}
+
+### List buildings
+GET {{baseUrl}}/buildings?search=HTTP%20Client
+Authorization: Bearer {{ownerToken}}
+
+### Get fixture building
+GET {{baseUrl}}/buildings/{{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update fixture building
+PATCH {{baseUrl}}/buildings/{{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "address": "101 Test Drive"
+}
+
+### MUTATES DATA: create floor
+POST {{baseUrl}}/floors
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "buildingId": "{{testBuildingId}}",
+  "name": "Floor 1",
+  "level": 1
+}
+
+> {% client.global.set("testFloorId", response.body.id); %}
+
+### List floors
+GET {{baseUrl}}/floors?buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Get floor
+GET {{baseUrl}}/floors/{{testFloorId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update floor
+PATCH {{baseUrl}}/floors/{{testFloorId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "First floor",
+  "level": 1
+}
+
+### MUTATES DATA: archive floor
+POST {{baseUrl}}/floors/{{testFloorId}}/archive
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: restore floor
+POST {{baseUrl}}/floors/{{testFloorId}}/restore
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: create unit
+POST {{baseUrl}}/units
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "buildingId": "{{testBuildingId}}",
+  "floorId": "{{testFloorId}}",
+  "name": "101",
+  "occupancyStatus": "vacant"
+}
+
+> {% client.global.set("testUnitId", response.body.id); %}
+
+### List units
+GET {{baseUrl}}/units?buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Get unit
+GET {{baseUrl}}/units/{{testUnitId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update unit
+PATCH {{baseUrl}}/units/{{testUnitId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "occupancyStatus": "occupied"
+}
+
+### MUTATES DATA: archive unit
+POST {{baseUrl}}/units/{{testUnitId}}/archive
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: restore unit
+POST {{baseUrl}}/units/{{testUnitId}}/restore
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: create water meter
+POST {{baseUrl}}/meters
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "buildingId": "{{testBuildingId}}",
+  "floorId": "{{testFloorId}}",
+  "unitId": "{{testUnitId}}",
+  "utilityType": "water",
+  "source": "simulated",
+  "externalId": "http-client-water-{{$random.uuid}}"
+}
+
+> {%
+  client.global.set("testMeterId", response.body.id);
+  client.global.set("testMeterExternalId", response.body.externalId);
+%}
+
+### List meters
+GET {{baseUrl}}/meters?buildingId={{testBuildingId}}&utilityType=water
+Authorization: Bearer {{ownerToken}}
+
+### Get meter
+GET {{baseUrl}}/meters/{{testMeterId}}
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: update meter
+PATCH {{baseUrl}}/meters/{{testMeterId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "status": "offline"
+}
+
+### MUTATES DATA: archive meter
+POST {{baseUrl}}/meters/{{testMeterId}}/archive
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: restore meter
+POST {{baseUrl}}/meters/{{testMeterId}}/restore
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: ingest an interval reading
+POST {{baseUrl}}/readings/ingest
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "meterExternalId": "{{testMeterExternalId}}",
+  "measuredAt": "2026-07-03T12:00:00.000Z",
+  "utilityType": "water",
+  "value": 0.8,
+  "unit": "gallon",
+  "readingKind": "interval"
+}
+
+### List meter readings
+GET {{baseUrl}}/meters/{{testMeterId}}/readings?from=2026-07-01T00:00:00.000Z
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: archive building
+POST {{baseUrl}}/buildings/{{testBuildingId}}/archive
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: restore building
+POST {{baseUrl}}/buildings/{{testBuildingId}}/restore
+Authorization: Bearer {{ownerToken}}
