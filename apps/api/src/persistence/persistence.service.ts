@@ -7,6 +7,8 @@ import type {
   Floor,
   IncidentActivity,
   IncidentEvidence,
+  IncidentNotification,
+  IncidentResponderSettings,
   LeakIncident,
   LeakDetectionPolicy,
   Membership,
@@ -182,6 +184,7 @@ export interface PersistenceService {
     usedAt: string,
   ): MaybePromise<void>;
   createEmailOutboxItem(input: {
+    dedupeKey?: string;
     htmlBody?: string;
     subject: string;
     textBody: string;
@@ -429,6 +432,37 @@ export interface PersistenceService {
     incidentId: string;
     organizationId: string;
   }): MaybePromise<IncidentActivity[]>;
+  getIncidentResponderSettings(
+    organizationId: string,
+  ): MaybePromise<IncidentResponderSettings>;
+  upsertIncidentResponderSettings(input: {
+    criticalAcknowledgementDeadlineMinutes: number;
+    emailEnabled: boolean;
+    organizationId: string;
+    updatedAt: string;
+    warningAcknowledgementDeadlineMinutes: number;
+  }): MaybePromise<IncidentResponderSettings>;
+  createIncidentNotification(input: {
+    channel: IncidentNotification["channel"];
+    createdAt: string;
+    dedupeKey: string;
+    emailOutboxId?: string;
+    incidentId: string;
+    kind: IncidentNotification["kind"];
+    organizationId: string;
+    recipientMembershipId: string;
+    status: IncidentNotification["status"];
+  }): MaybePromise<{ created: boolean; notification: IncidentNotification }>;
+  listIncidentNotifications(input: {
+    organizationId: string;
+    recipientMembershipId: string;
+  }): MaybePromise<IncidentNotification[]>;
+  markIncidentNotificationRead(input: {
+    notificationId: string;
+    readAt: string;
+    recipientMembershipId: string;
+    organizationId: string;
+  }): MaybePromise<IncidentNotification | undefined>;
   createWorkOrder(input: {
     assignedMembershipId?: string;
     buildingId: string;
@@ -575,6 +609,7 @@ export interface StoredEmailOutboxItem {
   htmlBody?: string;
   status: "queued" | "sent" | "failed";
   createdAt: string;
+  dedupeKey?: string;
   sentAt?: string;
 }
 

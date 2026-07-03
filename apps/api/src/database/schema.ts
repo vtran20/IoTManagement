@@ -9,6 +9,8 @@ export interface DatabaseSchema {
   audit_logs: AuditLogRow;
   incident_activities: IncidentActivityRow;
   incident_evidence: IncidentEvidenceRow;
+  incident_notifications: IncidentNotificationRow;
+  incident_responder_settings: IncidentResponderSettingsRow;
   buildings: BuildingRow;
   floors: FloorRow;
   invitations: InvitationRow;
@@ -71,6 +73,29 @@ export interface EmailOutboxRow {
   status: "queued" | "sent" | "failed";
   created_at: Timestamp;
   sent_at: Timestamp | null;
+  dedupe_key: string | null;
+}
+
+export interface IncidentResponderSettingsRow {
+  organization_id: string;
+  email_enabled: boolean;
+  critical_acknowledgement_deadline_minutes: number;
+  warning_acknowledgement_deadline_minutes: number;
+  updated_at: Timestamp;
+}
+
+export interface IncidentNotificationRow {
+  id: string;
+  organization_id: string;
+  incident_id: string;
+  recipient_membership_id: string;
+  channel: "in_app" | "email";
+  kind: "incident_opened" | "acknowledgement_overdue";
+  status: "queued" | "delivered" | "suppressed";
+  dedupe_key: string;
+  email_outbox_id: string | null;
+  created_at: Timestamp;
+  read_at: Timestamp | null;
 }
 
 export interface MembershipRow {

@@ -5,6 +5,8 @@ import type {
   Floor,
   IncidentActivity,
   IncidentEvidence,
+  IncidentNotification,
+  IncidentResponderSettings,
   LeakIncident,
   LeakDetectionPolicy,
   Membership,
@@ -31,6 +33,8 @@ import type {
   InvitationRow,
   IncidentActivityRow,
   IncidentEvidenceRow,
+  IncidentNotificationRow,
+  IncidentResponderSettingsRow,
   LeakIncidentRow,
   LeakDetectionPolicyRow,
   MembershipRow,
@@ -534,6 +538,7 @@ export class PostgresPersistenceService
   }
 
   async createEmailOutboxItem(input: {
+    dedupeKey?: string;
     htmlBody?: string;
     subject: string;
     textBody: string;
@@ -549,11 +554,26 @@ export class PostgresPersistenceService
         html_body: input.htmlBody ?? null,
         status: "queued",
         created_at: new Date().toISOString(),
+        dedupe_key: input.dedupeKey ?? null,
         sent_at: null,
       })
+      .onConflict((conflict) => conflict.column("dedupe_key").doNothing())
       .returningAll()
-      .executeTakeFirstOrThrow();
-    return mapEmailOutboxItem(row);
+      .executeTakeFirst();
+    if (row) {
+      return mapEmailOutboxItem(row);
+    }
+    if (input.dedupeKey) {
+      const existing = await this.database.db
+        .selectFrom("email_outbox")
+        .selectAll()
+        .where("dedupe_key", "=", input.dedupeKey)
+        .executeTakeFirst();
+      if (existing) {
+        return mapEmailOutboxItem(existing);
+      }
+    }
+    throw new Error("Unable to create email outbox item");
   }
 
   async listEmailOutboxItems(): Promise<StoredEmailOutboxItem[]> {
@@ -1732,6 +1752,147 @@ export class PostgresPersistenceService
     return rows.map(mapIncidentActivity);
   }
 
+  async getIncidentResponderSettings(
+    organizationId: string,
+  ): Promise<IncidentResponderSettings> {
+    const row = await this.database.db
+      .selectFrom("incident_responder_settings")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .executeTakeFirst();
+    return (
+      (row && mapIncidentResponderSettings(row)) ?? {
+        organizationId,
+        emailEnabled: true,
+        criticalAcknowledgementDeadlineMinutes: 15,
+        warningAcknowledgementDeadlineMinutes: 60,
+        updatedAt: "2026-06-29T00:00:00.000Z",
+      }
+    );
+  }
+
+  async upsertIncidentResponderSettings(input: {
+    criticalAcknowledgementDeadlineMinutes: number;
+    emailEnabled: boolean;
+    organizationId: string;
+    updatedAt: string;
+    warningAcknowledgementDeadlineMinutes: number;
+  }): Promise<IncidentResponderSettings> {
+    const row = await this.database.db
+      .insertInto("incident_responder_settings")
+      .values({
+        organization_id: input.organizationId,
+        email_enabled: input.emailEnabled,
+        critical_acknowledgement_deadline_minutes:
+          input.criticalAcknowledgementDeadlineMinutes,
+        warning_acknowledgement_deadline_minutes:
+          input.warningAcknowledgementDeadlineMinutes,
+        updated_at: input.updatedAt,
+      })
+      .onConflict((conflict) =>
+        conflict.column("organization_id").doUpdateSet({
+          email_enabled: input.emailEnabled,
+          critical_acknowledgement_deadline_minutes:
+            input.criticalAcknowledgementDeadlineMinutes,
+          warning_acknowledgement_deadline_minutes:
+            input.warningAcknowledgementDeadlineMinutes,
+          updated_at: input.updatedAt,
+        }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapIncidentResponderSettings(row);
+  }
+
+  async createIncidentNotification(input: {
+    channel: IncidentNotification["channel"];
+    createdAt: string;
+    dedupeKey: string;
+    emailOutboxId?: string;
+    incidentId: string;
+    kind: IncidentNotification["kind"];
+    organizationId: string;
+    recipientMembershipId: string;
+    status: IncidentNotification["status"];
+  }): Promise<{ created: boolean; notification: IncidentNotification }> {
+    const row = await this.database.db
+      .insertInto("incident_notifications")
+      .values({
+        id: await this.nextId(
+          "incidentNotification",
+          `${input.recipientMembershipId}-${input.dedupeKey}-${input.channel}`,
+          "incident_notifications",
+        ),
+        organization_id: input.organizationId,
+        incident_id: input.incidentId,
+        recipient_membership_id: input.recipientMembershipId,
+        channel: input.channel,
+        kind: input.kind,
+        status: input.status,
+        dedupe_key: input.dedupeKey,
+        email_outbox_id: input.emailOutboxId ?? null,
+        created_at: input.createdAt,
+        read_at: null,
+      })
+      .onConflict((conflict) =>
+        conflict
+          .columns([
+            "organization_id",
+            "recipient_membership_id",
+            "channel",
+            "dedupe_key",
+          ])
+          .doNothing(),
+      )
+      .returningAll()
+      .executeTakeFirst();
+    if (row) {
+      return { created: true, notification: mapIncidentNotification(row) };
+    }
+    const existing = await this.database.db
+      .selectFrom("incident_notifications")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("recipient_membership_id", "=", input.recipientMembershipId)
+      .where("channel", "=", input.channel)
+      .where("dedupe_key", "=", input.dedupeKey)
+      .executeTakeFirstOrThrow();
+    return { created: false, notification: mapIncidentNotification(existing) };
+  }
+
+  async listIncidentNotifications(input: {
+    organizationId: string;
+    recipientMembershipId: string;
+  }): Promise<IncidentNotification[]> {
+    const rows = await this.database.db
+      .selectFrom("incident_notifications")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("recipient_membership_id", "=", input.recipientMembershipId)
+      .where("channel", "=", "in_app")
+      .orderBy("created_at", "desc")
+      .execute();
+    return rows.map(mapIncidentNotification);
+  }
+
+  async markIncidentNotificationRead(input: {
+    notificationId: string;
+    readAt: string;
+    recipientMembershipId: string;
+    organizationId: string;
+  }): Promise<IncidentNotification | undefined> {
+    const row = await this.database.db
+      .updateTable("incident_notifications")
+      .set({ read_at: input.readAt })
+      .where("id", "=", input.notificationId)
+      .where("organization_id", "=", input.organizationId)
+      .where("recipient_membership_id", "=", input.recipientMembershipId)
+      .where("channel", "=", "in_app")
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapIncidentNotification(row) : undefined;
+  }
+
   async createWorkOrder(input: {
     assignedMembershipId?: string;
     buildingId: string;
@@ -2239,8 +2400,41 @@ function mapEmailOutboxItem(
     htmlBody: row.html_body ?? undefined,
     status: row.status,
     createdAt: iso(row.created_at),
+    dedupeKey: row.dedupe_key ?? undefined,
     sentAt: row.sent_at ? iso(row.sent_at) : undefined,
   }) as StoredEmailOutboxItem;
+}
+
+function mapIncidentResponderSettings(
+  row: Selectable<IncidentResponderSettingsRow>,
+): IncidentResponderSettings {
+  return {
+    organizationId: row.organization_id,
+    emailEnabled: row.email_enabled,
+    criticalAcknowledgementDeadlineMinutes:
+      row.critical_acknowledgement_deadline_minutes,
+    warningAcknowledgementDeadlineMinutes:
+      row.warning_acknowledgement_deadline_minutes,
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+function mapIncidentNotification(
+  row: Selectable<IncidentNotificationRow>,
+): IncidentNotification {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    incidentId: row.incident_id,
+    recipientMembershipId: row.recipient_membership_id,
+    channel: row.channel,
+    kind: row.kind,
+    status: row.status,
+    dedupeKey: row.dedupe_key,
+    emailOutboxId: row.email_outbox_id ?? undefined,
+    createdAt: iso(row.created_at),
+    readAt: row.read_at ? iso(row.read_at) : undefined,
+  }) as IncidentNotification;
 }
 
 function mapUtilityRates(

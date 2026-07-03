@@ -18,6 +18,8 @@ import type {
   HealthResponse,
   IngestReadingRequest,
   IngestReadingResponse,
+  IncidentNotificationResponse,
+  IncidentResponderSettingsResponse,
   CreateIncidentNoteRequest,
   CreateManualLeakIncidentRequest,
   CreateWorkOrderRequest,
@@ -48,6 +50,7 @@ import type {
   UpdateBuildingRequest,
   UpdateFloorRequest,
   UpdateMeterRequest,
+  UpdateIncidentResponderSettingsRequest,
   UpdateUnitRequest,
   UpdateWorkOrderRequest,
   WorkOrderResponse,
@@ -157,6 +160,17 @@ export function createEndpoints(client: ApiClient) {
           body,
         }),
     },
+    incidentResponderSettings: {
+      get: () =>
+        client.get<IncidentResponderSettingsResponse>(
+          "/incident-responder-settings",
+        ),
+      update: (body: UpdateIncidentResponderSettingsRequest) =>
+        client.patch<IncidentResponderSettingsResponse>(
+          "/incident-responder-settings",
+          { body },
+        ),
+    },
     meters: {
       create: (body: CreateMeterRequest) =>
         client.post<MeterResponse>("/meters", { body }),
@@ -172,6 +186,14 @@ export function createEndpoints(client: ApiClient) {
         ),
       update: (meterId: string, body: UpdateMeterRequest) =>
         client.patch<MeterResponse>(`/meters/${meterId}`, { body }),
+    },
+    notifications: {
+      list: () =>
+        client.get<{ items: IncidentNotificationResponse[] }>("/notifications"),
+      markRead: (notificationId: string) =>
+        client.post<IncidentNotificationResponse>(
+          `/notifications/${notificationId}/read`,
+        ),
     },
     readings: {
       ingest: (body: IngestReadingRequest) =>

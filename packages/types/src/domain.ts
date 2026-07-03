@@ -203,6 +203,47 @@ export interface IncidentEvidence {
   createdAt: ISODateTime;
 }
 
+export const incidentNotificationChannels = ["in_app", "email"] as const;
+export type IncidentNotificationChannel =
+  (typeof incidentNotificationChannels)[number];
+
+export const incidentNotificationKinds = [
+  "incident_opened",
+  "acknowledgement_overdue",
+] as const;
+export type IncidentNotificationKind =
+  (typeof incidentNotificationKinds)[number];
+
+export const incidentNotificationStatuses = [
+  "queued",
+  "delivered",
+  "suppressed",
+] as const;
+export type IncidentNotificationStatus =
+  (typeof incidentNotificationStatuses)[number];
+
+export interface IncidentResponderSettings {
+  organizationId: EntityId;
+  emailEnabled: boolean;
+  criticalAcknowledgementDeadlineMinutes: number;
+  warningAcknowledgementDeadlineMinutes: number;
+  updatedAt: ISODateTime;
+}
+
+export interface IncidentNotification {
+  id: EntityId;
+  organizationId: EntityId;
+  incidentId: EntityId;
+  recipientMembershipId: EntityId;
+  channel: IncidentNotificationChannel;
+  kind: IncidentNotificationKind;
+  status: IncidentNotificationStatus;
+  dedupeKey: string;
+  emailOutboxId?: EntityId;
+  createdAt: ISODateTime;
+  readAt?: ISODateTime;
+}
+
 export interface Organization {
   id: EntityId;
   name: string;

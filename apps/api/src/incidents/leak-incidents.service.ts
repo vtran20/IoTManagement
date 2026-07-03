@@ -11,6 +11,7 @@ import {
   PersistenceService,
 } from "../persistence/persistence.service";
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
+import { IncidentNotificationsService } from "../notifications/incident-notifications.service";
 import { CreateManualLeakIncidentDto } from "./dto/create-manual-leak-incident.dto";
 import { CreateIncidentNoteDto } from "./dto/create-incident-note.dto";
 import { ResolveLeakIncidentDto } from "./dto/resolve-leak-incident.dto";
@@ -24,6 +25,8 @@ export class LeakIncidentsService {
   constructor(
     @Inject(PERSISTENCE_SERVICE)
     private readonly persistence: PersistenceService,
+    @Inject(IncidentNotificationsService)
+    private readonly notifications: IncidentNotificationsService,
   ) {}
 
   async createManual(
@@ -87,6 +90,7 @@ export class LeakIncidentsService {
       summary: "Manual incident opened",
       type: "opened",
     });
+    await this.notifications.notifyIncidentOpened(incident);
     return incident;
   }
 

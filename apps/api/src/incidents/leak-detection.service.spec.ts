@@ -45,7 +45,10 @@ describe("LeakDetectionService", () => {
       }),
     );
 
-    const service = new LeakDetectionService(persistence);
+    const service = new LeakDetectionService(
+      persistence,
+      noopNotifications as never,
+    );
     await service.evaluateAcceptedReading({
       meter,
       organizationId: "org_north",
@@ -89,7 +92,10 @@ describe("LeakDetectionService", () => {
       scopeType: "meter",
       severity: "critical",
     });
-    const service = new LeakDetectionService(persistence);
+    const service = new LeakDetectionService(
+      persistence,
+      noopNotifications as never,
+    );
 
     for (const measuredAt of [
       "2026-07-03T00:00:00.000Z",
@@ -172,7 +178,10 @@ describe("LeakDetectionService", () => {
       scopeType: "meter",
       severity: "critical",
     });
-    const service = new LeakDetectionService(persistence);
+    const service = new LeakDetectionService(
+      persistence,
+      noopNotifications as never,
+    );
 
     for (const [measuredAt, quality] of [
       ["2026-07-03T00:00:00.000Z", "good"],
@@ -204,3 +213,7 @@ describe("LeakDetectionService", () => {
     ).toEqual([]);
   });
 });
+
+const noopNotifications = {
+  notifyIncidentOpened: async (): Promise<void> => undefined,
+};

@@ -11,6 +11,8 @@ import type {
   LeakIncident,
   IncidentActivity,
   IncidentEvidence,
+  IncidentNotification,
+  IncidentResponderSettings,
   LeakIncidentResolutionCategory,
   LeakIncidentSource,
   LeakDetectionPolicy,
@@ -374,6 +376,16 @@ export interface ResolveLeakIncidentRequest {
   resolutionCategory: LeakIncidentResolutionCategory;
   resolutionNote?: string;
 }
+
+export type IncidentResponderSettingsResponse = IncidentResponderSettings;
+
+export interface UpdateIncidentResponderSettingsRequest {
+  emailEnabled?: boolean;
+  criticalAcknowledgementDeadlineMinutes?: number;
+  warningAcknowledgementDeadlineMinutes?: number;
+}
+
+export type IncidentNotificationResponse = IncidentNotification;
 
 export interface CreateLeakDetectionPolicyRequest {
   name: string;

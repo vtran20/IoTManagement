@@ -7,6 +7,8 @@ import type {
   Floor,
   IncidentActivity,
   IncidentEvidence,
+  IncidentNotification,
+  IncidentResponderSettings,
   LeakIncident,
   LeakDetectionPolicy,
   Membership,
@@ -55,6 +57,7 @@ export class InMemoryPersistenceService implements PersistenceService {
     invitation: 1,
     incidentActivity: 1,
     incidentEvidence: 1,
+    incidentNotification: 1,
     leakIncident: 1,
     leakDetectionPolicy: 1,
     workOrder: 1,
@@ -179,6 +182,11 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly invitations: StoredInvitation[] = [];
   private readonly incidentActivities: IncidentActivity[] = [];
   private readonly incidentEvidence: IncidentEvidence[] = [];
+  private readonly incidentNotifications: IncidentNotification[] = [];
+  private readonly incidentResponderSettings = new Map<
+    string,
+    IncidentResponderSettings
+  >();
   private readonly leakIncidents: LeakIncident[] = [];
   private readonly leakDetectionPolicies: LeakDetectionPolicy[] = [];
   private readonly workOrders: WorkOrder[] = [];
@@ -426,11 +434,20 @@ export class InMemoryPersistenceService implements PersistenceService {
   }
 
   createEmailOutboxItem(input: {
+    dedupeKey?: string;
     htmlBody?: string;
     subject: string;
     textBody: string;
     to: string;
   }): StoredEmailOutboxItem {
+    if (input.dedupeKey) {
+      const existing = this.emailOutboxItems.find(
+        (item) => item.dedupeKey === input.dedupeKey,
+      );
+      if (existing) {
+        return existing;
+      }
+    }
     const item: StoredEmailOutboxItem = {
       id: this.nextId("emailOutbox", input.to),
       to: input.to.toLowerCase(),
@@ -439,6 +456,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       htmlBody: input.htmlBody,
       status: "queued",
       createdAt: new Date().toISOString(),
+      dedupeKey: input.dedupeKey,
     };
     this.emailOutboxItems.push(item);
     return item;
@@ -1163,6 +1181,95 @@ export class InMemoryPersistenceService implements PersistenceService {
           activity.incidentId === input.incidentId,
       )
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  getIncidentResponderSettings(
+    organizationId: string,
+  ): IncidentResponderSettings {
+    return (
+      this.incidentResponderSettings.get(organizationId) ?? {
+        organizationId,
+        emailEnabled: true,
+        criticalAcknowledgementDeadlineMinutes: 15,
+        warningAcknowledgementDeadlineMinutes: 60,
+        updatedAt: "2026-06-29T00:00:00.000Z",
+      }
+    );
+  }
+
+  upsertIncidentResponderSettings(input: {
+    criticalAcknowledgementDeadlineMinutes: number;
+    emailEnabled: boolean;
+    organizationId: string;
+    updatedAt: string;
+    warningAcknowledgementDeadlineMinutes: number;
+  }): IncidentResponderSettings {
+    const settings: IncidentResponderSettings = { ...input };
+    this.incidentResponderSettings.set(input.organizationId, settings);
+    return settings;
+  }
+
+  createIncidentNotification(input: {
+    channel: IncidentNotification["channel"];
+    createdAt: string;
+    dedupeKey: string;
+    emailOutboxId?: string;
+    incidentId: string;
+    kind: IncidentNotification["kind"];
+    organizationId: string;
+    recipientMembershipId: string;
+    status: IncidentNotification["status"];
+  }): { created: boolean; notification: IncidentNotification } {
+    const existing = this.incidentNotifications.find(
+      (notification) =>
+        notification.organizationId === input.organizationId &&
+        notification.recipientMembershipId === input.recipientMembershipId &&
+        notification.channel === input.channel &&
+        notification.dedupeKey === input.dedupeKey,
+    );
+    if (existing) {
+      return { created: false, notification: existing };
+    }
+    const notification: IncidentNotification = {
+      ...input,
+      id: this.nextId("incidentNotification", input.dedupeKey),
+    };
+    this.incidentNotifications.push(notification);
+    return { created: true, notification };
+  }
+
+  listIncidentNotifications(input: {
+    organizationId: string;
+    recipientMembershipId: string;
+  }): IncidentNotification[] {
+    return this.incidentNotifications
+      .filter(
+        (notification) =>
+          notification.organizationId === input.organizationId &&
+          notification.recipientMembershipId === input.recipientMembershipId &&
+          notification.channel === "in_app",
+      )
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  markIncidentNotificationRead(input: {
+    notificationId: string;
+    readAt: string;
+    recipientMembershipId: string;
+    organizationId: string;
+  }): IncidentNotification | undefined {
+    const notification = this.incidentNotifications.find(
+      (candidate) =>
+        candidate.id === input.notificationId &&
+        candidate.organizationId === input.organizationId &&
+        candidate.recipientMembershipId === input.recipientMembershipId &&
+        candidate.channel === "in_app",
+    );
+    if (!notification) {
+      return undefined;
+    }
+    notification.readAt = notification.readAt ?? input.readAt;
+    return notification;
   }
 
   createWorkOrder(input: {

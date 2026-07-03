@@ -106,6 +106,28 @@ export class OpenApiController {
             tags: ["Water Protection"],
           },
         },
+        "/api/v1/notifications": {
+          get: {
+            summary: "List the current member's in-app incident notifications",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/notifications/{notificationId}/read": {
+          post: {
+            summary: "Mark the current member's incident notification as read",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/incident-responder-settings": {
+          get: {
+            summary: "Get organization incident responder settings",
+            tags: ["Water Protection"],
+          },
+          patch: {
+            summary: "Update organization incident responder settings",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/work-orders": {
           get: {
             summary: "List tenant-scoped leak repair work orders",

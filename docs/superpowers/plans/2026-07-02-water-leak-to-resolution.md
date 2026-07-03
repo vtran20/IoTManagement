@@ -39,8 +39,8 @@
 
 ### Phase 5: Notifications And Escalation
 
-- [ ] Add organization responder settings, in-app notification records, existing development-outbox email entries, and durable deduplication.
-- [ ] Add a BullMQ escalation worker with critical and warning acknowledgement deadlines.
+- [x] Add organization responder settings, in-app notification records, existing development-outbox email entries, and durable deduplication.
+- [x] Add a BullMQ escalation worker with critical and warning acknowledgement deadlines.
 
 ### Phase 6: Moisture Sensors And Correlation
 

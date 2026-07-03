@@ -1,4 +1,8 @@
 import { Module } from "@nestjs/common";
+import { IncidentEscalationQueueService } from "./queues";
 
-@Module({})
+@Module({
+  exports: [IncidentEscalationQueueService],
+  providers: [IncidentEscalationQueueService],
+})
 export class JobsModule {}

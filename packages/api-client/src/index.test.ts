@@ -66,4 +66,29 @@ describe("createApiClient", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("requests responder settings and personal incident notifications", async () => {
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [] }),
+    });
+    const client = createApiClient({
+      baseUrl: "http://localhost:3001/",
+      fetcher,
+    });
+
+    await client.incidentResponderSettings.update({ emailEnabled: false });
+    await client.notifications.markRead("notification_1");
+
+    expect(fetcher).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:3001/api/v1/incident-responder-settings",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:3001/api/v1/notifications/notification_1/read",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

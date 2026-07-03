@@ -8,12 +8,15 @@ import {
   PERSISTENCE_SERVICE,
   PersistenceService,
 } from "../persistence/persistence.service";
+import { IncidentNotificationsService } from "../notifications/incident-notifications.service";
 
 @Injectable()
 export class LeakDetectionService {
   constructor(
     @Inject(PERSISTENCE_SERVICE)
     private readonly persistence: PersistenceService,
+    @Inject(IncidentNotificationsService)
+    private readonly notifications: IncidentNotificationsService,
   ) {}
 
   async evaluateAcceptedReading(input: {
@@ -101,6 +104,7 @@ export class LeakDetectionService {
           targetId: incident.id,
           targetType: "leak_incident",
         });
+        await this.notifications.notifyIncidentOpened(incident);
       }
 
       await this.persistence.createIncidentEvidence({

@@ -22,6 +22,7 @@
     "@nestjs/common": "11.1.27",
     "@nestjs/core": "11.1.27",
     "@nestjs/platform-express": "11.1.27",
+    "bullmq": "^5.70.0",
     "kysely": "^0.29.2",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
