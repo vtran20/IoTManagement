@@ -271,4 +271,44 @@ describe("PostgresPersistenceService", () => {
       ]),
     );
   });
+
+  it("persists leak repair work orders with their incident context", async () => {
+    const building = await persistence.createBuilding({
+      name: "Work Order Persistence Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    const incident = await persistence.createLeakIncident({
+      buildingId: building.id,
+      description: "Water is dripping from a supply line.",
+      detectedAt: "2026-07-03T10:00:00.000Z",
+      organizationId: "org_north",
+      severity: "critical",
+      source: "manual_report",
+      title: "Supply line leak",
+    });
+    const workOrder = await persistence.createWorkOrder({
+      assignedMembershipId: "membership_north_manager",
+      buildingId: building.id,
+      createdAt: "2026-07-03T10:01:00.000Z",
+      description: "Replace the failed supply-line fitting.",
+      dueAt: "2026-07-04T10:00:00.000Z",
+      incidentId: incident.id,
+      organizationId: "org_north",
+      priority: "critical",
+      status: "assigned",
+      title: "Repair supply line",
+      updatedAt: "2026-07-03T10:01:00.000Z",
+    });
+
+    await expect(
+      persistence.findWorkOrderById("org_north", workOrder.id),
+    ).resolves.toEqual(workOrder);
+    await expect(
+      persistence.listWorkOrders({
+        incidentId: incident.id,
+        organizationId: "org_north",
+      }),
+    ).resolves.toEqual([workOrder]);
+  });
 });

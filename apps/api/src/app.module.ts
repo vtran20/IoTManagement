@@ -30,6 +30,7 @@ import { ReportsModule } from "./reports/reports.module";
 import { SettingsModule } from "./settings/settings.module";
 import { SimulationsModule } from "./simulations/simulations.module";
 import { TenantsModule } from "./tenants/tenants.module";
+import { WorkOrdersModule } from "./work-orders/work-orders.module";
 
 @Module({
   controllers: [HealthController],
@@ -47,6 +48,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     DashboardModule,
     InvitationsModule,
     IncidentsModule,
+    WorkOrdersModule,
     DevModule,
     JobsModule,
     AlertsModule,

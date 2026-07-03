@@ -98,6 +98,13 @@ export const incidentActivityTypes = [
   "monitoring",
   "resolved",
   "note",
+  "work_order_created",
+  "work_order_assigned",
+  "work_order_started",
+  "work_order_completed",
+  "work_order_cancelled",
+  "work_order_due_date_changed",
+  "work_order_updated",
 ] as const;
 export type IncidentActivityType = (typeof incidentActivityTypes)[number];
 
@@ -132,6 +139,41 @@ export interface IncidentActivity {
   type: IncidentActivityType;
   summary: string;
   createdAt: ISODateTime;
+}
+
+export const workOrderPriorities = [
+  "low",
+  "medium",
+  "high",
+  "critical",
+] as const;
+export type WorkOrderPriority = (typeof workOrderPriorities)[number];
+
+export const workOrderStatuses = [
+  "open",
+  "assigned",
+  "in_progress",
+  "completed",
+  "cancelled",
+] as const;
+export type WorkOrderStatus = (typeof workOrderStatuses)[number];
+
+export interface WorkOrder {
+  id: EntityId;
+  organizationId: EntityId;
+  incidentId: EntityId;
+  buildingId: EntityId;
+  unitId?: EntityId;
+  title: string;
+  description: string;
+  priority: WorkOrderPriority;
+  status: WorkOrderStatus;
+  assignedMembershipId?: EntityId;
+  dueAt?: ISODateTime;
+  completionNote?: string;
+  completedAt?: ISODateTime;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
 }
 
 export interface LeakDetectionPolicy {

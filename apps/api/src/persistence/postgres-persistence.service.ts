@@ -14,6 +14,7 @@ import type {
   Unit,
   UsageAggregate,
   UtilityRatesResponse,
+  WorkOrder,
 } from "@iot-management/types";
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
@@ -42,6 +43,7 @@ import type {
   UnitRow,
   UsageAggregateRow,
   UserRow,
+  WorkOrderRow,
 } from "../database/schema";
 import { validateApiEnv } from "../config/env.schema";
 import type {
@@ -1730,6 +1732,137 @@ export class PostgresPersistenceService
     return rows.map(mapIncidentActivity);
   }
 
+  async createWorkOrder(input: {
+    assignedMembershipId?: string;
+    buildingId: string;
+    createdAt: string;
+    description: string;
+    dueAt?: string;
+    incidentId: string;
+    organizationId: string;
+    priority: WorkOrder["priority"];
+    status: WorkOrder["status"];
+    title: string;
+    unitId?: string;
+    updatedAt: string;
+  }): Promise<WorkOrder> {
+    const row = await this.database.db
+      .insertInto("work_orders")
+      .values({
+        id: await this.nextId("workOrder", input.title, "work_orders"),
+        organization_id: input.organizationId,
+        incident_id: input.incidentId,
+        building_id: input.buildingId,
+        unit_id: input.unitId ?? null,
+        title: input.title,
+        description: input.description,
+        priority: input.priority,
+        status: input.status,
+        assigned_membership_id: input.assignedMembershipId ?? null,
+        due_at: input.dueAt ?? null,
+        completion_note: null,
+        completed_at: null,
+        created_at: input.createdAt,
+        updated_at: input.updatedAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapWorkOrder(row);
+  }
+
+  async listWorkOrders(input: {
+    assignedMembershipId?: string;
+    incidentId?: string;
+    organizationId: string;
+    overdue?: boolean;
+    priority?: WorkOrder["priority"];
+    status?: WorkOrder["status"];
+  }): Promise<WorkOrder[]> {
+    let query = this.database.db
+      .selectFrom("work_orders")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId);
+    if (input.incidentId) {
+      query = query.where("incident_id", "=", input.incidentId);
+    }
+    if (input.assignedMembershipId) {
+      query = query.where(
+        "assigned_membership_id",
+        "=",
+        input.assignedMembershipId,
+      );
+    }
+    if (input.priority) {
+      query = query.where("priority", "=", input.priority);
+    }
+    if (input.status) {
+      query = query.where("status", "=", input.status);
+    }
+    if (input.overdue) {
+      query = query
+        .where("due_at", "is not", null)
+        .where("due_at", "<", new Date())
+        .where("status", "not in", ["completed", "cancelled"]);
+    }
+    const rows = await query.orderBy("created_at", "desc").execute();
+    return rows.map(mapWorkOrder);
+  }
+
+  async findWorkOrderById(
+    organizationId: string,
+    workOrderId: string,
+  ): Promise<WorkOrder | undefined> {
+    const row = await this.database.db
+      .selectFrom("work_orders")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", workOrderId)
+      .executeTakeFirst();
+    return row ? mapWorkOrder(row) : undefined;
+  }
+
+  async updateWorkOrder(
+    organizationId: string,
+    workOrderId: string,
+    input: Partial<
+      Pick<
+        WorkOrder,
+        | "assignedMembershipId"
+        | "completedAt"
+        | "completionNote"
+        | "description"
+        | "dueAt"
+        | "priority"
+        | "status"
+        | "title"
+        | "updatedAt"
+      >
+    >,
+  ): Promise<WorkOrder | undefined> {
+    const changes = defined({
+      assigned_membership_id: input.assignedMembershipId,
+      completed_at: input.completedAt,
+      completion_note: input.completionNote,
+      description: input.description,
+      due_at: input.dueAt,
+      priority: input.priority,
+      status: input.status,
+      title: input.title,
+      updated_at: input.updatedAt,
+    });
+    if (!Object.keys(changes).length) {
+      return this.findWorkOrderById(organizationId, workOrderId);
+    }
+    const row = await this.database.db
+      .updateTable("work_orders")
+      .set(changes)
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", workOrderId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapWorkOrder(row) : undefined;
+  }
+
   async listAlertRules(input: {
     organizationId: string;
   }): Promise<AlertRule[]> {
@@ -2225,6 +2358,26 @@ function mapIncidentActivity(
     summary: row.summary,
     createdAt: iso(row.created_at),
   }) as IncidentActivity;
+}
+
+function mapWorkOrder(row: Selectable<WorkOrderRow>): WorkOrder {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    incidentId: row.incident_id,
+    buildingId: row.building_id,
+    unitId: row.unit_id ?? undefined,
+    title: row.title,
+    description: row.description,
+    priority: row.priority,
+    status: row.status,
+    assignedMembershipId: row.assigned_membership_id ?? undefined,
+    dueAt: row.due_at ? iso(row.due_at) : undefined,
+    completionNote: row.completion_note ?? undefined,
+    completedAt: row.completed_at ? iso(row.completed_at) : undefined,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  }) as WorkOrder;
 }
 
 function mapUnit(row: Selectable<UnitRow>): Unit {

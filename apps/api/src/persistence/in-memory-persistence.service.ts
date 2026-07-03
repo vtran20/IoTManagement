@@ -22,6 +22,7 @@ import type {
   UsageAggregate,
   UtilityRatesResponse,
   UtilityType,
+  WorkOrder,
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
@@ -56,6 +57,7 @@ export class InMemoryPersistenceService implements PersistenceService {
     incidentEvidence: 1,
     leakIncident: 1,
     leakDetectionPolicy: 1,
+    workOrder: 1,
     meter: 1,
     passwordResetToken: 1,
     reading: 1,
@@ -179,6 +181,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly incidentEvidence: IncidentEvidence[] = [];
   private readonly leakIncidents: LeakIncident[] = [];
   private readonly leakDetectionPolicies: LeakDetectionPolicy[] = [];
+  private readonly workOrders: WorkOrder[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -1160,6 +1163,93 @@ export class InMemoryPersistenceService implements PersistenceService {
           activity.incidentId === input.incidentId,
       )
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  createWorkOrder(input: {
+    assignedMembershipId?: string;
+    buildingId: string;
+    createdAt: string;
+    description: string;
+    dueAt?: string;
+    incidentId: string;
+    organizationId: string;
+    priority: WorkOrder["priority"];
+    status: WorkOrder["status"];
+    title: string;
+    unitId?: string;
+    updatedAt: string;
+  }): WorkOrder {
+    const workOrder: WorkOrder = {
+      ...input,
+      id: this.nextId("workOrder", input.title),
+    };
+    this.workOrders.push(workOrder);
+    return workOrder;
+  }
+
+  listWorkOrders(input: {
+    assignedMembershipId?: string;
+    incidentId?: string;
+    organizationId: string;
+    overdue?: boolean;
+    priority?: WorkOrder["priority"];
+    status?: WorkOrder["status"];
+  }): WorkOrder[] {
+    const now = Date.now();
+    return this.workOrders
+      .filter((workOrder) => {
+        const overdue =
+          !!workOrder.dueAt &&
+          new Date(workOrder.dueAt).getTime() < now &&
+          !["completed", "cancelled"].includes(workOrder.status);
+        return (
+          workOrder.organizationId === input.organizationId &&
+          (!input.incidentId || workOrder.incidentId === input.incidentId) &&
+          (!input.assignedMembershipId ||
+            workOrder.assignedMembershipId === input.assignedMembershipId) &&
+          (!input.priority || workOrder.priority === input.priority) &&
+          (!input.status || workOrder.status === input.status) &&
+          (!input.overdue || overdue)
+        );
+      })
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  findWorkOrderById(
+    organizationId: string,
+    workOrderId: string,
+  ): WorkOrder | undefined {
+    return this.workOrders.find(
+      (workOrder) =>
+        workOrder.organizationId === organizationId &&
+        workOrder.id === workOrderId,
+    );
+  }
+
+  updateWorkOrder(
+    organizationId: string,
+    workOrderId: string,
+    input: Partial<
+      Pick<
+        WorkOrder,
+        | "assignedMembershipId"
+        | "completedAt"
+        | "completionNote"
+        | "description"
+        | "dueAt"
+        | "priority"
+        | "status"
+        | "title"
+        | "updatedAt"
+      >
+    >,
+  ): WorkOrder | undefined {
+    const workOrder = this.findWorkOrderById(organizationId, workOrderId);
+    if (!workOrder) {
+      return undefined;
+    }
+    Object.assign(workOrder, input);
+    return workOrder;
   }
 
   createAlertRule(

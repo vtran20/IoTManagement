@@ -25,6 +25,9 @@ import type {
   User,
   UserRole,
   UtilityType,
+  WorkOrder,
+  WorkOrderPriority,
+  WorkOrderStatus,
 } from "./domain";
 
 export interface HealthResponse {
@@ -324,6 +327,36 @@ export interface ListLeakIncidentsQuery extends PageRequest {
 }
 
 export type LeakIncidentResponse = LeakIncident;
+
+export interface CreateWorkOrderRequest {
+  assignedMembershipId?: EntityId;
+  description: string;
+  dueAt?: ISODateTime;
+  priority: WorkOrderPriority;
+  title: string;
+}
+
+export interface UpdateWorkOrderRequest {
+  assignedMembershipId?: EntityId;
+  completionNote?: string;
+  description?: string;
+  dueAt?: ISODateTime;
+  priority?: WorkOrderPriority;
+  status?: WorkOrderStatus;
+  title?: string;
+}
+
+export interface ListWorkOrdersQuery extends PageRequest {
+  assignedMembershipId?: EntityId;
+  incidentId?: EntityId;
+  overdue?: boolean;
+  priority?: WorkOrderPriority;
+  status?: WorkOrderStatus;
+}
+
+export interface WorkOrderResponse extends WorkOrder {
+  isOverdue: boolean;
+}
 
 export interface ResolveLeakIncidentRequest {
   resolutionCategory: LeakIncidentResolutionCategory;

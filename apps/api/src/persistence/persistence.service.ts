@@ -21,6 +21,7 @@ import type {
   UsageAggregate,
   UtilityRatesResponse,
   UtilityType,
+  WorkOrder,
 } from "@iot-management/types";
 import type { StoredUser } from "./in-memory-persistence.service";
 
@@ -428,6 +429,50 @@ export interface PersistenceService {
     incidentId: string;
     organizationId: string;
   }): MaybePromise<IncidentActivity[]>;
+  createWorkOrder(input: {
+    assignedMembershipId?: string;
+    buildingId: string;
+    createdAt: string;
+    description: string;
+    dueAt?: string;
+    incidentId: string;
+    organizationId: string;
+    priority: WorkOrder["priority"];
+    status: WorkOrder["status"];
+    title: string;
+    unitId?: string;
+    updatedAt: string;
+  }): MaybePromise<WorkOrder>;
+  listWorkOrders(input: {
+    assignedMembershipId?: string;
+    incidentId?: string;
+    organizationId: string;
+    overdue?: boolean;
+    priority?: WorkOrder["priority"];
+    status?: WorkOrder["status"];
+  }): MaybePromise<WorkOrder[]>;
+  findWorkOrderById(
+    organizationId: string,
+    workOrderId: string,
+  ): MaybePromise<WorkOrder | undefined>;
+  updateWorkOrder(
+    organizationId: string,
+    workOrderId: string,
+    input: Partial<
+      Pick<
+        WorkOrder,
+        | "assignedMembershipId"
+        | "completedAt"
+        | "completionNote"
+        | "description"
+        | "dueAt"
+        | "priority"
+        | "status"
+        | "title"
+        | "updatedAt"
+      >
+    >,
+  ): MaybePromise<WorkOrder | undefined>;
   listDashboardTrendAggregates(
     input: DashboardAggregateQuery,
   ): MaybePromise<DashboardTrendAggregate[]>;

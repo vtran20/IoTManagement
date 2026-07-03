@@ -26,6 +26,7 @@ export interface DatabaseSchema {
   units: UnitRow;
   usage_aggregates: UsageAggregateRow;
   users: UserRow;
+  work_orders: WorkOrderRow;
 }
 
 export interface OrganizationRow {
@@ -153,9 +154,34 @@ export interface IncidentActivityRow {
     | "contained"
     | "monitoring"
     | "resolved"
-    | "note";
+    | "note"
+    | "work_order_created"
+    | "work_order_assigned"
+    | "work_order_started"
+    | "work_order_completed"
+    | "work_order_cancelled"
+    | "work_order_due_date_changed"
+    | "work_order_updated";
   summary: string;
   created_at: Timestamp;
+}
+
+export interface WorkOrderRow {
+  id: string;
+  organization_id: string;
+  incident_id: string;
+  building_id: string;
+  unit_id: string | null;
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high" | "critical";
+  status: "open" | "assigned" | "in_progress" | "completed" | "cancelled";
+  assigned_membership_id: string | null;
+  due_at: Timestamp | null;
+  completion_note: string | null;
+  completed_at: Timestamp | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface IncidentEvidenceRow {

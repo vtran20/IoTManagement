@@ -100,6 +100,28 @@ export class OpenApiController {
             tags: ["Water Protection"],
           },
         },
+        "/api/v1/incidents/{incidentId}/work-orders": {
+          post: {
+            summary: "Create a repair work order for a leak incident",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/work-orders": {
+          get: {
+            summary: "List tenant-scoped leak repair work orders",
+            tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/work-orders/{workOrderId}": {
+          get: {
+            summary: "Get a leak repair work order",
+            tags: ["Water Protection"],
+          },
+          patch: {
+            summary: "Update a leak repair work order",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/leak-detection-policies": {
           get: {
             summary: "List continuous-flow detection policies",

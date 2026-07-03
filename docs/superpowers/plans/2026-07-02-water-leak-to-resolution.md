@@ -29,8 +29,8 @@
 
 ### Phase 3: Repair Work Orders
 
-- [ ] Add tenant-scoped work orders, assignment to active owner/manager memberships, status changes, due dates, and completion notes.
-- [ ] Mirror work-order changes into the incident timeline and support filtering by assignee, priority, and overdue state.
+- [x] Add tenant-scoped work orders, assignment to active owner/manager memberships, status changes, due dates, and completion notes.
+- [x] Mirror work-order changes into the incident timeline and support filtering by assignee, priority, and overdue state.
 
 ### Phase 4: Water Operations Dashboard
 
