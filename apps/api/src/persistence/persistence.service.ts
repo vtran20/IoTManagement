@@ -8,6 +8,7 @@ import type {
   IncidentActivity,
   IncidentEvidence,
   IncidentCorrelationSettings,
+  LeakBaselineSettings,
   IncidentNotification,
   IncidentResponderSettings,
   IncidentSensorEvidence,
@@ -393,7 +394,7 @@ export interface PersistenceService {
     meterId: string;
     observedUsage: number;
     organizationId: string;
-    policyId: string;
+    policyId?: string;
     readingIds: string[];
     thresholdUsage: number;
     windowEndedAt: string;
@@ -454,6 +455,12 @@ export interface PersistenceService {
   upsertIncidentCorrelationSettings(
     input: IncidentCorrelationSettings,
   ): MaybePromise<IncidentCorrelationSettings>;
+  getLeakBaselineSettings(
+    organizationId: string,
+  ): MaybePromise<LeakBaselineSettings>;
+  upsertLeakBaselineSettings(
+    input: LeakBaselineSettings,
+  ): MaybePromise<LeakBaselineSettings>;
   findLeakIncidentById(
     organizationId: string,
     incidentId: string,

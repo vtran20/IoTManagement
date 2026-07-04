@@ -7,6 +7,7 @@ import { ApiError } from "../common/errors/api-error";
 import { RequestContext } from "../common/request-context";
 import { MeterHealthService } from "../meters/meter-health.service";
 import { LeakDetectionService } from "../incidents/leak-detection.service";
+import { LeakBaselineDetectionService } from "../incidents/leak-baseline-detection.service";
 import {
   PERSISTENCE_SERVICE,
   PersistenceService,
@@ -26,6 +27,8 @@ export class ReadingsService {
     private readonly meterHealth: MeterHealthService,
     @Inject(LeakDetectionService)
     private readonly leakDetection: LeakDetectionService,
+    @Inject(LeakBaselineDetectionService)
+    private readonly baselineDetection: LeakBaselineDetectionService,
   ) {}
 
   async ingest(
@@ -76,6 +79,11 @@ export class ReadingsService {
       measuredAt: dto.measuredAt,
     });
     await this.leakDetection.evaluateAcceptedReading({
+      meter,
+      organizationId: context.organization.id,
+      reading,
+    });
+    await this.baselineDetection.evaluateAcceptedReading({
       meter,
       organizationId: context.organization.id,
       reading,

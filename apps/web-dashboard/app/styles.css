@@ -1087,6 +1087,17 @@ td span {
   width: 100%;
 }
 
+.report-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-grid .data-panel > h2 {
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+
 @media (max-width: 1100px) {
   .admin-shell {
     grid-template-columns: 1fr;
@@ -1120,6 +1131,10 @@ td span {
   }
 
   .water-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-grid {
     grid-template-columns: 1fr;
   }
 

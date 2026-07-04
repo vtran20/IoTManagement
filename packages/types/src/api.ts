@@ -16,6 +16,7 @@ import type {
   IncidentNotification,
   IncidentResponderSettings,
   LeakIncidentResolutionCategory,
+  LeakBaselineSettings,
   LeakIncidentSource,
   LeakDetectionPolicy,
   Meter,
@@ -335,6 +336,60 @@ export interface ListLeakIncidentsQuery extends PageRequest {
   source?: LeakIncidentSource;
 }
 
+export const leakAnalyticsPeriods = ["7d", "30d", "90d"] as const;
+export type LeakAnalyticsPeriod = (typeof leakAnalyticsPeriods)[number];
+
+export interface LeakAnalyticsQuery {
+  buildingId?: EntityId;
+  from?: ISODateTime;
+  to?: ISODateTime;
+  period?: LeakAnalyticsPeriod;
+}
+
+export interface LeakResponseTimeMetric {
+  averageMinutes?: number;
+  count: number;
+  medianMinutes?: number;
+}
+
+export interface LeakRecurringLocation {
+  buildingId: EntityId;
+  buildingName: string;
+  incidentCount: number;
+  resolvedCount: number;
+  unitId?: EntityId;
+  unitName?: string;
+}
+
+export interface LeakAnalyticsResponse {
+  excessWater: {
+    estimatedCost: number;
+    gallons: number;
+  };
+  generatedAt: ISODateTime;
+  incidentCount: number;
+  periodEnd: ISODateTime;
+  periodStart: ISODateTime;
+  recurringLocations: LeakRecurringLocation[];
+  resolutionOutcomes: Record<LeakIncidentResolutionCategory, number>;
+  responseTime: {
+    acknowledged: LeakResponseTimeMetric;
+    contained: LeakResponseTimeMetric;
+    resolved: LeakResponseTimeMetric;
+  };
+}
+
+export interface LeakResponseReportResponse extends LeakAnalyticsResponse {
+  format: "json";
+  id: EntityId;
+  organizationId: EntityId;
+  reportType: "leak_response";
+}
+
+export interface LeakReportExportQuery extends LeakAnalyticsQuery {
+  format: "csv" | "pdf";
+}
+
 export type LeakIncidentResponse = LeakIncident;
 
 export interface LeakIncidentDetailResponse extends LeakIncident {
@@ -375,6 +430,13 @@ export type IncidentCorrelationSettingsResponse = IncidentCorrelationSettings;
 
 export interface UpdateIncidentCorrelationSettingsRequest {
   moistureCorrelationWindowMinutes?: number;
+}
+
+export type LeakBaselineSettingsResponse = LeakBaselineSettings;
+
+export interface UpdateLeakBaselineSettingsRequest {
+  enabled?: boolean;
+  thresholdMultiplier?: number;
 }
 
 export interface CreateIncidentNoteRequest {
@@ -459,6 +521,7 @@ export interface UpdateAlertRuleRequest {
 
 export const reportTypes = [
   "usage_summary",
+  "leak_response",
   "billing_export",
   "device_health",
   "alerts",

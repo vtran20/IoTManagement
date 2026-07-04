@@ -5,12 +5,16 @@ import {
   HttpCode,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
-import type { ListLeakIncidentsQuery } from "@iot-management/types";
+import type {
+  LeakAnalyticsQuery,
+  ListLeakIncidentsQuery,
+} from "@iot-management/types";
 import { AuthGuard } from "../common/guards/auth.guard";
 import { Roles, RolesGuard } from "../common/guards/roles.guard";
 import { RequestWithContext } from "../common/request-context";
@@ -18,6 +22,9 @@ import { CreateManualLeakIncidentDto } from "./dto/create-manual-leak-incident.d
 import { CreateIncidentNoteDto } from "./dto/create-incident-note.dto";
 import { ResolveLeakIncidentDto } from "./dto/resolve-leak-incident.dto";
 import { LeakIncidentsService } from "./leak-incidents.service";
+import { LeakAnalyticsService } from "./leak-analytics.service";
+import { LeakBaselineDetectionService } from "./leak-baseline-detection.service";
+import { UpdateLeakBaselineSettingsDto } from "./dto/update-leak-baseline-settings.dto";
 
 @Controller("incidents")
 @UseGuards(AuthGuard, RolesGuard)
@@ -25,6 +32,8 @@ export class IncidentsController {
   constructor(
     @Inject(LeakIncidentsService)
     private readonly incidentsService: LeakIncidentsService,
+    @Inject(LeakAnalyticsService)
+    private readonly analyticsService: LeakAnalyticsService,
   ) {}
 
   @Get()
@@ -42,6 +51,17 @@ export class IncidentsController {
     @Body() dto: CreateManualLeakIncidentDto,
   ) {
     return this.incidentsService.createManual(request.context!, dto);
+  }
+
+  @Get("analytics")
+  analytics(
+    @Req() request: RequestWithContext,
+    @Query() query: LeakAnalyticsQuery,
+  ) {
+    return this.analyticsService.summary(
+      request.context!.organization.id,
+      query,
+    );
   }
 
   @Post(":incidentId/acknowledge")
@@ -111,5 +131,29 @@ export class IncidentsController {
     @Param("incidentId") incidentId: string,
   ) {
     return this.incidentsService.get(request.context!, incidentId);
+  }
+}
+
+@Controller("leak-baseline-settings")
+@UseGuards(AuthGuard, RolesGuard)
+export class LeakBaselineSettingsController {
+  constructor(
+    @Inject(LeakBaselineDetectionService)
+    private readonly baselineService: LeakBaselineDetectionService,
+  ) {}
+
+  @Get()
+  get(@Req() request: RequestWithContext) {
+    return this.baselineService.getSettings(request.context!);
+  }
+
+  @Patch()
+  @HttpCode(200)
+  @Roles("owner")
+  update(
+    @Req() request: RequestWithContext,
+    @Body() dto: UpdateLeakBaselineSettingsDto,
+  ) {
+    return this.baselineService.updateSettings(request.context!, dto);
   }
 }

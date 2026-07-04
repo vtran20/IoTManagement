@@ -193,4 +193,14 @@ describe("Reports API", () => {
         });
       });
   });
+
+  it("rejects unsupported leak-response export formats", async () => {
+    await request(app.getHttpServer())
+      .get("/api/v1/reports/leak-response/export?format=spreadsheet")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.error.code).toBe("LEAK_REPORT_FORMAT_INVALID");
+      });
+  });
 });

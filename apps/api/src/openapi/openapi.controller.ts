@@ -52,6 +52,13 @@ export class OpenApiController {
             tags: ["Water Protection"],
           },
         },
+        "/api/v1/incidents/analytics": {
+          get: {
+            summary:
+              "Summarize tenant-scoped leak response performance and outcomes",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/incidents/manual": {
           post: {
             summary: "Create a manual leak incident",
@@ -106,6 +113,16 @@ export class OpenApiController {
             tags: ["Water Protection"],
           },
         },
+        "/api/v1/leak-baseline-settings": {
+          get: {
+            summary: "Get opt-in water baseline detection settings",
+            tags: ["Water Protection"],
+          },
+          patch: {
+            summary: "Update opt-in water baseline detection settings",
+            tags: ["Water Protection"],
+          },
+        },
         "/api/v1/notifications": {
           get: {
             summary: "List the current member's in-app incident notifications",
@@ -136,6 +153,19 @@ export class OpenApiController {
           post: {
             summary: "Register a simulated moisture sensor",
             tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/reports/leak-response": {
+          get: {
+            summary:
+              "Generate the tenant leak response analytics report as JSON",
+            tags: ["Reports"],
+          },
+        },
+        "/api/v1/reports/leak-response/export": {
+          get: {
+            summary: "Download the tenant leak response report as CSV or PDF",
+            tags: ["Reports"],
           },
         },
         "/api/v1/moisture-sensors/{sensorId}": {

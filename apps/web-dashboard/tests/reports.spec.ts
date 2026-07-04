@@ -36,6 +36,16 @@ test("monthly usage report shows totals and grouped unit rows", async ({
     page.getByText("Apartment 1201 With Long Tenant Label"),
   ).toBeVisible();
   await expect(page.getByText("$1,284.40")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Leak Response Report" }),
+  ).toBeVisible();
+  await expect(page.getByText("20 gal")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Download leak CSV" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Download leak PDF" }),
+  ).toBeVisible();
 });
 
 test("monthly usage report has a useful no-data state", async ({ page }) => {

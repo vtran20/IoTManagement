@@ -49,8 +49,8 @@
 
 ### Phase 7: Analytics And Reporting
 
-- [ ] Add response-time, recurring-location, excess-water, and resolution-outcome analytics plus CSV/JSON/PDF leak reports.
-- [ ] Add explainable, opt-in baseline detection only after 14 days of valid interval data.
+- [x] Add response-time, recurring-location, excess-water, and resolution-outcome analytics plus CSV/JSON/PDF leak reports.
+- [x] Add explainable, opt-in baseline detection only after 14 days of valid interval data.
 
 ## Cross-Phase Acceptance Criteria
 

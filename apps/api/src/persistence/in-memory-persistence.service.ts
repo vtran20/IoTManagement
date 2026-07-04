@@ -8,6 +8,7 @@ import type {
   IncidentActivity,
   IncidentEvidence,
   IncidentCorrelationSettings,
+  LeakBaselineSettings,
   IncidentNotification,
   IncidentResponderSettings,
   IncidentSensorEvidence,
@@ -195,6 +196,10 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly incidentCorrelationSettings = new Map<
     string,
     IncidentCorrelationSettings
+  >();
+  private readonly leakBaselineSettings = new Map<
+    string,
+    LeakBaselineSettings
   >();
   private readonly incidentNotifications: IncidentNotification[] = [];
   private readonly incidentResponderSettings = new Map<
@@ -1090,7 +1095,7 @@ export class InMemoryPersistenceService implements PersistenceService {
     meterId: string;
     observedUsage: number;
     organizationId: string;
-    policyId: string;
+    policyId?: string;
     readingIds: string[];
     thresholdUsage: number;
     windowEndedAt: string;
@@ -1257,6 +1262,25 @@ export class InMemoryPersistenceService implements PersistenceService {
     input: IncidentCorrelationSettings,
   ): IncidentCorrelationSettings {
     this.incidentCorrelationSettings.set(input.organizationId, input);
+    return input;
+  }
+
+  getLeakBaselineSettings(organizationId: string): LeakBaselineSettings {
+    return (
+      this.leakBaselineSettings.get(organizationId) ?? {
+        organizationId,
+        enabled: false,
+        minimumValidDays: 14,
+        thresholdMultiplier: 2,
+        updatedAt: "2026-06-29T00:00:00.000Z",
+      }
+    );
+  }
+
+  upsertLeakBaselineSettings(
+    input: LeakBaselineSettings,
+  ): LeakBaselineSettings {
+    this.leakBaselineSettings.set(input.organizationId, input);
     return input;
   }
 

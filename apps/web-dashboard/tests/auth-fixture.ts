@@ -561,6 +561,52 @@ export async function mockAuthenticatedSession(
       status: 200,
     });
   });
+  await page.route("**/api/v1/reports/leak-response**", async (route) => {
+    if (route.request().url().includes("/export")) {
+      const isPdf = route.request().url().includes("format=pdf");
+      await route.fulfill({
+        body: isPdf ? "%PDF-1.4\n" : "Metric,Value\nIncident count,2\n",
+        contentType: isPdf ? "application/pdf" : "text/csv",
+        status: 200,
+      });
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify({
+        excessWater: { estimatedCost: 3.75, gallons: 20 },
+        format: "json",
+        generatedAt: "2026-06-30T12:00:00.000Z",
+        id: "leak_response_org_north",
+        incidentCount: 2,
+        organizationId: "org_north",
+        periodEnd: "2026-06-30T23:59:59.999Z",
+        periodStart: "2026-06-01T00:00:00.000Z",
+        recurringLocations: [
+          {
+            buildingId: "building_north_ridge",
+            buildingName: "North Ridge",
+            incidentCount: 2,
+            resolvedCount: 1,
+          },
+        ],
+        reportType: "leak_response",
+        resolutionOutcomes: {
+          false_positive: 0,
+          leak_fixed: 1,
+          other: 0,
+          planned_usage: 0,
+          sensor_fault: 0,
+        },
+        responseTime: {
+          acknowledged: { averageMinutes: 15, count: 1, medianMinutes: 15 },
+          contained: { count: 0 },
+          resolved: { averageMinutes: 60, count: 1, medianMinutes: 60 },
+        },
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
   await page.route("**/api/v1/simulations/demo-seed", async (route) => {
     await route.fulfill({
       body: JSON.stringify({

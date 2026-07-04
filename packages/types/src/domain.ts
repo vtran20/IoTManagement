@@ -193,7 +193,7 @@ export interface IncidentEvidence {
   id: EntityId;
   organizationId: EntityId;
   incidentId: EntityId;
-  policyId: EntityId;
+  policyId?: EntityId;
   meterId: EntityId;
   readingIds: EntityId[];
   windowStartedAt: ISODateTime;
@@ -250,6 +250,14 @@ export interface IncidentSensorEvidence {
 export interface IncidentCorrelationSettings {
   organizationId: EntityId;
   moistureCorrelationWindowMinutes: number;
+  updatedAt: ISODateTime;
+}
+
+export interface LeakBaselineSettings {
+  organizationId: EntityId;
+  enabled: boolean;
+  minimumValidDays: number;
+  thresholdMultiplier: number;
   updatedAt: ISODateTime;
 }
 

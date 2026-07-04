@@ -1,24 +1,39 @@
 "use client";
 
-import type { MonthlyUsageReportResponse } from "@iot-management/types";
+import type {
+  LeakResponseReportResponse,
+  MonthlyUsageReportResponse,
+} from "@iot-management/types";
 import { apiBaseUrl } from "../../lib/auth-client";
 import { useApiResource } from "../../lib/use-api-resource";
 import { MonthlyUsageReport } from "./monthly-usage-report";
+import { LeakResponseReport } from "./leak-response-report";
 
 export function ReportsPanel({ state }: { state?: string }) {
   const report = useApiResource<MonthlyUsageReportResponse>(
     "/reports/monthly-usage?month=2026-06",
+  );
+  const leakReport = useApiResource<LeakResponseReportResponse>(
+    "/reports/leak-response?period=30d",
   );
 
   if (state === "empty") {
     return <NoReportData />;
   }
 
-  if (state === "loading" || report.status === "loading") {
+  if (
+    state === "loading" ||
+    report.status === "loading" ||
+    leakReport.status === "loading"
+  ) {
     return <section className="state-panel">Loading reports</section>;
   }
 
-  if (state === "error" || report.status === "error") {
+  if (
+    state === "error" ||
+    report.status === "error" ||
+    leakReport.status === "error"
+  ) {
     return (
       <section className="state-panel error-state">
         Report data is unavailable
@@ -39,8 +54,21 @@ export function ReportsPanel({ state }: { state?: string }) {
         >
           Download CSV
         </a>
+        <a
+          className="mode-button"
+          href={`${apiBaseUrl}/reports/leak-response/export?format=csv&period=30d`}
+        >
+          Download leak CSV
+        </a>
+        <a
+          className="mode-button"
+          href={`${apiBaseUrl}/reports/leak-response/export?format=pdf&period=30d`}
+        >
+          Download leak PDF
+        </a>
       </section>
       <MonthlyUsageReport report={report.data} />
+      <LeakResponseReport report={leakReport.data} />
     </>
   );
 }

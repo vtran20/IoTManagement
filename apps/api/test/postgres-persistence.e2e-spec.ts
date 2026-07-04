@@ -272,6 +272,73 @@ describe("PostgresPersistenceService", () => {
     );
   });
 
+  it("persists opt-in baseline settings and policy-free incident evidence", async () => {
+    const defaultSettings =
+      await persistence.getLeakBaselineSettings("org_north");
+    expect(defaultSettings).toMatchObject({
+      enabled: false,
+      minimumValidDays: 14,
+      thresholdMultiplier: 2,
+    });
+
+    const settings = await persistence.upsertLeakBaselineSettings({
+      enabled: true,
+      minimumValidDays: 14,
+      organizationId: "org_north",
+      thresholdMultiplier: 2.5,
+      updatedAt: "2026-07-03T12:00:00.000Z",
+    });
+    const building = await persistence.createBuilding({
+      name: "Baseline Persistence Tower",
+      organizationId: "org_north",
+      timezone: "America/Detroit",
+    });
+    const meter = await persistence.createMeter({
+      buildingId: building.id,
+      externalId: "baseline-persistence-water",
+      organizationId: "org_north",
+      source: "simulated",
+      utilityType: "water",
+    });
+    const reading = await persistence.createReading({
+      measuredAt: "2026-07-03T12:00:00.000Z",
+      meterId: meter.id,
+      organizationId: "org_north",
+      readingKind: "interval",
+      receivedAt: "2026-07-03T12:00:01.000Z",
+      unit: "gallon",
+      utilityType: "water",
+      value: 5,
+    });
+    const incident = await persistence.createLeakIncident({
+      buildingId: building.id,
+      description: "Baseline threshold exceeded",
+      detectedAt: reading.measuredAt,
+      meterId: meter.id,
+      organizationId: "org_north",
+      severity: "warning",
+      source: "meter_anomaly",
+      title: "Baseline water anomaly",
+    });
+    const evidence = await persistence.createIncidentEvidence({
+      createdAt: "2026-07-03T12:00:02.000Z",
+      incidentId: incident.id,
+      meterId: meter.id,
+      observedUsage: 5,
+      organizationId: "org_north",
+      readingIds: [reading.id],
+      thresholdUsage: 2,
+      windowEndedAt: reading.measuredAt,
+      windowStartedAt: reading.measuredAt,
+    });
+
+    expect(settings).toMatchObject({ enabled: true, thresholdMultiplier: 2.5 });
+    expect(
+      await persistence.getLeakBaselineSettings("org_north"),
+    ).toMatchObject({ enabled: true, thresholdMultiplier: 2.5 });
+    expect(evidence.policyId).toBeUndefined();
+  });
+
   it("persists leak repair work orders with their incident context", async () => {
     const building = await persistence.createBuilding({
       name: "Work Order Persistence Tower",

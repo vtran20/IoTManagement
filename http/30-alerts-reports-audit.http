@@ -65,6 +65,18 @@ Authorization: Bearer {{ownerToken}}
 GET {{baseUrl}}/reports/monthly-usage/export?month={{reportMonth}}&buildingId={{testBuildingId}}
 Authorization: Bearer {{ownerToken}}
 
+### Leak response JSON report
+GET {{baseUrl}}/reports/leak-response?period=30d&buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Leak response CSV export
+GET {{baseUrl}}/reports/leak-response/export?format=csv&period=30d&buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
+### Leak response PDF export
+GET {{baseUrl}}/reports/leak-response/export?format=pdf&period=30d&buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
 ### Audit events
 GET {{baseUrl}}/audit/events?limit=50
 Authorization: Bearer {{ownerToken}}

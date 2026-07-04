@@ -38,6 +38,10 @@ Content-Type: application/json
 GET {{baseUrl}}/incidents?buildingId={{testBuildingId}}
 Authorization: Bearer {{ownerToken}}
 
+### Leak incident analytics
+GET {{baseUrl}}/incidents/analytics?period=30d&buildingId={{testBuildingId}}
+Authorization: Bearer {{ownerToken}}
+
 ### Get incident detail
 GET {{baseUrl}}/incidents/{{testIncidentId}}
 Authorization: Bearer {{ownerToken}}
@@ -144,4 +148,18 @@ Content-Type: application/json
   "emailEnabled": true,
   "criticalAcknowledgementDeadlineMinutes": 15,
   "warningAcknowledgementDeadlineMinutes": 60
+}
+
+### Get opt-in baseline detection settings
+GET {{baseUrl}}/leak-baseline-settings
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: enable baseline detection
+PATCH {{baseUrl}}/leak-baseline-settings
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "thresholdMultiplier": 2
 }

@@ -12,6 +12,7 @@ export interface DatabaseSchema {
   incident_notifications: IncidentNotificationRow;
   incident_responder_settings: IncidentResponderSettingsRow;
   incident_correlation_settings: IncidentCorrelationSettingsRow;
+  leak_baseline_settings: LeakBaselineSettingsRow;
   incident_sensor_evidence: IncidentSensorEvidenceRow;
   buildings: BuildingRow;
   floors: FloorRow;
@@ -105,6 +106,14 @@ export interface IncidentNotificationRow {
 export interface IncidentCorrelationSettingsRow {
   organization_id: string;
   moisture_correlation_window_minutes: number;
+  updated_at: Timestamp;
+}
+
+export interface LeakBaselineSettingsRow {
+  organization_id: string;
+  enabled: boolean;
+  minimum_valid_days: number;
+  threshold_multiplier: Numeric;
   updated_at: Timestamp;
 }
 
@@ -254,7 +263,7 @@ export interface IncidentEvidenceRow {
   id: string;
   organization_id: string;
   incident_id: string;
-  policy_id: string;
+  policy_id: string | null;
   meter_id: string;
   reading_ids: unknown;
   window_started_at: Timestamp;

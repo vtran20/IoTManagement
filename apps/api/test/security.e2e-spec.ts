@@ -88,7 +88,10 @@ describe("Security and operational hardening", () => {
         "/api/v1/audit/events": expect.any(Object),
         "/api/v1/buildings": expect.any(Object),
         "/api/v1/incidents": expect.any(Object),
+        "/api/v1/incidents/analytics": expect.any(Object),
+        "/api/v1/leak-baseline-settings": expect.any(Object),
         "/api/v1/meters": expect.any(Object),
+        "/api/v1/reports/leak-response": expect.any(Object),
       },
     });
   });
@@ -158,6 +161,45 @@ describe("Security and operational hardening", () => {
       .get("/api/v1/audit/events")
       .set("Authorization", `Bearer ${viewerToken}`)
       .expect(403);
+  });
+
+  it("allows every member to read baseline settings but only owners to update them", async () => {
+    const ownerToken = await login();
+    const managerToken = await login("manager@north.example");
+    const viewerToken = await login("viewer@north.example");
+
+    await request(app.getHttpServer())
+      .get("/api/v1/leak-baseline-settings")
+      .set("Authorization", `Bearer ${viewerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          enabled: false,
+          minimumValidDays: 14,
+          organizationId: "org_north",
+        });
+      });
+
+    for (const token of [managerToken, viewerToken]) {
+      await request(app.getHttpServer())
+        .patch("/api/v1/leak-baseline-settings")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ enabled: true, thresholdMultiplier: 2 })
+        .expect(403);
+    }
+
+    await request(app.getHttpServer())
+      .patch("/api/v1/leak-baseline-settings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ enabled: true, thresholdMultiplier: 2.5 })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          enabled: true,
+          minimumValidDays: 14,
+          thresholdMultiplier: 2.5,
+        });
+      });
   });
 
   it("rate limits repeated failed login attempts", async () => {

@@ -6,6 +6,7 @@ import type {
   IncidentActivity,
   IncidentEvidence,
   IncidentCorrelationSettings,
+  LeakBaselineSettings,
   IncidentNotification,
   IncidentResponderSettings,
   IncidentSensorEvidence,
@@ -38,6 +39,7 @@ import type {
   IncidentActivityRow,
   IncidentEvidenceRow,
   IncidentCorrelationSettingsRow,
+  LeakBaselineSettingsRow,
   IncidentNotificationRow,
   IncidentResponderSettingsRow,
   IncidentSensorEvidenceRow,
@@ -1602,7 +1604,7 @@ export class PostgresPersistenceService
     meterId: string;
     observedUsage: number;
     organizationId: string;
-    policyId: string;
+    policyId?: string;
     readingIds: string[];
     thresholdUsage: number;
     windowEndedAt: string;
@@ -1878,6 +1880,50 @@ export class PostgresPersistenceService
       .returningAll()
       .executeTakeFirstOrThrow();
     return mapIncidentCorrelationSettings(row);
+  }
+
+  async getLeakBaselineSettings(
+    organizationId: string,
+  ): Promise<LeakBaselineSettings> {
+    const row = await this.database.db
+      .selectFrom("leak_baseline_settings")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .executeTakeFirst();
+    return row
+      ? mapLeakBaselineSettings(row)
+      : {
+          organizationId,
+          enabled: false,
+          minimumValidDays: 14,
+          thresholdMultiplier: 2,
+          updatedAt: "2026-06-29T00:00:00.000Z",
+        };
+  }
+
+  async upsertLeakBaselineSettings(
+    input: LeakBaselineSettings,
+  ): Promise<LeakBaselineSettings> {
+    const row = await this.database.db
+      .insertInto("leak_baseline_settings")
+      .values({
+        organization_id: input.organizationId,
+        enabled: input.enabled,
+        minimum_valid_days: input.minimumValidDays,
+        threshold_multiplier: input.thresholdMultiplier,
+        updated_at: input.updatedAt,
+      })
+      .onConflict((conflict) =>
+        conflict.column("organization_id").doUpdateSet({
+          enabled: input.enabled,
+          minimum_valid_days: input.minimumValidDays,
+          threshold_multiplier: input.thresholdMultiplier,
+          updated_at: input.updatedAt,
+        }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapLeakBaselineSettings(row);
   }
 
   async listLeakIncidents(input: {
@@ -2771,7 +2817,7 @@ function mapIncidentEvidence(
     id: row.id,
     organizationId: row.organization_id,
     incidentId: row.incident_id,
-    policyId: row.policy_id,
+    policyId: row.policy_id ?? undefined,
     meterId: row.meter_id,
     readingIds: parseJsonArray(row.reading_ids),
     windowStartedAt: iso(row.window_started_at),
@@ -2829,6 +2875,18 @@ function mapIncidentCorrelationSettings(
   return {
     organizationId: row.organization_id,
     moistureCorrelationWindowMinutes: row.moisture_correlation_window_minutes,
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+function mapLeakBaselineSettings(
+  row: Selectable<LeakBaselineSettingsRow>,
+): LeakBaselineSettings {
+  return {
+    organizationId: row.organization_id,
+    enabled: row.enabled,
+    minimumValidDays: row.minimum_valid_days,
+    thresholdMultiplier: Number(row.threshold_multiplier),
     updatedAt: iso(row.updated_at),
   };
 }
