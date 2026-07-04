@@ -6,7 +6,10 @@ export function LeakResponseReport({
   report: LeakResponseReportResponse;
 }) {
   return (
-    <section aria-labelledby="leak-response-report-heading">
+    <section
+      aria-labelledby="leak-response-report-heading"
+      className="leak-response-report"
+    >
       <div className="page-header">
         <h2 id="leak-response-report-heading">Leak Response Report</h2>
         <p>

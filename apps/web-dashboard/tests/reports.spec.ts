@@ -39,6 +39,7 @@ test("monthly usage report shows totals and grouped unit rows", async ({
   await expect(
     page.getByRole("heading", { name: "Leak Response Report" }),
   ).toBeVisible();
+  await expect(page.locator(".leak-response-report")).toBeVisible();
   await expect(page.getByText("20 gal")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Download leak CSV" }),

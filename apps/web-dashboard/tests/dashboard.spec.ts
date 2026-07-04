@@ -6,6 +6,10 @@ test("app shell navigation exposes core operations pages", async ({ page }) => {
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   for (const name of [
     "Dashboard",
     "Buildings",
@@ -21,6 +25,10 @@ test("app shell navigation exposes core operations pages", async ({ page }) => {
   await page.getByRole("link", { name: "Meters" }).click();
   await expect(page).toHaveURL(/\/meters$/);
   await expect(page.getByRole("heading", { name: "Meters" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Meters" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
 
 test("app shell keeps navigation reachable on mobile", async ({ page }) => {
