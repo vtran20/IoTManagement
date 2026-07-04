@@ -7,6 +7,7 @@ import type {
   Unit,
 } from "@iot-management/types";
 import { AppShell } from "../../../components/app-shell";
+import { Breadcrumbs } from "../../../components/breadcrumbs";
 import { useApiResource } from "../../../lib/use-api-resource";
 
 export function UnitDetail({ unitId }: { unitId: string }) {
@@ -50,6 +51,16 @@ export function UnitDetail({ unitId }: { unitId: string }) {
   return (
     <AppShell title="Unit Detail">
       <section className="page-header">
+        <Breadcrumbs
+          items={[
+            { href: "/buildings", label: "Buildings" },
+            {
+              href: `/buildings/${unit.data.buildingId}`,
+              label: buildingName,
+            },
+            { label: unit.data.name },
+          ]}
+        />
         <h2>{unit.data.name}</h2>
         <p>{buildingName} unit assignment</p>
       </section>

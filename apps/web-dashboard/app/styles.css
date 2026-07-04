@@ -157,6 +157,31 @@ a {
   color: #18181b;
 }
 
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.breadcrumbs li {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.breadcrumbs a {
+  color: #52525b;
+  font-size: 13px;
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: #71717a;
+  font-size: 13px;
+}
+
 .account-block {
   margin-top: auto;
 }

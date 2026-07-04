@@ -8,6 +8,7 @@ import type {
   Unit,
 } from "@iot-management/types";
 import { AppShell } from "../../../components/app-shell";
+import { Breadcrumbs } from "../../../components/breadcrumbs";
 import {
   canMutate,
   mutateJson,
@@ -64,6 +65,12 @@ export function BuildingDetail({ buildingId }: { buildingId: string }) {
     <AppShell title="Building Detail">
       <section className="page-header portfolio-detail-header">
         <div>
+          <Breadcrumbs
+            items={[
+              { href: "/buildings", label: "Buildings" },
+              { label: building.name },
+            ]}
+          />
           <h2>{building.name}</h2>
           <p>Meter assignments and utility status</p>
         </div>

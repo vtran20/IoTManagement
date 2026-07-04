@@ -9,6 +9,7 @@ import type {
   WorkOrder,
 } from "@iot-management/types";
 import { AppShell } from "../../components/app-shell";
+import { Breadcrumbs } from "../../components/breadcrumbs";
 import {
   canMutate,
   fetchJson,
@@ -126,9 +127,12 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
     <AppShell title="Water Incident">
       <section className="page-header incident-header">
         <div>
-          <a className="back-link" href="/incidents">
-            Water incidents
-          </a>
+          <Breadcrumbs
+            items={[
+              { href: "/incidents", label: "Incidents" },
+              { label: data.title },
+            ]}
+          />
           <h2>{data.title}</h2>
           <p>{data.description}</p>
         </div>

@@ -8,6 +8,7 @@ import type {
   Unit,
 } from "@iot-management/types";
 import { AppShell } from "../../../components/app-shell";
+import { Breadcrumbs } from "../../../components/breadcrumbs";
 import {
   canMutate,
   mutateJson,
@@ -85,6 +86,9 @@ export function MeterDetail({ meterId }: { meterId: string }) {
     <AppShell title="Meter Detail">
       <section className="page-header portfolio-detail-header">
         <div>
+          <Breadcrumbs
+            items={[{ href: "/meters", label: "Meters" }, { label: name }]}
+          />
           <h2>{name}</h2>
           <p>{buildingName}</p>
         </div>
