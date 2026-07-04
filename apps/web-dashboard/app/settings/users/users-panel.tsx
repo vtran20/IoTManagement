@@ -4,17 +4,26 @@ import { FormEvent, useEffect, useState } from "react";
 import type { Membership, UserRole } from "@iot-management/types";
 import { AppShell } from "../../../components/app-shell";
 import { apiFetch } from "../../../lib/auth-client";
+import { useCurrentSession } from "../../../lib/use-api-resource";
 
 type LoadState = "loading" | "ready" | "error";
 type SubmitState = "idle" | "sent" | "error";
 
 export function UsersPanel() {
+  const session = useCurrentSession();
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const role = session.data?.membership.role;
+  const canManageUsers = role === "owner" || role === "manager";
+  const inviteRoles: UserRole[] =
+    role === "owner" ? ["viewer", "manager", "owner"] : ["viewer"];
 
   useEffect(() => {
+    if (!canManageUsers) {
+      return;
+    }
     let mounted = true;
     apiFetch("/memberships")
       .then(async (response) => {
@@ -35,7 +44,25 @@ export function UsersPanel() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [canManageUsers]);
+
+  if (session.status === "loading") {
+    return (
+      <AppShell title="Users">
+        <section className="state-panel">Loading access controls</section>
+      </AppShell>
+    );
+  }
+
+  if (session.status === "error" || !canManageUsers) {
+    return (
+      <AppShell title="Users">
+        <section className="state-panel error-state">
+          User management requires owner or manager access.
+        </section>
+      </AppShell>
+    );
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,13 +110,11 @@ export function UsersPanel() {
         <label className="field compact-field">
           <span>Invite role</span>
           <select name="role" defaultValue="viewer">
-            {(["viewer", "manager", "owner"] satisfies UserRole[]).map(
-              (role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ),
-            )}
+            {inviteRoles.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
           </select>
         </label>
         <button

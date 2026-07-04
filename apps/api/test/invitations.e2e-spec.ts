@@ -75,6 +75,21 @@ describe("Invitations, memberships, and roles API", () => {
       .expect(403);
   });
 
+  it("prevents managers from administering owner memberships", async () => {
+    const managerToken = await login("manager@north.example");
+
+    await request(app.getHttpServer())
+      .post("/api/v1/memberships")
+      .set("Authorization", `Bearer ${managerToken}`)
+      .send({ email: "manager-created-owner@north.example", role: "owner" })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post("/api/v1/memberships/membership_north_owner/disable")
+      .set("Authorization", `Bearer ${managerToken}`)
+      .expect(403);
+  });
+
   it("sends invitation email, accepts token once, and creates active membership", async () => {
     const ownerToken = await login("owner@north.example");
 

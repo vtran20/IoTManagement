@@ -15,6 +15,7 @@ import { AcceptInvitationDto } from "./dto/accept-invitation.dto";
 import { CreateInvitationDto } from "./dto/create-invitation.dto";
 
 const invitationDurationMs = 1000 * 60 * 60 * 24 * 7;
+const managedRoles = new Set<UserRole>(["owner", "manager", "viewer"]);
 
 @Injectable()
 export class InvitationsService {
@@ -35,7 +36,7 @@ export class InvitationsService {
       );
     }
 
-    const role = dto.role ?? "viewer";
+    const role = this.assertManagedRole(dto.role ?? "viewer");
     this.assertCanInvite(context.membership.role, role);
 
     const token = createSessionToken();
@@ -169,6 +170,17 @@ export class InvitationsService {
         HttpStatus.FORBIDDEN,
       );
     }
+  }
+
+  private assertManagedRole(role: UserRole): UserRole {
+    if (!managedRoles.has(role)) {
+      throw new ApiError(
+        "VALIDATION_FAILED",
+        "Role must be owner, manager, or viewer",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return role;
   }
 }
 

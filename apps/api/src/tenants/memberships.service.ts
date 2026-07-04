@@ -16,6 +16,8 @@ export interface UpdateMembershipDto {
   role?: UserRole;
 }
 
+const managedRoles = new Set<UserRole>(["owner", "manager", "viewer"]);
+
 @Injectable()
 export class MembershipsService {
   constructor(
@@ -24,11 +26,13 @@ export class MembershipsService {
   ) {}
 
   async create(context: RequestContext, dto: CreateMembershipDto) {
+    const role = this.assertManagedRole(dto.role ?? "viewer");
+    this.assertManagerCanCreateRole(context, role);
     const membership =
       await this.persistence.createMembershipForCurrentOrganization({
         email: dto.email ?? "",
         organizationId: context.organization.id,
-        role: dto.role ?? "viewer",
+        role,
       });
 
     return { membership };
@@ -46,9 +50,9 @@ export class MembershipsService {
     membershipId: string,
     dto: UpdateMembershipDto,
   ) {
-    const role = dto.role ?? "viewer";
-    this.assertManagerCanManageRole(context, role);
+    const role = this.assertManagedRole(dto.role ?? "viewer");
     const membership = await this.findTenantMembership(context, membershipId);
+    this.assertOwnerCanChangeRoles(context);
     await this.assertNotLastOwnerChange(context, membership, role);
 
     const updated = await this.persistence.updateMembershipRole(
@@ -69,6 +73,7 @@ export class MembershipsService {
 
   async disable(context: RequestContext, membershipId: string) {
     const membership = await this.findTenantMembership(context, membershipId);
+    this.assertManagerCanManageMembership(context, membership);
     await this.assertNotLastOwnerChange(context, membership, membership.role, {
       disabling: true,
     });
@@ -90,6 +95,7 @@ export class MembershipsService {
 
   async reactivate(context: RequestContext, membershipId: string) {
     const membership = await this.findTenantMembership(context, membershipId);
+    this.assertManagerCanManageMembership(context, membership);
     const updated = await this.persistence.updateMembershipStatus(
       context.organization.id,
       membershipId,
@@ -123,11 +129,45 @@ export class MembershipsService {
     return membership;
   }
 
-  private assertManagerCanManageRole(
+  private assertManagedRole(role: UserRole): UserRole {
+    if (!managedRoles.has(role)) {
+      throw new ApiError(
+        "VALIDATION_FAILED",
+        "Role must be owner, manager, or viewer",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return role;
+  }
+
+  private assertManagerCanCreateRole(
     context: RequestContext,
     targetRole: UserRole,
   ): void {
     if (context.membership.role === "manager" && targetRole !== "viewer") {
+      throw new ApiError(
+        "MEMBERSHIP_ROLE_FORBIDDEN",
+        "Managers can only manage viewer memberships",
+        HttpStatus.FORBIDDEN,
+      );
+    }
+  }
+
+  private assertOwnerCanChangeRoles(context: RequestContext): void {
+    if (context.membership.role !== "owner") {
+      throw new ApiError(
+        "MEMBERSHIP_ROLE_FORBIDDEN",
+        "Only owners can change membership roles",
+        HttpStatus.FORBIDDEN,
+      );
+    }
+  }
+
+  private assertManagerCanManageMembership(
+    context: RequestContext,
+    membership: { role: UserRole },
+  ): void {
+    if (context.membership.role === "manager" && membership.role !== "viewer") {
       throw new ApiError(
         "MEMBERSHIP_ROLE_FORBIDDEN",
         "Managers can only manage viewer memberships",
