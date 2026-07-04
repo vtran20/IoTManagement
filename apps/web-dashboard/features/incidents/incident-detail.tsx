@@ -158,7 +158,9 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
           Showing the most recently loaded incident data
         </section>
       ) : null}
-      {message ? <p className="form-error">{message}</p> : null}
+      {message ? (
+        <section className="state-panel error-state">{message}</section>
+      ) : null}
       <section className="detail-grid water-detail-grid">
         <article className="data-panel incident-context-panel">
           <h3>Incident context</h3>
@@ -244,7 +246,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
             </table>
           ) : null}
         </article>
-        {allowMutations ? (
+        {allowMutations && data.status !== "resolved" ? (
           <article className="data-panel">
             <h3>Create repair work order</h3>
             <form className="work-order-form" onSubmit={createWorkOrder}>
