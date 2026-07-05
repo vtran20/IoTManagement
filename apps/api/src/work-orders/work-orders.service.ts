@@ -1,8 +1,10 @@
 import type {
   CreateWorkOrderRequest,
+  CreateWorkOrderNoteRequest,
   ListWorkOrdersQuery,
   WorkOrder,
   WorkOrderResponse,
+  WorkOrderNote,
 } from "@iot-management/types";
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { ApiError } from "../common/errors/api-error";
@@ -14,6 +16,8 @@ import {
 import { tenantResourceNotFound } from "../portfolio/portfolio-errors";
 import { UpdateWorkOrderDto } from "./dto/update-work-order.dto";
 import { getWorkOrderTransition } from "./work-order-lifecycle";
+import { resolveWorkOrderAssignment } from "./work-order-assignment";
+import { WorkOrderOverdueQueueService } from "../jobs/queues";
 
 const workOrderPriorities: WorkOrder["priority"][] = [
   "low",
@@ -34,6 +38,8 @@ export class WorkOrdersService {
   constructor(
     @Inject(PERSISTENCE_SERVICE)
     private readonly persistence: PersistenceService,
+    @Inject(WorkOrderOverdueQueueService)
+    private readonly overdueQueue: WorkOrderOverdueQueueService,
   ) {}
 
   async create(
@@ -67,17 +73,46 @@ export class WorkOrdersService {
           dto.assignedMembershipId,
         )
       : undefined;
+    const assignedVendor = dto.assignedVendorId
+      ? await this.findAssignableVendor(
+          context.organization.id,
+          dto.assignedVendorId,
+        )
+      : undefined;
+    let assignment;
+    try {
+      assignment = resolveWorkOrderAssignment({
+        assignedMembershipId: assignedMembership?.id,
+        assignedVendorId: assignedVendor?.id,
+        currentStatus: "open",
+      });
+    } catch (error) {
+      throw new ApiError(
+        "WORK_ORDER_ASSIGNMENT_INVALID",
+        (error as Error).message,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const now = new Date().toISOString();
+    const estimatedCost =
+      dto.estimatedCost === undefined
+        ? undefined
+        : this.normalizeMoney(
+            dto.estimatedCost,
+            "WORK_ORDER_ESTIMATED_COST_INVALID",
+          );
     const workOrder = await this.persistence.createWorkOrder({
       assignedMembershipId: assignedMembership?.id,
+      assignedVendorId: assignedVendor?.id,
       buildingId: incident.buildingId,
       createdAt: now,
       description,
       dueAt: this.normalizeDate(dto.dueAt),
+      estimatedCost,
       incidentId: incident.id,
       organizationId: context.organization.id,
       priority: this.validatePriority(dto.priority),
-      status: assignedMembership ? "assigned" : "open",
+      status: assignment.status,
       title,
       unitId: incident.unitId,
       updatedAt: now,
@@ -100,6 +135,16 @@ export class WorkOrdersService {
         type: "work_order_assigned",
       });
     }
+    if (assignedVendor) {
+      await this.persistence.createIncidentActivity({
+        actorUserId: context.user.id,
+        createdAt: now,
+        incidentId: incident.id,
+        organizationId: context.organization.id,
+        summary: `Work order assigned to vendor ${assignedVendor.companyName}`,
+        type: "work_order_assigned",
+      });
+    }
     await this.persistence.createAuditLog({
       action: "work_order.created",
       actorUserId: context.user.id,
@@ -108,12 +153,20 @@ export class WorkOrdersService {
       targetId: workOrder.id,
       targetType: "work_order",
     });
+    if (workOrder.dueAt && workOrder.status !== "open") {
+      await this.overdueQueue.schedule({
+        dueAt: workOrder.dueAt,
+        workOrderId: workOrder.id,
+        organizationId: workOrder.organizationId,
+      });
+    }
     return this.withOverdue(workOrder);
   }
 
   async list(context: RequestContext, query: ListWorkOrdersQuery = {}) {
     const items = await this.persistence.listWorkOrders({
       assignedMembershipId: query.assignedMembershipId,
+      assignedVendorId: query.assignedVendorId,
       incidentId: query.incidentId,
       organizationId: context.organization.id,
       overdue: this.normalizeOverdue(query.overdue),
@@ -137,6 +190,43 @@ export class WorkOrdersService {
     return this.withOverdue(workOrder);
   }
 
+  async listNotes(
+    context: RequestContext,
+    workOrderId: string,
+  ): Promise<{ items: WorkOrderNote[] }> {
+    await this.get(context, workOrderId);
+    return {
+      items: await this.persistence.listWorkOrderNotes({
+        organizationId: context.organization.id,
+        workOrderId,
+      }),
+    };
+  }
+
+  async createNote(
+    context: RequestContext,
+    workOrderId: string,
+    dto: CreateWorkOrderNoteRequest,
+  ): Promise<WorkOrderNote> {
+    const workOrder = await this.get(context, workOrderId);
+    const now = new Date().toISOString();
+    const note = await this.persistence.createWorkOrderNote({
+      authorUserId: context.user.id,
+      createdAt: now,
+      note: this.requireText(dto.note, "WORK_ORDER_NOTE_REQUIRED"),
+      organizationId: context.organization.id,
+      workOrderId: workOrder.id,
+    });
+    await this.createTimelineActivity(
+      context,
+      workOrder,
+      "work_order_updated",
+      "Work order note added",
+      now,
+    );
+    return note;
+  }
+
   async update(
     context: RequestContext,
     workOrderId: string,
@@ -149,6 +239,13 @@ export class WorkOrdersService {
     if (!existing) {
       throw tenantResourceNotFound("Work order");
     }
+    if (dto.assignedMembershipId && dto.assignedVendorId) {
+      throw new ApiError(
+        "WORK_ORDER_ASSIGNMENT_INVALID",
+        "A work order must have exactly one assignment target",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     const assignedMembership = dto.assignedMembershipId
       ? await this.findAssignableMembership(
@@ -156,6 +253,23 @@ export class WorkOrdersService {
           dto.assignedMembershipId,
         )
       : undefined;
+    const assignedVendor = dto.assignedVendorId
+      ? await this.findAssignableVendor(
+          context.organization.id,
+          dto.assignedVendorId,
+        )
+      : undefined;
+    if (
+      (dto.assignedMembershipId !== undefined ||
+        dto.assignedVendorId !== undefined) &&
+      ["completed", "cancelled"].includes(existing.status)
+    ) {
+      throw new ApiError(
+        "WORK_ORDER_ASSIGNMENT_LOCKED",
+        "Completed or cancelled work orders cannot be reassigned",
+        HttpStatus.CONFLICT,
+      );
+    }
     const title =
       dto.title === undefined
         ? undefined
@@ -174,12 +288,21 @@ export class WorkOrdersService {
       dto.status === undefined
         ? existing.status
         : this.validateStatus(dto.status);
-    if (assignedMembership && dto.status === undefined && status === "open") {
+    if (
+      (assignedMembership || assignedVendor) &&
+      dto.status === undefined &&
+      status === "open"
+    ) {
       status = "assigned";
     }
     if (
       status === "assigned" &&
-      !(assignedMembership ?? existing.assignedMembershipId)
+      !(
+        assignedMembership ??
+        existing.assignedMembershipId ??
+        assignedVendor ??
+        existing.assignedVendorId
+      )
     ) {
       throw new ApiError(
         "WORK_ORDER_ASSIGNEE_REQUIRED",
@@ -213,6 +336,28 @@ export class WorkOrdersService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    const estimatedCost =
+      dto.estimatedCost === undefined
+        ? undefined
+        : this.normalizeMoney(
+            dto.estimatedCost,
+            "WORK_ORDER_ESTIMATED_COST_INVALID",
+          );
+    const finalCost =
+      dto.finalCost === undefined
+        ? undefined
+        : this.normalizeMoney(dto.finalCost, "WORK_ORDER_FINAL_COST_INVALID");
+    if (
+      status === "completed" &&
+      finalCost === undefined &&
+      existing.finalCost === undefined
+    ) {
+      throw new ApiError(
+        "WORK_ORDER_FINAL_COST_REQUIRED",
+        "A final cost is required before completing a work order",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     const now = new Date().toISOString();
     const updated = await this.persistence.updateWorkOrder(
@@ -220,11 +365,21 @@ export class WorkOrdersService {
       existing.id,
       {
         ...(assignedMembership
-          ? { assignedMembershipId: assignedMembership.id }
-          : {}),
+          ? {
+              assignedMembershipId: assignedMembership.id,
+              assignedVendorId: null,
+            }
+          : assignedVendor
+            ? {
+                assignedMembershipId: null,
+                assignedVendorId: assignedVendor.id,
+              }
+            : {}),
         ...(completionNote ? { completionNote } : {}),
         ...(description ? { description } : {}),
         ...(dueAt ? { dueAt } : {}),
+        ...(estimatedCost !== undefined ? { estimatedCost } : {}),
+        ...(finalCost !== undefined ? { finalCost } : {}),
         ...(priority ? { priority } : {}),
         ...(status !== existing.status ? { status } : {}),
         ...(title ? { title } : {}),
@@ -254,6 +409,16 @@ export class WorkOrdersService {
       targetId: workOrder.id,
       targetType: "work_order",
     });
+    if (
+      workOrder.dueAt &&
+      !["completed", "cancelled"].includes(workOrder.status)
+    ) {
+      await this.overdueQueue.schedule({
+        dueAt: workOrder.dueAt,
+        workOrderId: workOrder.id,
+        organizationId: workOrder.organizationId,
+      });
+    }
     return this.withOverdue(workOrder);
   }
 
@@ -353,6 +518,32 @@ export class WorkOrdersService {
       );
     }
     return membership;
+  }
+
+  private async findAssignableVendor(organizationId: string, vendorId: string) {
+    const vendor = await this.persistence.findVendorById(
+      organizationId,
+      vendorId,
+    );
+    if (!vendor || vendor.status !== "active") {
+      throw new ApiError(
+        "WORK_ORDER_VENDOR_INVALID",
+        "Work orders can only be assigned to active vendors",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return vendor;
+  }
+
+  private normalizeMoney(value: unknown, code: string): number {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+      throw new ApiError(
+        code,
+        "Cost must be a non-negative number",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return Number(value.toFixed(2));
   }
 
   private normalizeDate(value: unknown): string | undefined {

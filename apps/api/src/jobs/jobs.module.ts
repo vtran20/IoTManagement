@@ -1,8 +1,11 @@
 import { Module } from "@nestjs/common";
-import { IncidentEscalationQueueService } from "./queues";
+import {
+  IncidentEscalationQueueService,
+  WorkOrderOverdueQueueService,
+} from "./queues";
 
 @Module({
-  exports: [IncidentEscalationQueueService],
-  providers: [IncidentEscalationQueueService],
+  exports: [IncidentEscalationQueueService, WorkOrderOverdueQueueService],
+  providers: [IncidentEscalationQueueService, WorkOrderOverdueQueueService],
 })
 export class JobsModule {}

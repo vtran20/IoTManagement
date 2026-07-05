@@ -4,10 +4,12 @@ import { AppModule } from "./app.module";
 import { validateApiEnv } from "./config/env.schema";
 import {
   IncidentEscalationJobData,
+  WorkOrderOverdueJobData,
   jobQueues,
   redisConnectionOptions,
 } from "./jobs/queues";
 import { IncidentEscalationService } from "./notifications/incident-escalation.service";
+import { WorkOrderOverdueService } from "./notifications/work-order-overdue.service";
 
 async function start(): Promise<void> {
   const env = validateApiEnv();
@@ -15,9 +17,15 @@ async function start(): Promise<void> {
     logger: ["error", "warn", "log"],
   });
   const escalationService = app.get(IncidentEscalationService);
+  const workOrderOverdueService = app.get(WorkOrderOverdueService);
   const incidentEscalationWorker = new Worker<IncidentEscalationJobData>(
     jobQueues.incidentEscalation,
     async (job) => escalationService.process(job.data),
+    { connection: redisConnectionOptions(env.redisUrl) },
+  );
+  const workOrderOverdueWorker = new Worker<WorkOrderOverdueJobData>(
+    jobQueues.workOrderOverdue,
+    async (job) => workOrderOverdueService.process(job.data),
     { connection: redisConnectionOptions(env.redisUrl) },
   );
   const heartbeat = setInterval(() => {
@@ -42,6 +50,7 @@ async function start(): Promise<void> {
   async function shutdown(signal: NodeJS.Signals): Promise<void> {
     clearInterval(heartbeat);
     await incidentEscalationWorker.close();
+    await workOrderOverdueWorker.close();
     await app.close();
     console.log(JSON.stringify({ signal, status: "worker-stopped" }));
     process.exit(0);

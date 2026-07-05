@@ -7,9 +7,11 @@ import { dashboardMetricIconFor } from "../../lib/iconography";
 
 export function OverviewCards({
   deviceHealth,
+  overdueWorkOrderCount,
   summary,
 }: {
   deviceHealth?: DeviceHealthResponse;
+  overdueWorkOrderCount: number;
   summary: DashboardSummaryResponse;
 }) {
   const water = findUtility(summary, "water");
@@ -31,6 +33,11 @@ export function OverviewCards({
     ],
     ["Device Health", health, healthPrevious],
     ["Open Alerts", String(summary.openAlertCount), "Needs review"],
+    [
+      "Overdue Work",
+      String(overdueWorkOrderCount),
+      overdueWorkOrderCount ? "Needs repair follow-up" : "No overdue repairs",
+    ],
   ] as const;
 
   return (

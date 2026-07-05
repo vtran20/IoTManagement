@@ -32,6 +32,7 @@ import { SettingsModule } from "./settings/settings.module";
 import { SimulationsModule } from "./simulations/simulations.module";
 import { TenantsModule } from "./tenants/tenants.module";
 import { WorkOrdersModule } from "./work-orders/work-orders.module";
+import { VendorsModule } from "./vendors/vendors.module";
 
 @Module({
   controllers: [HealthController],
@@ -51,6 +52,7 @@ import { WorkOrdersModule } from "./work-orders/work-orders.module";
     InvitationsModule,
     IncidentsModule,
     WorkOrdersModule,
+    VendorsModule,
     DevModule,
     JobsModule,
     AlertsModule,

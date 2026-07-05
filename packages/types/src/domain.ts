@@ -158,6 +158,31 @@ export const workOrderStatuses = [
 ] as const;
 export type WorkOrderStatus = (typeof workOrderStatuses)[number];
 
+export const vendorStatuses = ["active", "archived"] as const;
+export type VendorStatus = (typeof vendorStatuses)[number];
+
+export interface Vendor {
+  id: EntityId;
+  organizationId: EntityId;
+  companyName: string;
+  trade: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  status: VendorStatus;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+}
+
+export interface WorkOrderNote {
+  id: EntityId;
+  organizationId: EntityId;
+  workOrderId: EntityId;
+  authorUserId: EntityId;
+  note: string;
+  createdAt: ISODateTime;
+}
+
 export interface WorkOrder {
   id: EntityId;
   organizationId: EntityId;
@@ -169,7 +194,10 @@ export interface WorkOrder {
   priority: WorkOrderPriority;
   status: WorkOrderStatus;
   assignedMembershipId?: EntityId;
+  assignedVendorId?: EntityId;
   dueAt?: ISODateTime;
+  estimatedCost?: number;
+  finalCost?: number;
   completionNote?: string;
   completedAt?: ISODateTime;
   createdAt: ISODateTime;
@@ -301,6 +329,21 @@ export interface IncidentNotification {
   createdAt: ISODateTime;
   readAt?: ISODateTime;
 }
+
+export interface WorkOrderNotification {
+  id: EntityId;
+  organizationId: EntityId;
+  workOrderId: EntityId;
+  recipientMembershipId: EntityId;
+  kind: "work_order_overdue";
+  status: "delivered" | "suppressed";
+  dedupeKey: string;
+  createdAt: ISODateTime;
+  readAt?: ISODateTime;
+}
+
+export type OperationsNotification =
+  IncidentNotification | WorkOrderNotification;
 
 export interface Organization {
   id: EntityId;

@@ -21,7 +21,10 @@ import type {
   Unit,
   UsageAggregate,
   UtilityRatesResponse,
+  Vendor,
   WorkOrder,
+  WorkOrderNote,
+  WorkOrderNotification,
 } from "@iot-management/types";
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
@@ -58,6 +61,9 @@ import type {
   UnitRow,
   UsageAggregateRow,
   UserRow,
+  VendorRow,
+  WorkOrderNoteRow,
+  WorkOrderNotificationRow,
   WorkOrderRow,
 } from "../database/schema";
 import { validateApiEnv } from "../config/env.schema";
@@ -2184,10 +2190,12 @@ export class PostgresPersistenceService
 
   async createWorkOrder(input: {
     assignedMembershipId?: string;
+    assignedVendorId?: string;
     buildingId: string;
     createdAt: string;
     description: string;
     dueAt?: string;
+    estimatedCost?: number;
     incidentId: string;
     organizationId: string;
     priority: WorkOrder["priority"];
@@ -2209,7 +2217,10 @@ export class PostgresPersistenceService
         priority: input.priority,
         status: input.status,
         assigned_membership_id: input.assignedMembershipId ?? null,
+        assigned_vendor_id: input.assignedVendorId ?? null,
         due_at: input.dueAt ?? null,
+        estimated_cost: input.estimatedCost ?? null,
+        final_cost: null,
         completion_note: null,
         completed_at: null,
         created_at: input.createdAt,
@@ -2222,6 +2233,7 @@ export class PostgresPersistenceService
 
   async listWorkOrders(input: {
     assignedMembershipId?: string;
+    assignedVendorId?: string;
     incidentId?: string;
     organizationId: string;
     overdue?: boolean;
@@ -2241,6 +2253,9 @@ export class PostgresPersistenceService
         "=",
         input.assignedMembershipId,
       );
+    }
+    if (input.assignedVendorId) {
+      query = query.where("assigned_vendor_id", "=", input.assignedVendorId);
     }
     if (input.priority) {
       query = query.where("priority", "=", input.priority);
@@ -2277,24 +2292,31 @@ export class PostgresPersistenceService
     input: Partial<
       Pick<
         WorkOrder,
-        | "assignedMembershipId"
         | "completedAt"
         | "completionNote"
         | "description"
         | "dueAt"
+        | "estimatedCost"
+        | "finalCost"
         | "priority"
         | "status"
         | "title"
         | "updatedAt"
       >
-    >,
+    > & {
+      assignedMembershipId?: string | null;
+      assignedVendorId?: string | null;
+    },
   ): Promise<WorkOrder | undefined> {
     const changes = defined({
       assigned_membership_id: input.assignedMembershipId,
+      assigned_vendor_id: input.assignedVendorId,
       completed_at: input.completedAt,
       completion_note: input.completionNote,
       description: input.description,
       due_at: input.dueAt,
+      estimated_cost: input.estimatedCost,
+      final_cost: input.finalCost,
       priority: input.priority,
       status: input.status,
       title: input.title,
@@ -2311,6 +2333,192 @@ export class PostgresPersistenceService
       .returningAll()
       .executeTakeFirst();
     return row ? mapWorkOrder(row) : undefined;
+  }
+
+  async createVendor(input: Omit<Vendor, "id">): Promise<Vendor> {
+    const row = await this.database.db
+      .insertInto("vendors")
+      .values({
+        id: await this.nextId("vendor", input.companyName, "vendors"),
+        organization_id: input.organizationId,
+        company_name: input.companyName,
+        trade: input.trade,
+        contact_name: input.contactName ?? null,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        status: input.status,
+        created_at: input.createdAt,
+        updated_at: input.updatedAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapVendor(row);
+  }
+
+  async createWorkOrderNotification(
+    input: Omit<WorkOrderNotification, "id" | "readAt">,
+  ): Promise<{ created: boolean; notification: WorkOrderNotification }> {
+    const inserted = await this.database.db
+      .insertInto("work_order_notifications")
+      .values({
+        id: await this.nextId(
+          "workOrderNotification",
+          input.dedupeKey,
+          "work_order_notifications",
+        ),
+        organization_id: input.organizationId,
+        work_order_id: input.workOrderId,
+        recipient_membership_id: input.recipientMembershipId,
+        kind: input.kind,
+        status: input.status,
+        dedupe_key: input.dedupeKey,
+        created_at: input.createdAt,
+        read_at: null,
+      })
+      .onConflict((conflict) =>
+        conflict
+          .columns(["organization_id", "recipient_membership_id", "dedupe_key"])
+          .doNothing(),
+      )
+      .returningAll()
+      .executeTakeFirst();
+    if (inserted)
+      return {
+        created: true,
+        notification: mapWorkOrderNotification(inserted),
+      };
+    const existing = await this.database.db
+      .selectFrom("work_order_notifications")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("recipient_membership_id", "=", input.recipientMembershipId)
+      .where("dedupe_key", "=", input.dedupeKey)
+      .executeTakeFirstOrThrow();
+    return { created: false, notification: mapWorkOrderNotification(existing) };
+  }
+
+  async listWorkOrderNotifications(input: {
+    organizationId: string;
+    recipientMembershipId: string;
+  }): Promise<WorkOrderNotification[]> {
+    const rows = await this.database.db
+      .selectFrom("work_order_notifications")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("recipient_membership_id", "=", input.recipientMembershipId)
+      .orderBy("created_at", "desc")
+      .execute();
+    return rows.map(mapWorkOrderNotification);
+  }
+
+  async markWorkOrderNotificationRead(input: {
+    notificationId: string;
+    organizationId: string;
+    recipientMembershipId: string;
+    readAt: string;
+  }): Promise<WorkOrderNotification | undefined> {
+    const row = await this.database.db
+      .updateTable("work_order_notifications")
+      .set({ read_at: input.readAt })
+      .where("id", "=", input.notificationId)
+      .where("organization_id", "=", input.organizationId)
+      .where("recipient_membership_id", "=", input.recipientMembershipId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapWorkOrderNotification(row) : undefined;
+  }
+
+  async listVendors(input: {
+    organizationId: string;
+    status?: Vendor["status"];
+  }): Promise<Vendor[]> {
+    let query = this.database.db
+      .selectFrom("vendors")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId);
+    if (input.status) query = query.where("status", "=", input.status);
+    return (await query.orderBy("company_name").execute()).map(mapVendor);
+  }
+
+  async findVendorById(
+    organizationId: string,
+    vendorId: string,
+  ): Promise<Vendor | undefined> {
+    const row = await this.database.db
+      .selectFrom("vendors")
+      .selectAll()
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", vendorId)
+      .executeTakeFirst();
+    return row ? mapVendor(row) : undefined;
+  }
+
+  async updateVendor(
+    organizationId: string,
+    vendorId: string,
+    input: Partial<
+      Pick<
+        Vendor,
+        | "companyName"
+        | "contactName"
+        | "email"
+        | "phone"
+        | "status"
+        | "trade"
+        | "updatedAt"
+      >
+    >,
+  ): Promise<Vendor | undefined> {
+    const row = await this.database.db
+      .updateTable("vendors")
+      .set(
+        defined({
+          company_name: input.companyName,
+          contact_name: input.contactName,
+          email: input.email,
+          phone: input.phone,
+          status: input.status,
+          trade: input.trade,
+          updated_at: input.updatedAt,
+        }),
+      )
+      .where("organization_id", "=", organizationId)
+      .where("id", "=", vendorId)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapVendor(row) : undefined;
+  }
+
+  async createWorkOrderNote(
+    input: Omit<WorkOrderNote, "id">,
+  ): Promise<WorkOrderNote> {
+    const row = await this.database.db
+      .insertInto("work_order_notes")
+      .values({
+        id: await this.nextId("workOrderNote", input.note, "work_order_notes"),
+        organization_id: input.organizationId,
+        work_order_id: input.workOrderId,
+        author_user_id: input.authorUserId,
+        note: input.note,
+        created_at: input.createdAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return mapWorkOrderNote(row);
+  }
+
+  async listWorkOrderNotes(input: {
+    organizationId: string;
+    workOrderId: string;
+  }): Promise<WorkOrderNote[]> {
+    const rows = await this.database.db
+      .selectFrom("work_order_notes")
+      .selectAll()
+      .where("organization_id", "=", input.organizationId)
+      .where("work_order_id", "=", input.workOrderId)
+      .orderBy("created_at")
+      .execute();
+    return rows.map(mapWorkOrderNote);
   }
 
   async listAlertRules(input: {
@@ -3053,12 +3261,58 @@ function mapWorkOrder(row: Selectable<WorkOrderRow>): WorkOrder {
     priority: row.priority,
     status: row.status,
     assignedMembershipId: row.assigned_membership_id ?? undefined,
+    assignedVendorId: row.assigned_vendor_id ?? undefined,
     dueAt: row.due_at ? iso(row.due_at) : undefined,
+    estimatedCost:
+      row.estimated_cost === null ? undefined : Number(row.estimated_cost),
+    finalCost: row.final_cost === null ? undefined : Number(row.final_cost),
     completionNote: row.completion_note ?? undefined,
     completedAt: row.completed_at ? iso(row.completed_at) : undefined,
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
   }) as WorkOrder;
+}
+
+function mapVendor(row: Selectable<VendorRow>): Vendor {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    companyName: row.company_name,
+    trade: row.trade,
+    contactName: row.contact_name ?? undefined,
+    phone: row.phone ?? undefined,
+    email: row.email ?? undefined,
+    status: row.status,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  }) as Vendor;
+}
+
+function mapWorkOrderNote(row: Selectable<WorkOrderNoteRow>): WorkOrderNote {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    workOrderId: row.work_order_id,
+    authorUserId: row.author_user_id,
+    note: row.note,
+    createdAt: iso(row.created_at),
+  };
+}
+
+function mapWorkOrderNotification(
+  row: Selectable<WorkOrderNotificationRow>,
+): WorkOrderNotification {
+  return defined({
+    id: row.id,
+    organizationId: row.organization_id,
+    workOrderId: row.work_order_id,
+    recipientMembershipId: row.recipient_membership_id,
+    kind: row.kind,
+    status: row.status,
+    dedupeKey: row.dedupe_key,
+    createdAt: iso(row.created_at),
+    readAt: row.read_at ? iso(row.read_at) : undefined,
+  }) as WorkOrderNotification;
 }
 
 function mapUnit(row: Selectable<UnitRow>): Unit {

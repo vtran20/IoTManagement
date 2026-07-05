@@ -29,6 +29,7 @@ describe("dashboard iconography", () => {
       "Device Health": "Activity",
       "Electric Usage": "Zap",
       "Open Alerts": "TriangleAlert",
+      "Overdue Work": "TriangleAlert",
       "Water Usage": "Droplets",
     });
   });

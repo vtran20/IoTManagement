@@ -35,6 +35,7 @@ export const dashboardMetricIconNames = {
   "Device Health": "Activity",
   "Electric Usage": "Zap",
   "Open Alerts": "TriangleAlert",
+  "Overdue Work": "TriangleAlert",
   "Water Usage": "Droplets",
 } as const;
 

@@ -262,6 +262,8 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                   <th>Work order</th>
                   <th>Priority</th>
                   <th>Status</th>
+                  <th>Assignment</th>
+                  <th>Cost</th>
                   <th>Due</th>
                 </tr>
               </thead>
@@ -269,11 +271,30 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
                 {data.workOrders.map((workOrder) => (
                   <tr key={workOrder.id}>
                     <td>
-                      {workOrder.title}
+                      <a
+                        className="text-link"
+                        href={`/work-orders/${workOrder.id}`}
+                      >
+                        {workOrder.title}
+                      </a>
                       <span>{workOrder.description}</span>
                     </td>
                     <td>{workOrder.priority}</td>
                     <td>{workOrder.status}</td>
+                    <td>
+                      {workOrder.assignedVendorId
+                        ? "Vendor"
+                        : workOrder.assignedMembershipId
+                          ? "Internal"
+                          : "Unassigned"}
+                    </td>
+                    <td>
+                      {workOrder.finalCost !== undefined
+                        ? `$${workOrder.finalCost.toFixed(2)}`
+                        : workOrder.estimatedCost !== undefined
+                          ? `$${workOrder.estimatedCost.toFixed(2)} est.`
+                          : "-"}
+                    </td>
                     <td>{formatDate(workOrder.dueAt)}</td>
                   </tr>
                 ))}
