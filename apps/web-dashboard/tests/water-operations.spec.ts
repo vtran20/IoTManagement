@@ -131,6 +131,7 @@ test("work-order actions are available to owners and hidden from viewers", async
   await page
     .getByLabel("Completion note")
     .fill("Replaced the failed fitting and confirmed no active flow.");
+  await page.getByLabel("Final cost").fill("250");
   await page.getByRole("button", { name: "Complete work" }).click();
   await expect(
     page.getByRole("cell", { name: "completed", exact: true }),

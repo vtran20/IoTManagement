@@ -46,6 +46,13 @@ export class OpenApiController {
             tags: ["Dashboard"],
           },
         },
+        "/api/v1/dashboard/operations": {
+          get: {
+            summary:
+              "Return prioritized operational counts and follow-up queue for the current organization",
+            tags: ["Dashboard"],
+          },
+        },
         "/api/v1/alerts/{alertId}/incidents": {
           post: {
             summary: "Create and link a manual incident from an alert",

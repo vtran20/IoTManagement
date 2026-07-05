@@ -36,6 +36,7 @@ describe("Tenant isolation regression suite", () => {
       { method: "get", path: "/api/v1/meters" },
       { method: "post", path: "/api/v1/readings/ingest" },
       { method: "get", path: "/api/v1/dashboard/summary" },
+      { method: "get", path: "/api/v1/dashboard/operations" },
       { method: "get", path: "/api/v1/alerts" },
       { method: "get", path: "/api/v1/reports/monthly-usage?month=2026-06" },
       { method: "post", path: "/api/v1/simulations/demo-seed" },

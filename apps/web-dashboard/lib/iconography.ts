@@ -1,18 +1,15 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
   BellRing,
   Building2,
   ChartNoAxesCombined,
   CircleDollarSign,
   DoorOpen,
-  Download,
   Droplets,
   FileBarChart,
   Gauge,
   LayoutDashboard,
   ListOrdered,
-  Search,
   Settings,
   TableProperties,
   TriangleAlert,
@@ -32,16 +29,12 @@ export const navigationIconNames = {
 } as const;
 
 export const dashboardMetricIconNames = {
-  "Device Health": "Activity",
+  "Critical alerts": "TriangleAlert",
+  "Devices offline": "Gauge",
   "Electric Usage": "Zap",
-  "Open Alerts": "TriangleAlert",
-  "Overdue Work": "TriangleAlert",
+  "Incidents without repair": "Droplets",
+  "Overdue work": "ListOrdered",
   "Water Usage": "Droplets",
-} as const;
-
-export const topbarActionIconNames = {
-  Export: "Download",
-  Search: "Search",
 } as const;
 
 export const dashboardPanelIconNames = {
@@ -53,19 +46,16 @@ export const dashboardPanelIconNames = {
 } as const;
 
 const iconComponents = {
-  Activity,
   BellRing,
   Building2,
   ChartNoAxesCombined,
   CircleDollarSign,
   DoorOpen,
-  Download,
   Droplets,
   FileBarChart,
   Gauge,
   LayoutDashboard,
   ListOrdered,
-  Search,
   Settings,
   TableProperties,
   TriangleAlert,
@@ -82,12 +72,6 @@ export function dashboardMetricIconFor(
   label: keyof typeof dashboardMetricIconNames,
 ): LucideIcon {
   return iconComponents[dashboardMetricIconNames[label]];
-}
-
-export function topbarActionIconFor(
-  label: keyof typeof topbarActionIconNames,
-): LucideIcon {
-  return iconComponents[topbarActionIconNames[label]];
 }
 
 export function dashboardPanelIconFor(

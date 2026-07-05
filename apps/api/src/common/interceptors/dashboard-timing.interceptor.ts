@@ -59,6 +59,7 @@ export class DashboardTimingInterceptor implements NestInterceptor {
 function dashboardEndpointName(url: string): string {
   const path = url.split("?", 1)[0] ?? "";
   if (path.endsWith("/dashboard/overview")) return "dashboard.overview";
+  if (path.endsWith("/dashboard/operations")) return "dashboard.operations";
   if (path.endsWith("/dashboard/summary")) return "dashboard.summary";
   if (path.endsWith("/dashboard/trends")) return "dashboard.trends";
   if (path.endsWith("/dashboard/buildings")) return "dashboard.buildings";

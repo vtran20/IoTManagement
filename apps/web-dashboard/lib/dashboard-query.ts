@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  DashboardOperationsResponse,
   DashboardOverviewQuery,
   DashboardOverviewResponse,
 } from "@iot-management/types";
@@ -14,6 +15,13 @@ export function dashboardOverviewQueryKey(
 }
 
 export const dashboardOverviewQueryRootKey = ["dashboard", "overview"] as const;
+
+export const dashboardOperationsQueryRootKey = [
+  "dashboard",
+  "operations",
+] as const;
+
+export const dashboardOperationsQueryKey = dashboardOperationsQueryRootKey;
 
 export function useDashboardOverview(filters: DashboardOverviewQuery = {}) {
   const normalizedFilters = normalizeFilters(filters);
@@ -29,10 +37,31 @@ export function useDashboardOverview(filters: DashboardOverviewQuery = {}) {
   });
 }
 
+export function useDashboardOperations() {
+  return useQuery({
+    queryFn: () =>
+      fetchJson<DashboardOperationsResponse>("/dashboard/operations"),
+    queryKey: dashboardOperationsQueryKey,
+    refetchInterval: 60_000,
+    retry: 1,
+    staleTime: 30_000,
+  });
+}
+
 export function useInvalidateDashboardOverview() {
   const queryClient = useQueryClient();
-  return () =>
-    queryClient.invalidateQueries({ queryKey: dashboardOverviewQueryRootKey });
+  return () => invalidateDashboardQueries(queryClient);
+}
+
+export async function invalidateDashboardQueries(queryClient: {
+  invalidateQueries(input: { queryKey: readonly string[] }): Promise<unknown>;
+}) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: dashboardOverviewQueryRootKey }),
+    queryClient.invalidateQueries({
+      queryKey: dashboardOperationsQueryRootKey,
+    }),
+  ]);
 }
 
 function normalizeFilters(

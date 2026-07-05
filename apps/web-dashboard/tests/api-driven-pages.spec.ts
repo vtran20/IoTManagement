@@ -91,6 +91,21 @@ test("dashboard renders API data instead of static fixture values", async ({
       status: 200,
     });
   });
+  await page.route("**/api/v1/dashboard/operations", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        criticalAlertCount: 1,
+        generatedAt: "2026-06-30T12:00:00.000Z",
+        incidentsWithoutRepairCount: 2,
+        items: [],
+        offlineMeterCount: 2,
+        organizationId: "org_north",
+        overdueWorkOrderCount: 3,
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
 
   await page.route("**/api/v1/dashboard/overview**", async (route) => {
     await route.fulfill({
@@ -173,13 +188,21 @@ test("dashboard renders API data instead of static fixture values", async ({
 
   await expect(page.getByText("4,321 gal")).toBeVisible();
   await expect(page.getByText("6,543 kWh")).toBeVisible();
-  await expect(page.getByText("2 offline / 3 stale")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Devices offline" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Devices offline" }),
+  ).toContainText("2");
   await expect(page.getByText("API Tower")).toBeVisible();
   await expect(page.getByText("API Unit 501")).toBeVisible();
   await expect(page.getByText("128,440 gal")).not.toBeVisible();
-  expect(dashboardRequests).toEqual([
-    expect.stringContaining("/api/v1/dashboard/overview"),
-  ]);
+  expect(dashboardRequests).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining("/api/v1/dashboard/overview"),
+      expect.stringContaining("/api/v1/dashboard/operations"),
+    ]),
+  );
 });
 
 test("portfolio inventory pages render API data and viewer role hides mutations", async ({

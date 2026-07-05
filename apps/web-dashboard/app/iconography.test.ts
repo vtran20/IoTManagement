@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import {
   dashboardMetricIconNames,
   navigationIconNames,
-  topbarActionIconNames,
 } from "../lib/iconography";
 
 const styles = readFileSync(resolve(process.cwd(), "app/styles.css"), "utf8");
@@ -26,19 +25,17 @@ describe("dashboard iconography", () => {
 
   it("maps dashboard metrics to utility scanning icons", () => {
     expect(dashboardMetricIconNames).toEqual({
-      "Device Health": "Activity",
+      "Critical alerts": "TriangleAlert",
       "Electric Usage": "Zap",
-      "Open Alerts": "TriangleAlert",
-      "Overdue Work": "TriangleAlert",
+      "Devices offline": "Gauge",
+      "Incidents without repair": "Droplets",
+      "Overdue work": "ListOrdered",
       "Water Usage": "Droplets",
     });
   });
 
-  it("uses command icons for topbar actions", () => {
-    expect(topbarActionIconNames).toEqual({
-      Export: "Download",
-      Search: "Search",
-    });
+  it("does not keep placeholder topbar action icon mappings", () => {
+    expect(styles).not.toContain("topbarActionIconFor");
   });
 
   it("does not draw dashboard icons with pseudo-element borders", () => {

@@ -41,6 +41,11 @@ export class DashboardController {
     );
   }
 
+  @Get("operations")
+  operations(@Req() request: RequestWithContext) {
+    return this.dashboardService.operations(request.context!.organization.id);
+  }
+
   @Get("trends")
   trends(
     @Req() request: RequestWithContext,

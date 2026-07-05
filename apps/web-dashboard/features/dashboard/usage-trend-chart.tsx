@@ -1,13 +1,17 @@
 import type {
+  DashboardOverviewRange,
   DashboardSummaryResponse,
   UsageTrendPoint,
 } from "@iot-management/types";
 import { dashboardPanelIconFor } from "../../lib/iconography";
+import { formatDashboardRangeLabel } from "./dashboard-period";
 
 export function UsageTrendChart({
+  range,
   summary,
   trends,
 }: {
+  range: DashboardOverviewRange;
   summary: DashboardSummaryResponse;
   trends: UsageTrendPoint[];
 }) {
@@ -37,7 +41,9 @@ export function UsageTrendChart({
       </div>
       <div className="chart-value">
         <strong>{formatMoney(totalCost)}</strong>
-        <span>Estimated cost</span>
+        <span>
+          Estimated cost, {formatDashboardRangeLabel(range).toLowerCase()}
+        </span>
       </div>
       <svg
         className="line-chart"

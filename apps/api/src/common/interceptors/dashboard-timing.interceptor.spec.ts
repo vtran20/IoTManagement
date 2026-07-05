@@ -79,6 +79,31 @@ describe("DashboardTimingInterceptor", () => {
     );
     expect(setHeader).not.toHaveBeenCalled();
   });
+
+  it("names the operations queue timing record without logging query values", async () => {
+    const logger = {
+      info: vi.fn(),
+    } as unknown as StructuredLogger;
+    const interceptor = new DashboardTimingInterceptor(logger, "test");
+
+    await lastValueFrom(
+      interceptor.intercept(
+        context(
+          {
+            originalUrl:
+              "/api/v1/dashboard/operations?organizationId=not-trusted",
+          },
+          vi.fn(),
+        ),
+        { handle: () => of({ ok: true }) },
+      ),
+    );
+
+    expect(logger.info).toHaveBeenCalledWith(
+      "Dashboard endpoint timing",
+      expect.objectContaining({ endpoint: "dashboard.operations" }),
+    );
+  });
 });
 
 function context(

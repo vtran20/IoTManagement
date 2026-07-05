@@ -185,4 +185,23 @@ describe("Dashboard API", () => {
         ]),
       );
   });
+
+  it("serves the current organization's operations queue", async () => {
+    await request(app.getHttpServer())
+      .get("/api/v1/dashboard/operations")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect("Server-Timing", /dashboard;dur=/)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          criticalAlertCount: expect.any(Number),
+          generatedAt: expect.any(String),
+          incidentsWithoutRepairCount: expect.any(Number),
+          items: expect.any(Array),
+          offlineMeterCount: expect.any(Number),
+          organizationId: "org_north",
+          overdueWorkOrderCount: expect.any(Number),
+        });
+      });
+  });
 });
