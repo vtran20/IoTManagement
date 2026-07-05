@@ -11,6 +11,7 @@
     "start:prod": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:real": "playwright test --config playwright.real.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

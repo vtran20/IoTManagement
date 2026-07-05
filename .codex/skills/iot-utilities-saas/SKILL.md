@@ -75,6 +75,8 @@ Do not implement production code before design and planning checkpoints are sati
 
 Before reporting success:
 
+- For every production behavior change, add or update focused unit tests and a regression test at the appropriate boundary. The regression test must exercise the existing workflow that could regress; unit-only coverage is insufficient.
+- Run the new or updated unit and regression tests after implementation. If a change is documentation-only or otherwise non-testable, explicitly document the exception.
 - Confirm the relevant Superpowers verification step was used.
 - Run focused tests or explain why tests are not available yet.
 - Add a "Manual verification" section after each phase with concrete steps the user can run locally.
