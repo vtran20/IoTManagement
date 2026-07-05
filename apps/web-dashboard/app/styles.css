@@ -220,6 +220,33 @@ a {
   text-underline-offset: 3px;
 }
 
+.filter-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.filter-row select {
+  background: #ffffff;
+  border: 1px solid #dedee3;
+  border-radius: 6px;
+  color: #27272a;
+  font: inherit;
+  min-height: 36px;
+  padding: 0 8px;
+}
+
+.checkbox-field {
+  align-items: center;
+  color: #52525b;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  min-height: 36px;
+}
+
 .workspace {
   min-width: 0;
 }

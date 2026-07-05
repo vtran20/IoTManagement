@@ -9,11 +9,16 @@ import {
 } from "./notifications.controller";
 import { IncidentNotificationsService } from "./incident-notifications.service";
 import { IncidentEscalationService } from "./incident-escalation.service";
+import { WorkOrderOverdueService } from "./work-order-overdue.service";
 
 @Module({
   controllers: [NotificationsController, IncidentResponderSettingsController],
   exports: [IncidentNotificationsService],
   imports: [AuthModule, EmailModule, JobsModule, PersistenceModule],
-  providers: [IncidentEscalationService, IncidentNotificationsService],
+  providers: [
+    IncidentEscalationService,
+    IncidentNotificationsService,
+    WorkOrderOverdueService,
+  ],
 })
 export class NotificationsModule {}

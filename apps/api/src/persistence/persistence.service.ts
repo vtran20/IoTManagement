@@ -10,6 +10,7 @@ import type {
   IncidentCorrelationSettings,
   LeakBaselineSettings,
   IncidentNotification,
+  OperationsNotification,
   IncidentResponderSettings,
   IncidentSensorEvidence,
   LeakIncident,
@@ -29,6 +30,9 @@ import type {
   UtilityRatesResponse,
   UtilityType,
   WorkOrder,
+  WorkOrderNote,
+  WorkOrderNotification,
+  Vendor,
 } from "@iot-management/types";
 import type { StoredUser } from "./in-memory-persistence.service";
 
@@ -525,12 +529,52 @@ export interface PersistenceService {
     recipientMembershipId: string;
     organizationId: string;
   }): MaybePromise<IncidentNotification | undefined>;
+  createWorkOrderNotification(
+    input: Omit<WorkOrderNotification, "id" | "readAt">,
+  ): MaybePromise<{ created: boolean; notification: WorkOrderNotification }>;
+  listWorkOrderNotifications(input: {
+    organizationId: string;
+    recipientMembershipId: string;
+  }): MaybePromise<WorkOrderNotification[]>;
+  markWorkOrderNotificationRead(input: {
+    notificationId: string;
+    organizationId: string;
+    recipientMembershipId: string;
+    readAt: string;
+  }): MaybePromise<WorkOrderNotification | undefined>;
+  createVendor(input: Omit<Vendor, "id">): MaybePromise<Vendor>;
+  listVendors(input: {
+    organizationId: string;
+    status?: Vendor["status"];
+  }): MaybePromise<Vendor[]>;
+  findVendorById(
+    organizationId: string,
+    vendorId: string,
+  ): MaybePromise<Vendor | undefined>;
+  updateVendor(
+    organizationId: string,
+    vendorId: string,
+    input: Partial<
+      Pick<
+        Vendor,
+        | "companyName"
+        | "contactName"
+        | "email"
+        | "phone"
+        | "status"
+        | "trade"
+        | "updatedAt"
+      >
+    >,
+  ): MaybePromise<Vendor | undefined>;
   createWorkOrder(input: {
     assignedMembershipId?: string;
+    assignedVendorId?: string;
     buildingId: string;
     createdAt: string;
     description: string;
     dueAt?: string;
+    estimatedCost?: number;
     incidentId: string;
     organizationId: string;
     priority: WorkOrder["priority"];
@@ -541,6 +585,7 @@ export interface PersistenceService {
   }): MaybePromise<WorkOrder>;
   listWorkOrders(input: {
     assignedMembershipId?: string;
+    assignedVendorId?: string;
     incidentId?: string;
     organizationId: string;
     overdue?: boolean;
@@ -557,18 +602,29 @@ export interface PersistenceService {
     input: Partial<
       Pick<
         WorkOrder,
-        | "assignedMembershipId"
         | "completedAt"
         | "completionNote"
         | "description"
         | "dueAt"
+        | "estimatedCost"
+        | "finalCost"
         | "priority"
         | "status"
         | "title"
         | "updatedAt"
       >
-    >,
+    > & {
+      assignedMembershipId?: string | null;
+      assignedVendorId?: string | null;
+    },
   ): MaybePromise<WorkOrder | undefined>;
+  createWorkOrderNote(
+    input: Omit<WorkOrderNote, "id">,
+  ): MaybePromise<WorkOrderNote>;
+  listWorkOrderNotes(input: {
+    organizationId: string;
+    workOrderId: string;
+  }): MaybePromise<WorkOrderNote[]>;
   listDashboardTrendAggregates(
     input: DashboardAggregateQuery,
   ): MaybePromise<DashboardTrendAggregate[]>;

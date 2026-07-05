@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { ListWorkOrdersQuery } from "@iot-management/types";
+import type { CreateWorkOrderNoteRequest } from "@iot-management/types";
 import { AuthGuard } from "../common/guards/auth.guard";
 import { Roles, RolesGuard } from "../common/guards/roles.guard";
 import { RequestWithContext } from "../common/request-context";
@@ -69,5 +70,27 @@ export class WorkOrdersController {
     @Body() dto: UpdateWorkOrderDto,
   ) {
     return this.workOrdersService.update(request.context!, workOrderId, dto);
+  }
+
+  @Get(":workOrderId/notes")
+  listNotes(
+    @Req() request: RequestWithContext,
+    @Param("workOrderId") workOrderId: string,
+  ) {
+    return this.workOrdersService.listNotes(request.context!, workOrderId);
+  }
+
+  @Post(":workOrderId/notes")
+  @Roles("owner", "manager")
+  createNote(
+    @Req() request: RequestWithContext,
+    @Param("workOrderId") workOrderId: string,
+    @Body() dto: CreateWorkOrderNoteRequest,
+  ) {
+    return this.workOrdersService.createNote(
+      request.context!,
+      workOrderId,
+      dto,
+    );
   }
 }

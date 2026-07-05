@@ -1,6 +1,7 @@
 import type {
   IncidentNotification,
   IncidentResponderSettings,
+  OperationsNotification,
   LeakIncident,
   UpdateIncidentResponderSettingsRequest,
 } from "@iot-management/types";
@@ -46,25 +47,37 @@ export class IncidentNotificationsService {
 
   async list(
     context: RequestContext,
-  ): Promise<{ items: IncidentNotification[] }> {
-    return {
-      items: await this.persistence.listIncidentNotifications({
+  ): Promise<{ items: OperationsNotification[] }> {
+    const [incidentNotifications, workOrderNotifications] = await Promise.all([
+      this.persistence.listIncidentNotifications({
         organizationId: context.organization.id,
         recipientMembershipId: context.membership.id,
       }),
+      this.persistence.listWorkOrderNotifications({
+        organizationId: context.organization.id,
+        recipientMembershipId: context.membership.id,
+      }),
+    ]);
+    return {
+      items: [...incidentNotifications, ...workOrderNotifications].sort(
+        (left, right) => right.createdAt.localeCompare(left.createdAt),
+      ),
     };
   }
 
   async markRead(
     context: RequestContext,
     notificationId: string,
-  ): Promise<IncidentNotification> {
-    const notification = await this.persistence.markIncidentNotificationRead({
+  ): Promise<OperationsNotification> {
+    const input = {
       notificationId,
       organizationId: context.organization.id,
       readAt: new Date().toISOString(),
       recipientMembershipId: context.membership.id,
-    });
+    };
+    const notification =
+      (await this.persistence.markIncidentNotificationRead(input)) ??
+      (await this.persistence.markWorkOrderNotificationRead(input));
     if (!notification) {
       throw tenantResourceNotFound("Incident notification");
     }

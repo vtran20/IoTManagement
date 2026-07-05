@@ -29,6 +29,7 @@ import type {
   MoistureSensorStatus,
   Membership,
   Organization,
+  OperationsNotification,
   ReadingKind,
   ReadingUnit,
   Unit,
@@ -36,6 +37,7 @@ import type {
   User,
   UserRole,
   UtilityType,
+  VendorStatus,
   WorkOrder,
   WorkOrderPriority,
   WorkOrderStatus,
@@ -458,17 +460,22 @@ export interface CreateIncidentNoteRequest {
 
 export interface CreateWorkOrderRequest {
   assignedMembershipId?: EntityId;
+  assignedVendorId?: EntityId;
   description: string;
   dueAt?: ISODateTime;
+  estimatedCost?: number;
   priority: WorkOrderPriority;
   title: string;
 }
 
 export interface UpdateWorkOrderRequest {
   assignedMembershipId?: EntityId;
+  assignedVendorId?: EntityId;
   completionNote?: string;
   description?: string;
   dueAt?: ISODateTime;
+  estimatedCost?: number;
+  finalCost?: number;
   priority?: WorkOrderPriority;
   status?: WorkOrderStatus;
   title?: string;
@@ -476,6 +483,7 @@ export interface UpdateWorkOrderRequest {
 
 export interface ListWorkOrdersQuery extends PageRequest {
   assignedMembershipId?: EntityId;
+  assignedVendorId?: EntityId;
   incidentId?: EntityId;
   overdue?: boolean;
   priority?: WorkOrderPriority;
@@ -484,6 +492,27 @@ export interface ListWorkOrdersQuery extends PageRequest {
 
 export interface WorkOrderResponse extends WorkOrder {
   isOverdue: boolean;
+}
+
+export interface CreateVendorRequest {
+  companyName: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  trade: string;
+}
+
+export interface UpdateVendorRequest {
+  companyName?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  status?: VendorStatus;
+  trade?: string;
+}
+
+export interface CreateWorkOrderNoteRequest {
+  note: string;
 }
 
 export interface ResolveLeakIncidentRequest {
@@ -500,6 +529,7 @@ export interface UpdateIncidentResponderSettingsRequest {
 }
 
 export type IncidentNotificationResponse = IncidentNotification;
+export type OperationsNotificationResponse = OperationsNotification;
 
 export interface CreateLeakDetectionPolicyRequest {
   name: string;

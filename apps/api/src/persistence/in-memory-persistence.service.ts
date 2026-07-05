@@ -29,7 +29,10 @@ import type {
   UsageAggregate,
   UtilityRatesResponse,
   UtilityType,
+  Vendor,
   WorkOrder,
+  WorkOrderNote,
+  WorkOrderNotification,
 } from "@iot-management/types";
 import { Injectable } from "@nestjs/common";
 import { createPasswordHash } from "../auth/password";
@@ -67,6 +70,9 @@ export class InMemoryPersistenceService implements PersistenceService {
     leakIncident: 1,
     leakDetectionPolicy: 1,
     workOrder: 1,
+    vendor: 1,
+    workOrderNote: 1,
+    workOrderNotification: 1,
     meter: 1,
     moistureSensor: 1,
     moistureSensorEvent: 1,
@@ -209,6 +215,9 @@ export class InMemoryPersistenceService implements PersistenceService {
   private readonly leakIncidents: LeakIncident[] = [];
   private readonly leakDetectionPolicies: LeakDetectionPolicy[] = [];
   private readonly workOrders: WorkOrder[] = [];
+  private readonly vendors: Vendor[] = [];
+  private readonly workOrderNotes: WorkOrderNote[] = [];
+  private readonly workOrderNotifications: WorkOrderNotification[] = [];
 
   findUserByEmail(email: string): StoredUser | undefined {
     return this.users.find((user) => user.email === email.toLowerCase());
@@ -1455,10 +1464,12 @@ export class InMemoryPersistenceService implements PersistenceService {
 
   createWorkOrder(input: {
     assignedMembershipId?: string;
+    assignedVendorId?: string;
     buildingId: string;
     createdAt: string;
     description: string;
     dueAt?: string;
+    estimatedCost?: number;
     incidentId: string;
     organizationId: string;
     priority: WorkOrder["priority"];
@@ -1477,6 +1488,7 @@ export class InMemoryPersistenceService implements PersistenceService {
 
   listWorkOrders(input: {
     assignedMembershipId?: string;
+    assignedVendorId?: string;
     incidentId?: string;
     organizationId: string;
     overdue?: boolean;
@@ -1495,6 +1507,8 @@ export class InMemoryPersistenceService implements PersistenceService {
           (!input.incidentId || workOrder.incidentId === input.incidentId) &&
           (!input.assignedMembershipId ||
             workOrder.assignedMembershipId === input.assignedMembershipId) &&
+          (!input.assignedVendorId ||
+            workOrder.assignedVendorId === input.assignedVendorId) &&
           (!input.priority || workOrder.priority === input.priority) &&
           (!input.status || workOrder.status === input.status) &&
           (!input.overdue || overdue)
@@ -1520,17 +1534,21 @@ export class InMemoryPersistenceService implements PersistenceService {
     input: Partial<
       Pick<
         WorkOrder,
-        | "assignedMembershipId"
         | "completedAt"
         | "completionNote"
         | "description"
         | "dueAt"
+        | "estimatedCost"
+        | "finalCost"
         | "priority"
         | "status"
         | "title"
         | "updatedAt"
       >
-    >,
+    > & {
+      assignedMembershipId?: string | null;
+      assignedVendorId?: string | null;
+    },
   ): WorkOrder | undefined {
     const workOrder = this.findWorkOrderById(organizationId, workOrderId);
     if (!workOrder) {
@@ -1538,6 +1556,120 @@ export class InMemoryPersistenceService implements PersistenceService {
     }
     Object.assign(workOrder, input);
     return workOrder;
+  }
+
+  createVendor(input: Omit<Vendor, "id">): Vendor {
+    const vendor = { ...input, id: this.nextId("vendor", input.companyName) };
+    this.vendors.push(vendor);
+    return vendor;
+  }
+
+  listVendors(input: {
+    organizationId: string;
+    status?: Vendor["status"];
+  }): Vendor[] {
+    return this.vendors
+      .filter(
+        (vendor) =>
+          vendor.organizationId === input.organizationId &&
+          (!input.status || vendor.status === input.status),
+      )
+      .sort((left, right) => left.companyName.localeCompare(right.companyName));
+  }
+
+  findVendorById(organizationId: string, vendorId: string): Vendor | undefined {
+    return this.vendors.find(
+      (vendor) =>
+        vendor.organizationId === organizationId && vendor.id === vendorId,
+    );
+  }
+
+  updateVendor(
+    organizationId: string,
+    vendorId: string,
+    input: Partial<
+      Pick<
+        Vendor,
+        | "companyName"
+        | "contactName"
+        | "email"
+        | "phone"
+        | "status"
+        | "trade"
+        | "updatedAt"
+      >
+    >,
+  ): Vendor | undefined {
+    const vendor = this.findVendorById(organizationId, vendorId);
+    if (!vendor) return undefined;
+    Object.assign(vendor, input);
+    return vendor;
+  }
+
+  createWorkOrderNote(input: Omit<WorkOrderNote, "id">): WorkOrderNote {
+    const note = { ...input, id: this.nextId("workOrderNote", input.note) };
+    this.workOrderNotes.push(note);
+    return note;
+  }
+
+  listWorkOrderNotes(input: {
+    organizationId: string;
+    workOrderId: string;
+  }): WorkOrderNote[] {
+    return this.workOrderNotes
+      .filter(
+        (note) =>
+          note.organizationId === input.organizationId &&
+          note.workOrderId === input.workOrderId,
+      )
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  createWorkOrderNotification(
+    input: Omit<WorkOrderNotification, "id" | "readAt">,
+  ): { created: boolean; notification: WorkOrderNotification } {
+    const existing = this.workOrderNotifications.find(
+      (notification) =>
+        notification.organizationId === input.organizationId &&
+        notification.recipientMembershipId === input.recipientMembershipId &&
+        notification.dedupeKey === input.dedupeKey,
+    );
+    if (existing) return { created: false, notification: existing };
+    const notification = {
+      ...input,
+      id: this.nextId("workOrderNotification", input.dedupeKey),
+    };
+    this.workOrderNotifications.push(notification);
+    return { created: true, notification };
+  }
+
+  listWorkOrderNotifications(input: {
+    organizationId: string;
+    recipientMembershipId: string;
+  }): WorkOrderNotification[] {
+    return this.workOrderNotifications
+      .filter(
+        (notification) =>
+          notification.organizationId === input.organizationId &&
+          notification.recipientMembershipId === input.recipientMembershipId,
+      )
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }
+
+  markWorkOrderNotificationRead(input: {
+    notificationId: string;
+    organizationId: string;
+    recipientMembershipId: string;
+    readAt: string;
+  }): WorkOrderNotification | undefined {
+    const notification = this.workOrderNotifications.find(
+      (candidate) =>
+        candidate.id === input.notificationId &&
+        candidate.organizationId === input.organizationId &&
+        candidate.recipientMembershipId === input.recipientMembershipId,
+    );
+    if (notification) notification.readAt = notification.readAt ?? input.readAt;
+    return notification;
   }
 
   createAlertRule(

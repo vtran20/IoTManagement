@@ -33,6 +33,9 @@ export interface DatabaseSchema {
   units: UnitRow;
   usage_aggregates: UsageAggregateRow;
   users: UserRow;
+  vendors: VendorRow;
+  work_order_notes: WorkOrderNoteRow;
+  work_order_notifications: WorkOrderNotificationRow;
   work_orders: WorkOrderRow;
 }
 
@@ -252,11 +255,48 @@ export interface WorkOrderRow {
   priority: "low" | "medium" | "high" | "critical";
   status: "open" | "assigned" | "in_progress" | "completed" | "cancelled";
   assigned_membership_id: string | null;
+  assigned_vendor_id: string | null;
   due_at: Timestamp | null;
+  estimated_cost: Numeric | null;
+  final_cost: Numeric | null;
   completion_note: string | null;
   completed_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+}
+
+export interface VendorRow {
+  id: string;
+  organization_id: string;
+  company_name: string;
+  trade: string;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  status: "active" | "archived";
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface WorkOrderNoteRow {
+  id: string;
+  organization_id: string;
+  work_order_id: string;
+  author_user_id: string;
+  note: string;
+  created_at: Timestamp;
+}
+
+export interface WorkOrderNotificationRow {
+  id: string;
+  organization_id: string;
+  work_order_id: string;
+  recipient_membership_id: string;
+  kind: "work_order_overdue";
+  status: "delivered" | "suppressed";
+  dedupe_key: string;
+  created_at: Timestamp;
+  read_at: Timestamp | null;
 }
 
 export interface IncidentEvidenceRow {

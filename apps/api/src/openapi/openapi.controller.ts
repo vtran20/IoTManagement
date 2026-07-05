@@ -137,8 +137,29 @@ export class OpenApiController {
         },
         "/api/v1/notifications": {
           get: {
-            summary: "List the current member's in-app incident notifications",
+            summary:
+              "List the current member's in-app incident and work-order notifications",
             tags: ["Water Protection"],
+          },
+        },
+        "/api/v1/vendors": {
+          get: {
+            summary: "List organization-owned vendors",
+            tags: ["Operations"],
+          },
+          post: {
+            summary: "Create an organization-owned vendor",
+            tags: ["Operations"],
+          },
+        },
+        "/api/v1/work-orders/{workOrderId}/notes": {
+          get: {
+            summary: "List immutable notes for a work order",
+            tags: ["Operations"],
+          },
+          post: {
+            summary: "Add an immutable note to a work order",
+            tags: ["Operations"],
           },
         },
         "/api/v1/notifications/{notificationId}/read": {

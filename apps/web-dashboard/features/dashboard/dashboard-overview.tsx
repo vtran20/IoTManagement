@@ -1,6 +1,9 @@
 "use client";
 
 import { useDashboardOverview } from "../../lib/dashboard-query";
+import { useQuery } from "@tanstack/react-query";
+import type { PageResponse, WorkOrderResponse } from "@iot-management/types";
+import { fetchJson } from "../../lib/use-api-resource";
 import { BuildingBreakdownChart } from "./building-breakdown-chart";
 import { OverviewCards } from "./overview-cards";
 import { UnitRankingsTable } from "./unit-rankings-table";
@@ -8,6 +11,12 @@ import { UsageTrendChart } from "./usage-trend-chart";
 
 export function DashboardOverview({ state }: { state?: string }) {
   const dashboard = useDashboardOverview();
+  const overdueWorkOrders = useQuery({
+    queryFn: () =>
+      fetchJson<PageResponse<WorkOrderResponse>>("/work-orders?overdue=true"),
+    queryKey: ["work-orders", "overdue-count"],
+    staleTime: 30_000,
+  });
 
   if (state === "loading" || dashboard.isPending) {
     return <div className="state-panel">Loading dashboard data</div>;
@@ -38,6 +47,7 @@ export function DashboardOverview({ state }: { state?: string }) {
       ) : null}
       <OverviewCards
         deviceHealth={overview.deviceHealth}
+        overdueWorkOrderCount={overdueWorkOrders.data?.items.length ?? 0}
         summary={overview.summary}
       />
       <UsageTrendChart
