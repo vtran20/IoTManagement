@@ -918,10 +918,30 @@ td span {
   margin-bottom: 18px;
 }
 
+.alert-rule-form {
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 180px) auto;
+}
+
+.alert-rule-form > .field,
+.alert-rule-form > .field input {
+  min-width: 0;
+}
+
+.alert-rule-form > .field input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .table-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.alert-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, max-content);
 }
 
 .compact-profile {

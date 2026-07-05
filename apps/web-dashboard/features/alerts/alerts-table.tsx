@@ -205,7 +205,7 @@ export function AlertsTable() {
           {!allowMutations ? <span className="muted">Read only</span> : null}
         </div>
         {allowMutations ? (
-          <form className="inline-form" onSubmit={createRule}>
+          <form className="inline-form alert-rule-form" onSubmit={createRule}>
             <label className="field">
               <span>Rule name</span>
               <input name="name" required type="text" />
@@ -281,42 +281,47 @@ export function AlertsTable() {
                   )}
                 </td>
                 <td>
-                  {alert.status === "open" && allowMutations ? (
-                    <div className="table-actions">
-                      <button
-                        className="table-button"
-                        type="button"
-                        onClick={() => acknowledge(alert.id)}
-                      >
-                        Acknowledge
-                      </button>
-                      <button
-                        className="mode-button"
-                        type="button"
-                        onClick={() => resolve(alert.id)}
-                      >
-                        Resolve
-                      </button>
-                    </div>
-                  ) : (
+                  {alert.status !== "open" ? (
                     <span className="muted">Reviewed</span>
-                  )}
-                  {!alert.incidentId && allowMutations ? (
-                    <div className="table-actions">
-                      <button
-                        className="table-button"
-                        onClick={() => openCorrelation(alert.id, "create")}
-                        type="button"
-                      >
-                        Create incident
-                      </button>
-                      <button
-                        className="mode-button"
-                        onClick={() => openCorrelation(alert.id, "link")}
-                        type="button"
-                      >
-                        Link existing incident
-                      </button>
+                  ) : null}
+                  {allowMutations ? (
+                    <div className="alert-actions">
+                      {alert.status === "open" ? (
+                        <>
+                          <button
+                            className="table-button"
+                            type="button"
+                            onClick={() => acknowledge(alert.id)}
+                          >
+                            Acknowledge
+                          </button>
+                          <button
+                            className="mode-button"
+                            type="button"
+                            onClick={() => resolve(alert.id)}
+                          >
+                            Resolve
+                          </button>
+                        </>
+                      ) : null}
+                      {!alert.incidentId ? (
+                        <>
+                          <button
+                            className="table-button"
+                            onClick={() => openCorrelation(alert.id, "create")}
+                            type="button"
+                          >
+                            Create incident
+                          </button>
+                          <button
+                            className="mode-button"
+                            onClick={() => openCorrelation(alert.id, "link")}
+                            type="button"
+                          >
+                            Link existing incident
+                          </button>
+                        </>
+                      ) : null}
                     </div>
                   ) : null}
                 </td>
