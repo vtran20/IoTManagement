@@ -14,7 +14,7 @@
     "k8s:dry-run:local": "kubectl apply --dry-run=client -k deploy/kubernetes/overlays/local",
     "lint": "pnpm -r lint",
     "seed:demo": "pnpm --filter @iot-management/api seed:demo",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @iot-management/types build && pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:e2e": "pnpm --filter @iot-management/api test:e2e && pnpm --filter @iot-management/web-dashboard test:e2e",
     "validate:http-client": "node scripts/validate-http-client-suite.js"
