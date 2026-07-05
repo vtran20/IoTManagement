@@ -125,7 +125,11 @@ export class VendorsService {
 
   private optionalText(value: unknown): string | undefined {
     if (value === undefined || value === null) return undefined;
-    return this.requireText(value, "VENDOR_CONTACT_VALUE_INVALID");
+    if (typeof value !== "string") {
+      return this.requireText(value, "VENDOR_CONTACT_VALUE_INVALID");
+    }
+    const normalized = value.trim();
+    return normalized || undefined;
   }
 
   private validateStatus(value: unknown): Vendor["status"] {

@@ -26,14 +26,18 @@ export function VendorsPanel() {
     const form = new FormData(event.currentTarget);
     setMessage("");
     try {
+      const optionalText = (name: string) => {
+        const value = String(form.get(name) ?? "").trim();
+        return value || undefined;
+      };
       await mutateJson<Vendor>("/vendors", {
         method: "POST",
         body: JSON.stringify({
-          companyName: form.get("companyName"),
-          trade: form.get("trade"),
-          contactName: form.get("contactName"),
-          phone: form.get("phone"),
-          email: form.get("email"),
+          companyName: String(form.get("companyName") ?? "").trim(),
+          trade: String(form.get("trade") ?? "").trim(),
+          contactName: optionalText("contactName"),
+          phone: optionalText("phone"),
+          email: optionalText("email"),
         }),
       });
       event.currentTarget.reset();
