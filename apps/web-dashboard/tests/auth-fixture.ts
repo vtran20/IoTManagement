@@ -229,6 +229,67 @@ export async function mockAuthenticatedSession(
       status: 200,
     });
   });
+  await page.route("**/api/v1/dashboard/operations", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        criticalAlertCount: 1,
+        generatedAt: "2026-06-30T12:00:00.000Z",
+        incidentsWithoutRepairCount: 1,
+        items: [
+          {
+            actionLabel: "Review repair",
+            assignmentType: "vendor",
+            dueAt: "2026-06-29T12:00:00.000Z",
+            href: "/work-orders/work_order_overdue",
+            id: "work_order_overdue",
+            isOverdue: true,
+            kind: "work_order",
+            priority: "critical",
+            status: "assigned",
+            supportingText: "Repair the boiler room water leak.",
+            title: "Repair boiler room leak",
+          },
+          {
+            actionLabel: "Open incident",
+            detectedAt: "2026-06-30T10:00:00.000Z",
+            href: "/incidents/incident_unrepaired",
+            id: "incident_unrepaired",
+            kind: "incident",
+            severity: "critical",
+            status: "investigating",
+            supportingText: "Leak investigation needs repair planning.",
+            title: "Unrepaired hallway leak",
+          },
+          {
+            actionLabel: "Review alert",
+            detectedAt: "2026-06-30T11:00:00.000Z",
+            href: "/alerts",
+            id: "alert_unlinked",
+            kind: "alert",
+            severity: "warning",
+            status: "open",
+            supportingText: "Water use is higher than expected.",
+            title: "High water use",
+          },
+          {
+            actionLabel: "Inspect meter",
+            detectedAt: "2026-06-29T12:00:00.000Z",
+            href: `/meters/${meters[0]?.id ?? "meter_offline"}`,
+            id: meters[0]?.id ?? "meter_offline",
+            kind: "meter",
+            status: "offline",
+            supportingText: meters[0]?.externalId ?? "north-main-water",
+            title: "North main water meter is offline",
+          },
+        ],
+        offlineMeterCount: 1,
+        organizationId: "org_north",
+        overdueWorkOrderCount: 1,
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
   await page.route("**/api/v1/settings/rates", async (route) => {
     if (route.request().method() === "PATCH") {
       rates = {
@@ -424,6 +485,13 @@ export async function mockAuthenticatedSession(
     const unitId = route.request().url().split("/").at(-1);
     await route.fulfill({
       body: JSON.stringify(units.find((unit) => unit.id === unitId)),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route("**/api/v1/incidents", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ items: [] }),
       contentType: "application/json",
       status: 200,
     });

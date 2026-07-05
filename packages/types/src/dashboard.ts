@@ -92,8 +92,7 @@ export const dashboardOperationKinds = [
   "work_order",
 ] as const;
 
-export type DashboardOperationKind =
-  (typeof dashboardOperationKinds)[number];
+export type DashboardOperationKind = (typeof dashboardOperationKinds)[number];
 
 export interface DashboardOperationItem {
   actionLabel: string;

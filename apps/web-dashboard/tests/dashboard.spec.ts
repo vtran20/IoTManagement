@@ -4,12 +4,14 @@ import { authUser, mockAuthenticatedSession } from "./auth-fixture";
 test("app shell navigation exposes core operations pages", async ({ page }) => {
   await mockAuthenticatedSession(page);
   await page.goto("/dashboard");
+  const navigation = page
+    .locator(".sidebar")
+    .getByRole("navigation", { name: "Operations" });
 
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(
+    navigation.getByRole("link", { name: "Dashboard" }),
+  ).toHaveAttribute("aria-current", "page");
   for (const name of [
     "Dashboard",
     "Buildings",
@@ -19,16 +21,15 @@ test("app shell navigation exposes core operations pages", async ({ page }) => {
     "Reports",
     "Settings",
   ]) {
-    await expect(page.getByRole("link", { name })).toBeVisible();
+    await expect(navigation.getByRole("link", { name })).toBeVisible();
   }
 
-  await page.getByRole("link", { name: "Meters" }).click();
+  await navigation.getByRole("link", { name: "Meters" }).click();
   await expect(page).toHaveURL(/\/meters$/);
   await expect(page.getByRole("heading", { name: "Meters" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Meters" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(
+    navigation.getByRole("link", { name: "Meters" }),
+  ).toHaveAttribute("aria-current", "page");
 });
 
 test("app shell keeps navigation reachable on mobile", async ({ page }) => {
@@ -133,6 +134,67 @@ test("overview renders loading, empty, error, and success states", async ({
   ).toBeVisible();
   await expect(page.getByText("128,440 gal")).toBeVisible();
   await expect(page.getByText("42,817 kWh")).toBeVisible();
+});
+
+test("overview prioritizes operations and removes placeholder topbar controls", async ({
+  page,
+}) => {
+  await mockAuthenticatedSession(page);
+  await page.goto("/dashboard");
+
+  await expect(
+    page.getByRole("heading", { name: "Critical alerts" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Incidents without repair" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Overdue work" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Devices offline" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Operations Today" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Review repair" }),
+  ).toHaveAttribute("href", "/work-orders/work_order_overdue");
+  await expect(page.getByRole("button", { name: "Search" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
+});
+
+test("operations overview remains contained across target viewports", async ({
+  page,
+}) => {
+  for (const [width, expectedColumns] of [
+    [1440, 4],
+    [1024, 2],
+    [390, 1],
+  ] as const) {
+    await page.setViewportSize({ height: 900, width });
+    await mockAuthenticatedSession(page);
+    await page.goto("/dashboard");
+
+    await expect(page.locator(".operations-metric-strip")).toBeVisible();
+    expect(
+      await page
+        .locator(".operations-metric-strip")
+        .evaluate(
+          (element) =>
+            getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/)
+              .length,
+        ),
+    ).toBe(expectedColumns);
+    const viewport = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      windowWidth: window.innerWidth,
+    }));
+    expect(
+      viewport.documentWidth,
+      `expected no document overflow at ${width}px`,
+    ).toBeLessThanOrEqual(viewport.windowWidth);
+  }
 });
 
 test("portfolio tables stay readable with long names", async ({ page }) => {

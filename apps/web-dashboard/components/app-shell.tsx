@@ -1,19 +1,17 @@
 import type { ReactNode } from "react";
-import { topbarActionIconFor } from "../lib/iconography";
 import { AccountMenu } from "./account-menu";
 import { MobileNav } from "./mobile-nav";
 import { Nav } from "./nav";
 
 export function AppShell({
+  actions,
   children,
   title,
 }: {
+  actions?: ReactNode;
   children: ReactNode;
   title: string;
 }) {
-  const SearchIcon = topbarActionIconFor("Search");
-  const ExportIcon = topbarActionIconFor("Export");
-
   return (
     <main className="admin-shell">
       <aside className="sidebar" aria-label="Primary navigation">
@@ -34,16 +32,11 @@ export function AppShell({
             <span className="panel-toggle" aria-hidden="true" />
             <h1>{title}</h1>
           </div>
-          <div className="topbar-actions" aria-label="Dashboard controls">
-            <button className="mode-button" type="button">
-              <SearchIcon aria-hidden="true" className="button-icon" />
-              <span>Search</span>
-            </button>
-            <button className="mode-button" type="button">
-              <ExportIcon aria-hidden="true" className="button-icon" />
-              <span>Export</span>
-            </button>
-          </div>
+          {actions ? (
+            <div className="topbar-actions" aria-label="Page controls">
+              {actions}
+            </div>
+          ) : null}
         </header>
         <section className="content-grid">{children}</section>
       </section>

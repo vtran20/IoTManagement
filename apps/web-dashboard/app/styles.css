@@ -426,6 +426,8 @@ kbd {
 }
 
 .metric-strip,
+.operations-metric-strip,
+.usage-summary-strip,
 .chart-card,
 .small-card {
   background: #ffffff;
@@ -439,6 +441,33 @@ kbd {
   grid-template-columns: repeat(4, 1fr);
   min-height: 174px;
   padding: 24px;
+}
+
+.operations-metric-strip {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+  padding: 24px;
+}
+
+.usage-summary-strip {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  padding: 24px;
+}
+
+.operations-metric-strip .metric-card {
+  color: inherit;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.operations-queue {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .metric-card {
@@ -655,6 +684,8 @@ kbd {
 
 .table-card {
   grid-column: 1 / -1;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .small-heading {
@@ -966,10 +997,16 @@ td span {
 }
 
 .alert-actions {
+  align-items: start;
   display: grid;
   gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, max-content));
   margin-top: 8px;
-  grid-template-columns: repeat(2, max-content);
+}
+
+.alert-actions .muted {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
 }
 
 .compact-profile {
@@ -1197,6 +1234,10 @@ td span {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .operations-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .metric-card:nth-child(2) {
     border-right: 0;
   }
@@ -1238,6 +1279,16 @@ td span {
     padding: 18px;
   }
 
+  .operations-metric-strip {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .usage-summary-strip {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
   .metric-card {
     border-bottom: 1px solid #dedee3;
     border-right: 0;
@@ -1250,6 +1301,10 @@ td span {
 
   .topbar-actions {
     flex-wrap: wrap;
+  }
+
+  .alert-actions {
+    grid-template-columns: 1fr;
   }
 
   .card-heading {

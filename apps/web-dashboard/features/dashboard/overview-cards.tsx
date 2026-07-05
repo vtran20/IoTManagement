@@ -1,67 +1,72 @@
 import type {
+  DashboardOverviewRange,
   DashboardSummaryResponse,
-  DeviceHealthResponse,
+  UtilitySummary,
   UtilityType,
 } from "@iot-management/types";
 import { dashboardMetricIconFor } from "../../lib/iconography";
+import { formatDashboardRangeLabel } from "./dashboard-period";
 
 export function OverviewCards({
-  deviceHealth,
-  overdueWorkOrderCount,
+  range,
   summary,
 }: {
-  deviceHealth?: DeviceHealthResponse;
-  overdueWorkOrderCount: number;
+  range: DashboardOverviewRange;
   summary: DashboardSummaryResponse;
 }) {
-  const water = findUtility(summary, "water");
-  const electric = findUtility(summary, "electric");
-  const health = `${summary.offlineMeterCount} offline / ${summary.staleMeterCount} stale`;
-  const healthPrevious = deviceHealth
-    ? `${deviceHealth.meters.length} meters reporting`
-    : "Reporting status";
-  const cards = [
-    [
-      "Water Usage",
-      `${formatNumber(water?.usageValue ?? 0)} gal`,
-      "Current period",
-    ],
-    [
-      "Electric Usage",
-      `${formatNumber(electric?.usageValue ?? 0)} kWh`,
-      "Current period",
-    ],
-    ["Device Health", health, healthPrevious],
-    ["Open Alerts", String(summary.openAlertCount), "Needs review"],
-    [
-      "Overdue Work",
-      String(overdueWorkOrderCount),
-      overdueWorkOrderCount ? "Needs repair follow-up" : "No overdue repairs",
-    ],
-  ] as const;
-
   return (
-    <section className="metric-strip" aria-label="Utility summary">
-      {cards.map(([label, value, previous]) => (
-        <article className="metric-card" key={label}>
-          <div className="metric-label-row">
-            {(() => {
-              const Icon = dashboardMetricIconFor(label);
-              return (
-                <span className="metric-icon">
-                  <Icon aria-hidden="true" />
-                </span>
-              );
-            })()}
-            <h2>{label}</h2>
-          </div>
-          <p className="previous">{previous}</p>
-          <strong>{value}</strong>
-          <p className="change">+8.4% vs last month</p>
-        </article>
-      ))}
+    <section className="usage-summary-strip" aria-label="Utility usage summary">
+      {usageSummaryCards(summary, range).map((card) => {
+        const Icon = dashboardMetricIconFor(card.label);
+        return (
+          <article className="metric-card" key={card.label}>
+            <div className="metric-label-row">
+              <span className="metric-icon">
+                <Icon aria-hidden="true" />
+              </span>
+              <h2>{card.label}</h2>
+            </div>
+            <p className={card.comparison ? "change" : "previous"}>
+              {card.support}
+            </p>
+            <strong>{card.value}</strong>
+            {card.cost ? <p className="previous">{card.cost}</p> : null}
+          </article>
+        );
+      })}
     </section>
   );
+}
+
+export function usageSummaryCards(
+  summary: DashboardSummaryResponse,
+  range: DashboardOverviewRange,
+) {
+  return [
+    usageCard(findUtility(summary, "water"), "Water Usage", "gal", range),
+    usageCard(findUtility(summary, "electric"), "Electric Usage", "kWh", range),
+  ];
+}
+
+function usageCard(
+  utility: UtilitySummary | undefined,
+  label: "Electric Usage" | "Water Usage",
+  unit: string,
+  range: DashboardOverviewRange,
+) {
+  const comparison = utility?.comparisonPercent;
+  return {
+    comparison: Number.isFinite(comparison),
+    cost:
+      utility?.costEstimate === undefined
+        ? undefined
+        : `Estimated cost ${formatMoney(utility.costEstimate)}`,
+    label,
+    support: Number.isFinite(comparison)
+      ? formatComparison(comparison!)
+      : formatDashboardRangeLabel(range),
+    value: `${formatNumber(utility?.usageValue ?? 0)} ${unit}`,
+  };
 }
 
 function findUtility(
@@ -71,6 +76,18 @@ function findUtility(
   return summary.utilitySummaries.find(
     (item) => item.utilityType === utilityType,
   );
+}
+
+function formatComparison(comparison: number): string {
+  const prefix = comparison > 0 ? "+" : "";
+  return `${prefix}${comparison.toFixed(1)}% vs previous period`;
+}
+
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    style: "currency",
+  }).format(value);
 }
 
 function formatNumber(value: number): string {
