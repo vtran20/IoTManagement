@@ -33,4 +33,9 @@ describe("alert incident correlation", () => {
       ".alert-actions {\n  display: grid;\n  gap: 8px;\n  margin-top: 8px;",
     );
   });
+
+  it("brings the selected incident form into view after an alert action", () => {
+    expect(alertsTable).toContain("correlationPanelRef");
+    expect(alertsTable).toContain("scrollIntoView");
+  });
 });

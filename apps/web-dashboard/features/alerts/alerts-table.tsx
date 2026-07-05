@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import type {
   AlertEvent,
   AlertEventResponse,
@@ -33,6 +33,7 @@ export function AlertsTable() {
   );
   const [message, setMessage] = useState("");
   const [selectedAlertId, setSelectedAlertId] = useState<string>();
+  const correlationPanelRef = useRef<HTMLElement>(null);
   const allowMutations = canMutate(session.data?.membership.role);
 
   useEffect(() => {
@@ -61,6 +62,15 @@ export function AlertsTable() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (correlationMode && selectedAlertId) {
+      correlationPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [correlationMode, selectedAlertId]);
 
   async function acknowledge(alertId: string) {
     if (!allowMutations) return;
@@ -331,7 +341,7 @@ export function AlertsTable() {
         </table>
       </div>
       {correlationMode && selectedAlert ? (
-        <section className="data-panel">
+        <section className="data-panel" ref={correlationPanelRef}>
           <div className="section-heading">
             <h2>
               {correlationMode === "create"
