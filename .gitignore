@@ -14,3 +14,4 @@ node_modules/
 playwright-report/
 test-results/
 *.tsbuildinfo
+apps/web-dashboard/next-env.d.ts
