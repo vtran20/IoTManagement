@@ -23,7 +23,8 @@ export function VendorsPanel() {
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!allowMutations) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     setMessage("");
     try {
       const optionalText = (name: string) => {
@@ -40,7 +41,7 @@ export function VendorsPanel() {
           email: optionalText("email"),
         }),
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await vendors.refetch();
     } catch {
       setMessage("Vendor could not be saved.");

@@ -46,7 +46,8 @@ export function WorkOrderDetail({ workOrderId }: { workOrderId: string }) {
 
   async function addNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const note = String(form.get("note") ?? "").trim();
     if (!note) return;
     try {
@@ -54,7 +55,7 @@ export function WorkOrderDetail({ workOrderId }: { workOrderId: string }) {
         method: "POST",
         body: JSON.stringify({ note }),
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await notes.refetch();
     } catch {
       setMessage("Note could not be added.");
