@@ -929,12 +929,18 @@ td span {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   background: #ffffff;
   border: 1px solid #dedee3;
   border-radius: 8px;
   min-height: 38px;
   padding: 0 10px;
+}
+
+.field textarea {
+  padding: 10px;
+  resize: vertical;
 }
 
 .compact-field {
@@ -1093,6 +1099,35 @@ td span {
   gap: 14px;
   grid-template-columns: minmax(220px, 1fr) minmax(180px, 1fr) auto;
   padding: 18px;
+}
+
+.incident-create-action {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.incident-creation-panel {
+  overflow: visible;
+}
+
+.incident-creation-form {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.incident-title-field,
+.incident-description-field,
+.incident-creation-form > .form-error,
+.incident-creation-actions {
+  grid-column: 1 / -1;
+}
+
+.incident-creation-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .portfolio-detail-header {
@@ -1331,6 +1366,22 @@ td span {
   .portfolio-form {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .incident-creation-form {
+    grid-template-columns: 1fr;
+  }
+
+  .incident-title-field,
+  .incident-description-field,
+  .incident-creation-form > .form-error,
+  .incident-creation-actions {
+    grid-column: auto;
+  }
+
+  .incident-creation-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
   }
 
   .portfolio-detail-header {

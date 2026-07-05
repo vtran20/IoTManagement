@@ -1,5 +1,6 @@
 import { AppShell } from "../../components/app-shell";
 import { IncidentsPanel } from "../../features/incidents/incidents-panel";
+import { ManualIncidentCreation } from "../../features/incidents/manual-incident-creation";
 
 export default function IncidentsPage() {
   return (
@@ -10,6 +11,7 @@ export default function IncidentsPage() {
           Investigate leak evidence, coordinate repairs, and track resolution.
         </p>
       </section>
+      <ManualIncidentCreation />
       <IncidentsPanel />
     </AppShell>
   );
