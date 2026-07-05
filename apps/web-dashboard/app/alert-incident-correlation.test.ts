@@ -29,5 +29,8 @@ describe("alert incident correlation", () => {
     expect(alertsTable).toContain('className="alert-actions"');
     expect(styles).toContain(".alert-rule-form > .field");
     expect(styles).toContain(".alert-actions");
+    expect(styles).toContain(
+      ".alert-actions {\n  display: grid;\n  gap: 8px;\n  margin-top: 8px;",
+    );
   });
 });
