@@ -157,6 +157,11 @@ a {
   color: #18181b;
 }
 
+.breadcrumbs,
+.form-error {
+  grid-column: 1 / -1;
+}
+
 .breadcrumbs ol {
   display: flex;
   flex-wrap: wrap;

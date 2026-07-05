@@ -10,6 +10,7 @@ import type {
   WorkOrderResponse,
 } from "@iot-management/types";
 import { AppShell } from "../../../components/app-shell";
+import { Breadcrumbs } from "../../../components/breadcrumbs";
 import {
   canMutate,
   fetchJson,
@@ -102,10 +103,12 @@ export function WorkOrderDetail({ workOrderId }: { workOrderId: string }) {
     );
   return (
     <AppShell title="Work Order">
-      <section className="breadcrumbs">
-        <a href="/work-orders">Work Orders</a>
-        <span aria-current="page">{item.title}</span>
-      </section>
+      <Breadcrumbs
+        items={[
+          { href: "/work-orders", label: "Work Orders" },
+          { label: item.title },
+        ]}
+      />
       <section className="page-header">
         <h2>{item.title}</h2>
         <p>{item.description}</p>

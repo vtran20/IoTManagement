@@ -19,5 +19,7 @@ describe("work-order detail layout", () => {
     );
     expect(styles).toContain(".work-order-summary > div {");
     expect(styles).toContain(".work-order-summary > div:nth-child(-n + 4)");
+    expect(styles).toContain(".breadcrumbs,\n.form-error {");
+    expect(styles).toContain("grid-column: 1 / -1;");
   });
 });

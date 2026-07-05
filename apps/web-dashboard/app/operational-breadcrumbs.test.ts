@@ -18,6 +18,10 @@ const incidentDetail = readFileSync(
   resolve(process.cwd(), "features/incidents/incident-detail.tsx"),
   "utf8",
 );
+const workOrderDetail = readFileSync(
+  resolve(process.cwd(), "app/work-orders/[workOrderId]/work-order-detail.tsx"),
+  "utf8",
+);
 
 describe("operational detail breadcrumbs", () => {
   it("uses the shared breadcrumb component on every current detail screen", () => {
@@ -25,5 +29,6 @@ describe("operational detail breadcrumbs", () => {
     expect(unitDetail).toContain("Breadcrumbs");
     expect(meterDetail).toContain("Breadcrumbs");
     expect(incidentDetail).toContain("Breadcrumbs");
+    expect(workOrderDetail).toContain("Breadcrumbs");
   });
 });
