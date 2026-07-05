@@ -18,15 +18,15 @@
 - Create: `apps/web-dashboard/tests/manual-incidents.spec.ts`
 - Modify: `apps/web-dashboard/tests/auth-fixture.ts`
 
-- [ ] **Step 1: Write an owner workflow test**
+- [x] **Step 1: Write an owner workflow test**
 
 Mock buildings, units, meters, CSRF, and `POST /incidents/manual`. Visit `/incidents`, open the form, select the building context, submit, and assert the request payload and navigation to the created detail route.
 
-- [ ] **Step 2: Write a viewer restriction test**
+- [x] **Step 2: Write a viewer restriction test**
 
 Mock a viewer session and assert that the create action is absent.
 
-- [ ] **Step 3: Run the focused test to verify it fails**
+- [x] **Step 3: Run the focused test to verify it fails**
 
 Run: `pnpm --filter @iot-management/web-dashboard test:e2e -- manual-incidents.spec.ts`
 
@@ -39,23 +39,23 @@ Expected: FAIL because the create action is not implemented.
 - Modify: `apps/web-dashboard/app/incidents/page.tsx`
 - Modify: `apps/web-dashboard/app/styles.css`
 
-- [ ] **Step 1: Add the role-aware create action and form**
+- [x] **Step 1: Add the role-aware create action and form**
 
 Use the existing session hook and `canMutate`. Add required title, description, building, and severity fields; include optional unit and meter selects.
 
-- [ ] **Step 2: Load and scope context options**
+- [x] **Step 2: Load and scope context options**
 
 Fetch existing buildings, units, and meters. Changing building clears incompatible unit/meter selections and restricts options to the chosen building.
 
-- [ ] **Step 3: Submit through the existing API contract**
+- [x] **Step 3: Submit through the existing API contract**
 
 Call `mutateJson` with `POST /incidents/manual`; omit empty optional IDs. On success, redirect to `/incidents/:incidentId`; on failure, show the existing form-error treatment.
 
-- [ ] **Step 4: Add only scoped layout styles**
+- [x] **Step 4: Add only scoped layout styles**
 
 Use existing tokens and responsive form conventions. Ensure controls wrap naturally on tablet and mobile without changing the incident table.
 
-- [ ] **Step 5: Re-run focused browser tests**
+- [x] **Step 5: Re-run focused browser tests**
 
 Run: `pnpm --filter @iot-management/web-dashboard test:e2e -- manual-incidents.spec.ts`
 
@@ -69,19 +69,19 @@ Expected: PASS.
 - Test: `apps/web-dashboard/tests/manual-incidents.spec.ts`
 - Test: `apps/api/test/incidents.e2e-spec.ts`
 
-- [ ] **Step 1: Run dashboard quality checks**
+- [x] **Step 1: Run dashboard quality checks**
 
 Run: `pnpm --filter @iot-management/web-dashboard lint && pnpm --filter @iot-management/web-dashboard typecheck && pnpm --filter @iot-management/web-dashboard test:e2e`
 
-- [ ] **Step 2: Run focused API regression coverage**
+- [x] **Step 2: Run focused API regression coverage**
 
 Run: `pnpm --filter @iot-management/api test -- incidents.e2e-spec.ts`
 
-- [ ] **Step 3: Build the dashboard**
+- [x] **Step 3: Build the dashboard**
 
 Run: `pnpm --filter @iot-management/web-dashboard build`
 
-- [ ] **Step 4: Commit the implementation**
+- [x] **Step 4: Commit the implementation**
 
 Run: `git add apps/web-dashboard docs/superpowers && git commit -m "feat: add manual incident creation"`
 
