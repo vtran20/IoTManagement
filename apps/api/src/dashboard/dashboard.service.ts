@@ -14,6 +14,7 @@ import {
   PERSISTENCE_SERVICE,
   PersistenceService,
 } from "../persistence/persistence.service";
+import { buildDashboardOperations } from "./dashboard-operations";
 
 @Injectable()
 export class DashboardService {
@@ -102,6 +103,30 @@ export class DashboardService {
       trends,
       units: unitRankings,
     };
+  }
+
+  async operations(organizationId: string) {
+    const [alertResponse, incidents, workOrders, deviceHealth] =
+      await Promise.all([
+        this.alertEvents.list(
+          {
+            organization: { id: organizationId },
+          } as Parameters<AlertEventsService["list"]>[0],
+          {},
+        ),
+        this.persistence.listLeakIncidents({ organizationId }),
+        this.persistence.listWorkOrders({ organizationId }),
+        this.usageQuery.getDeviceHealth({ organizationId }),
+      ]);
+
+    return buildDashboardOperations({
+      alerts: alertResponse.items,
+      deviceHealth,
+      incidents,
+      now: new Date().toISOString(),
+      organizationId,
+      workOrders,
+    });
   }
 
   trends(organizationId: string, query: DashboardUsageQuery) {

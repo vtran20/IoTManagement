@@ -5,6 +5,7 @@ import type {
   ISODateTime,
   MeterStatus,
   UtilityType,
+  WorkOrderPriority,
 } from "./domain";
 import type { PageResponse } from "./api";
 
@@ -82,6 +83,42 @@ export interface DashboardOverviewResponse {
   summary: DashboardSummaryResponse;
   trends: PageResponse<UsageTrendPoint>;
   units: PageResponse<UnitRankingItem>;
+}
+
+export const dashboardOperationKinds = [
+  "alert",
+  "incident",
+  "meter",
+  "work_order",
+] as const;
+
+export type DashboardOperationKind =
+  (typeof dashboardOperationKinds)[number];
+
+export interface DashboardOperationItem {
+  actionLabel: string;
+  assignmentType?: "internal" | "unassigned" | "vendor";
+  detectedAt?: ISODateTime;
+  dueAt?: ISODateTime;
+  href: string;
+  id: EntityId;
+  isOverdue?: boolean;
+  kind: DashboardOperationKind;
+  priority?: WorkOrderPriority;
+  severity?: AlertEvent["severity"];
+  status: string;
+  supportingText?: string;
+  title: string;
+}
+
+export interface DashboardOperationsResponse {
+  criticalAlertCount: number;
+  generatedAt: ISODateTime;
+  incidentsWithoutRepairCount: number;
+  items: DashboardOperationItem[];
+  offlineMeterCount: number;
+  organizationId: EntityId;
+  overdueWorkOrderCount: number;
 }
 
 export interface DashboardAlertsResponse {
