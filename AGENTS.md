@@ -70,6 +70,8 @@ Use these defaults unless the user approves a design update:
 
 Before finishing any implementation:
 
+- For every production behavior change, add or update both focused unit tests for the changed logic and regression tests that preserve the affected existing workflow at the appropriate boundary (API, UI, or end-to-end). A regression test must reproduce the behavior that could otherwise break; unit-only coverage is not sufficient.
+- Write the unit and regression tests before or alongside the implementation, run them after the change, and document any non-testable exception (for example, documentation-only or generated-file changes).
 - Run focused tests for the changed area.
 - Run lint/type checks when available.
 - Verify tenant isolation for backend changes that access organization data.
