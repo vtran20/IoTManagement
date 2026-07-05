@@ -33,46 +33,21 @@ export class LeakIncidentsService {
     context: RequestContext,
     dto: CreateManualLeakIncidentDto,
   ): Promise<LeakIncidentResponse> {
-    const building = await this.persistence.findBuildingById(
+    const contextIds = await this.validateManualContext(
       context.organization.id,
-      dto.buildingId,
+      dto,
     );
-    if (!building) {
-      throw tenantResourceNotFound("Building");
-    }
-    if (dto.unitId) {
-      const unit = await this.persistence.findUnitById(
-        context.organization.id,
-        dto.unitId,
-      );
-      if (!unit || unit.buildingId !== building.id) {
-        throw tenantResourceNotFound("Unit");
-      }
-    }
-    if (dto.meterId) {
-      const meter = await this.persistence.findMeterById(
-        context.organization.id,
-        dto.meterId,
-      );
-      if (
-        !meter ||
-        meter.buildingId !== building.id ||
-        (dto.unitId && meter.unitId && meter.unitId !== dto.unitId)
-      ) {
-        throw tenantResourceNotFound("Meter");
-      }
-    }
 
     const incident = await this.persistence.createLeakIncident({
-      buildingId: building.id,
+      buildingId: contextIds.buildingId,
       description: dto.description,
       detectedAt: new Date().toISOString(),
-      meterId: dto.meterId,
+      meterId: contextIds.meterId,
       organizationId: context.organization.id,
       severity: dto.severity,
       source: "manual_report",
       title: dto.title,
-      unitId: dto.unitId,
+      unitId: contextIds.unitId,
     });
     await this.persistence.createAuditLog({
       action: "leak_incident.created",
@@ -92,6 +67,50 @@ export class LeakIncidentsService {
     });
     await this.notifications.notifyIncidentOpened(incident);
     return incident;
+  }
+
+  async createFromAlert(
+    context: RequestContext,
+    alertId: string,
+    dto: CreateManualLeakIncidentDto,
+  ) {
+    const alert = await this.persistence.findAlertEventById(
+      context.organization.id,
+      alertId,
+    );
+    if (!alert) throw tenantResourceNotFound("Alert");
+    if (alert.incidentId) {
+      throw new ApiError(
+        "ALERT_ALREADY_LINKED",
+        "This alert is already linked to an incident",
+        HttpStatus.CONFLICT,
+      );
+    }
+    const contextIds = await this.validateManualContext(
+      context.organization.id,
+      dto,
+    );
+    const created = await this.persistence.createManualIncidentFromAlert({
+      actorUserId: context.user.id,
+      alertId,
+      buildingId: contextIds.buildingId,
+      description: dto.description,
+      detectedAt: new Date().toISOString(),
+      meterId: contextIds.meterId,
+      organizationId: context.organization.id,
+      severity: dto.severity,
+      title: dto.title,
+      unitId: contextIds.unitId,
+    });
+    if (!created) {
+      throw new ApiError(
+        "ALERT_ALREADY_LINKED",
+        "This alert is already linked to an incident",
+        HttpStatus.CONFLICT,
+      );
+    }
+    await this.notifications.notifyIncidentOpened(created.incident);
+    return created;
   }
 
   async list(context: RequestContext, query: ListLeakIncidentsQuery = {}) {
@@ -182,7 +201,7 @@ export class LeakIncidentsService {
     if (!incident) {
       throw tenantResourceNotFound("Leak incident");
     }
-    const [activities, evidence, sensorEvidence, workOrders] =
+    const [activities, evidence, sensorEvidence, workOrders, relatedAlerts] =
       await Promise.all([
         this.persistence.listIncidentActivities({
           incidentId,
@@ -200,8 +219,56 @@ export class LeakIncidentsService {
           incidentId,
           organizationId: context.organization.id,
         }),
+        this.persistence.listAlertEvents({
+          incidentId,
+          organizationId: context.organization.id,
+        }),
       ]);
-    return { ...incident, activities, evidence, sensorEvidence, workOrders };
+    return {
+      ...incident,
+      activities,
+      evidence,
+      sensorEvidence,
+      workOrders,
+      relatedAlerts,
+    };
+  }
+
+  private async validateManualContext(
+    organizationId: string,
+    dto: CreateManualLeakIncidentDto,
+  ): Promise<{ buildingId: string; meterId?: string; unitId?: string }> {
+    const building = await this.persistence.findBuildingById(
+      organizationId,
+      dto.buildingId,
+    );
+    if (!building) throw tenantResourceNotFound("Building");
+    if (dto.unitId) {
+      const unit = await this.persistence.findUnitById(
+        organizationId,
+        dto.unitId,
+      );
+      if (!unit || unit.buildingId !== building.id)
+        throw tenantResourceNotFound("Unit");
+    }
+    if (dto.meterId) {
+      const meter = await this.persistence.findMeterById(
+        organizationId,
+        dto.meterId,
+      );
+      if (
+        !meter ||
+        meter.buildingId !== building.id ||
+        (dto.unitId && meter.unitId && meter.unitId !== dto.unitId)
+      ) {
+        throw tenantResourceNotFound("Meter");
+      }
+    }
+    return {
+      buildingId: building.id,
+      meterId: dto.meterId,
+      unitId: dto.unitId,
+    };
   }
 
   private async transition(

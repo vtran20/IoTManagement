@@ -25,7 +25,7 @@ import type {
 } from "@iot-management/types";
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
-import { Insertable, Selectable, sql } from "kysely";
+import { Insertable, Kysely, Selectable, sql, Transaction } from "kysely";
 import { createPasswordHash } from "../auth/password";
 import { DatabaseService } from "../database/database.service";
 import type {
@@ -33,6 +33,7 @@ import type {
   AlertRuleRow,
   AuditLogRow,
   BuildingRow,
+  DatabaseSchema,
   EmailOutboxRow,
   FloorRow,
   InvitationRow,
@@ -2391,6 +2392,7 @@ export class PostgresPersistenceService
         ),
         organization_id: input.organizationId,
         rule_id: input.ruleId ?? null,
+        incident_id: null,
         severity: input.severity,
         status: "open",
         title: input.title,
@@ -2405,6 +2407,7 @@ export class PostgresPersistenceService
   }
 
   async listAlertEvents(input: {
+    incidentId?: string;
     organizationId: string;
     severity?: AlertEvent["severity"];
     status?: AlertEvent["status"];
@@ -2418,6 +2421,9 @@ export class PostgresPersistenceService
     }
     if (input.severity) {
       query = query.where("severity", "=", input.severity);
+    }
+    if (input.incidentId) {
+      query = query.where("incident_id", "=", input.incidentId);
     }
     const rows = await query.orderBy("triggered_at", "desc").execute();
     return rows.map(mapAlertEvent);
@@ -2448,6 +2454,134 @@ export class PostgresPersistenceService
       .where("status", "!=", "resolved")
       .executeTakeFirst();
     return row ? mapAlertEvent(row) : undefined;
+  }
+
+  async linkAlertToIncident(input: {
+    alertId: string;
+    incidentId: string;
+    organizationId: string;
+  }): Promise<AlertEvent | undefined> {
+    const row = await this.database.db
+      .updateTable("alert_events")
+      .set({ incident_id: input.incidentId })
+      .where("organization_id", "=", input.organizationId)
+      .where("id", "=", input.alertId)
+      .where("incident_id", "is", null)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? mapAlertEvent(row) : undefined;
+  }
+
+  async createManualIncidentFromAlert(input: {
+    actorUserId: string;
+    alertId: string;
+    buildingId: string;
+    description: string;
+    detectedAt: string;
+    organizationId: string;
+    severity: AlertEvent["severity"];
+    title: string;
+    unitId?: string;
+    meterId?: string;
+  }): Promise<{ alert: AlertEvent; incident: LeakIncident } | undefined> {
+    return await this.database.db.transaction().execute(async (trx) => {
+      const alert = await trx
+        .selectFrom("alert_events")
+        .selectAll()
+        .where("organization_id", "=", input.organizationId)
+        .where("id", "=", input.alertId)
+        .where("incident_id", "is", null)
+        .executeTakeFirst();
+      if (!alert) return undefined;
+
+      const incident = await trx
+        .insertInto("leak_incidents")
+        .values({
+          id: await this.nextId(
+            "leakIncident",
+            input.title,
+            "leak_incidents",
+            trx,
+          ),
+          organization_id: input.organizationId,
+          building_id: input.buildingId,
+          unit_id: input.unitId ?? null,
+          meter_id: input.meterId ?? null,
+          source: "manual_report",
+          severity: input.severity,
+          status: "open",
+          title: input.title,
+          description: input.description,
+          detected_at: input.detectedAt,
+          acknowledged_at: null,
+          investigating_at: null,
+          contained_at: null,
+          monitoring_at: null,
+          resolved_at: null,
+          resolution_category: null,
+          resolution_note: null,
+          estimated_excess_water: null,
+          estimated_excess_cost: null,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      const linkedAlert = await trx
+        .updateTable("alert_events")
+        .set({ incident_id: incident.id })
+        .where("organization_id", "=", input.organizationId)
+        .where("id", "=", input.alertId)
+        .where("incident_id", "is", null)
+        .returningAll()
+        .executeTakeFirst();
+      if (!linkedAlert) throw new Error("Alert link was modified concurrently");
+
+      await trx
+        .insertInto("incident_activities")
+        .values({
+          id: await this.nextId(
+            "incidentActivity",
+            `${incident.id}-opened`,
+            "incident_activities",
+            trx,
+          ),
+          organization_id: input.organizationId,
+          incident_id: incident.id,
+          actor_user_id: input.actorUserId,
+          type: "opened",
+          summary: "Manual incident opened from alert",
+          created_at: input.detectedAt,
+        })
+        .execute();
+      await trx
+        .insertInto("audit_logs")
+        .values([
+          {
+            id: randomUUID(),
+            organization_id: input.organizationId,
+            actor_user_id: input.actorUserId,
+            action: "leak_incident.created",
+            target_type: "leak_incident",
+            target_id: incident.id,
+            metadata: JSON.stringify({ source: "manual_report" }),
+            created_at: input.detectedAt,
+          },
+          {
+            id: randomUUID(),
+            organization_id: input.organizationId,
+            actor_user_id: input.actorUserId,
+            action: "alert.linked_to_incident",
+            target_type: "alert_event",
+            target_id: linkedAlert.id,
+            metadata: JSON.stringify({ incidentId: incident.id }),
+            created_at: input.detectedAt,
+          },
+        ])
+        .execute();
+      return {
+        alert: mapAlertEvent(linkedAlert),
+        incident: mapLeakIncident(incident),
+      };
+    });
   }
 
   async updateAlertEvent(
@@ -2578,13 +2712,15 @@ export class PostgresPersistenceService
     kind: string,
     seed: string,
     tableName: keyof import("../database/schema").DatabaseSchema,
+    executor: Kysely<DatabaseSchema> | Transaction<DatabaseSchema> = this
+      .database.db,
   ): Promise<string> {
     const prefix = `${kind}_${slug(seed) || "item"}`;
     const result = await sql<{ count: string }>`
       SELECT count(*)::text AS count
       FROM ${sql.table(tableName)}
       WHERE id LIKE ${`${prefix}_%`}
-    `.execute(this.database.db);
+    `.execute(executor);
     const count = Number(result.rows[0]?.count ?? "0") + 1;
     return `${prefix}_${count}`;
   }
@@ -3008,6 +3144,7 @@ function mapAlertEvent(row: Selectable<AlertEventRow>): AlertEvent {
     id: row.id,
     organizationId: row.organization_id,
     ruleId: row.rule_id ?? undefined,
+    incidentId: row.incident_id ?? undefined,
     severity: row.severity,
     status: row.status,
     title: row.title,

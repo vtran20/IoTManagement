@@ -614,6 +614,7 @@ export interface PersistenceService {
     triggeredAt: string;
   }): MaybePromise<AlertEvent>;
   listAlertEvents(input: {
+    incidentId?: string;
     organizationId: string;
     severity?: AlertSeverity;
     status?: AlertStatus;
@@ -626,6 +627,23 @@ export interface PersistenceService {
     organizationId: string,
     ruleId: string,
   ): MaybePromise<AlertEvent | undefined>;
+  linkAlertToIncident(input: {
+    alertId: string;
+    incidentId: string;
+    organizationId: string;
+  }): MaybePromise<AlertEvent | undefined>;
+  createManualIncidentFromAlert(input: {
+    actorUserId: string;
+    alertId: string;
+    buildingId: string;
+    description: string;
+    detectedAt: string;
+    organizationId: string;
+    severity: AlertSeverity;
+    title: string;
+    unitId?: string;
+    meterId?: string;
+  }): MaybePromise<{ alert: AlertEvent; incident: LeakIncident } | undefined>;
   updateAlertEvent(
     organizationId: string,
     alertId: string,

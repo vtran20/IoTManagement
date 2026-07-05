@@ -24,6 +24,7 @@ import { LeakIncidentsService } from "./leak-incidents.service";
     LeakAnalyticsService,
     LeakBaselineDetectionService,
     LeakDetectionService,
+    LeakIncidentsService,
   ],
   providers: [
     LeakDetectionPoliciesService,

@@ -49,6 +49,29 @@ Content-Type: application/json
 GET {{baseUrl}}/alerts?status=open
 Authorization: Bearer {{ownerToken}}
 
+### MUTATES DATA: create an incident from an alert
+POST {{baseUrl}}/alerts/{{testAlertId}}/incidents
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "buildingId": "{{testBuildingId}}",
+  "severity": "warning",
+  "title": "Investigate alert from HTTP Client",
+  "description": "A manager deliberately created this incident from alert {{testAlertId}}."
+}
+
+> {% client.global.set("testIncidentId", response.body.incident.id); %}
+
+### MUTATES DATA: link another alert to an existing incident
+POST {{baseUrl}}/alerts/{{testAlertId}}/link-incident
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "incidentId": "{{testIncidentId}}"
+}
+
 ### MUTATES DATA: acknowledge first evaluated alert
 POST {{baseUrl}}/alerts/{{testAlertId}}/acknowledge
 Authorization: Bearer {{ownerToken}}

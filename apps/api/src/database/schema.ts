@@ -389,6 +389,7 @@ export interface AlertEventRow {
   id: string;
   organization_id: string;
   rule_id: string | null;
+  incident_id: string | null;
   severity: "info" | "warning" | "critical";
   status: "open" | "acknowledged" | "resolved";
   title: string;

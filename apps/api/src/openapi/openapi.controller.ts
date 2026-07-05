@@ -46,6 +46,18 @@ export class OpenApiController {
             tags: ["Dashboard"],
           },
         },
+        "/api/v1/alerts/{alertId}/incidents": {
+          post: {
+            summary: "Create and link a manual incident from an alert",
+            tags: ["Alerts"],
+          },
+        },
+        "/api/v1/alerts/{alertId}/link-incident": {
+          post: {
+            summary: "Link an alert to an existing active incident",
+            tags: ["Alerts"],
+          },
+        },
         "/api/v1/incidents": {
           get: {
             summary: "List leak incidents for the current organization",

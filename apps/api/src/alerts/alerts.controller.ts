@@ -16,6 +16,9 @@ import { AuthGuard } from "../common/guards/auth.guard";
 import { Roles, RolesGuard } from "../common/guards/roles.guard";
 import { RequestWithContext } from "../common/request-context";
 import { AlertEventsService } from "./alert-events.service";
+import { LeakIncidentsService } from "../incidents/leak-incidents.service";
+import { CreateManualLeakIncidentDto } from "../incidents/dto/create-manual-leak-incident.dto";
+import { LinkAlertIncidentDto } from "./dto/link-alert-incident.dto";
 
 @Controller("alerts")
 @UseGuards(AuthGuard, RolesGuard)
@@ -23,11 +26,41 @@ export class AlertsController {
   constructor(
     @Inject(AlertEventsService)
     private readonly alertEventsService: AlertEventsService,
+    @Inject(LeakIncidentsService)
+    private readonly incidentsService: LeakIncidentsService,
   ) {}
 
   @Get()
   list(@Req() request: RequestWithContext, @Query() query: ListAlertsQuery) {
     return this.alertEventsService.list(request.context!, query);
+  }
+
+  @Post(":alertId/incidents")
+  @Roles("owner", "manager")
+  createIncident(
+    @Req() request: RequestWithContext,
+    @Param("alertId") alertId: string,
+    @Body() dto: CreateManualLeakIncidentDto,
+  ) {
+    return this.incidentsService.createFromAlert(
+      request.context!,
+      alertId,
+      dto,
+    );
+  }
+
+  @Post(":alertId/link-incident")
+  @Roles("owner", "manager")
+  linkIncident(
+    @Req() request: RequestWithContext,
+    @Param("alertId") alertId: string,
+    @Body() dto: LinkAlertIncidentDto,
+  ) {
+    return this.alertEventsService.linkToIncident(
+      request.context!,
+      alertId,
+      dto.incidentId,
+    );
   }
 
   @Post("evaluate")

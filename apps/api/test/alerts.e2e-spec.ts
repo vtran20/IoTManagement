@@ -131,4 +131,90 @@ describe("Alerts API", () => {
         expect(body.resolvedAt).toBeDefined();
       });
   });
+
+  it("lets an owner create and link a manual incident from an alert", async () => {
+    const building = await request(app.getHttpServer())
+      .post("/api/v1/buildings")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Alert Incident Tower", timezone: "America/Detroit" })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post("/api/v1/meters")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        buildingId: building.body.id,
+        externalId: "alert-incident-water",
+        source: "simulated",
+        utilityType: "water",
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post("/api/v1/readings/ingest")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        measuredAt: "2026-06-29T10:00:00.000Z",
+        meterExternalId: "alert-incident-water",
+        readingKind: "interval",
+        unit: "gallon",
+        utilityType: "water",
+        value: 30,
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post("/api/v1/analytics/aggregate")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ periodType: "hour" })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post("/api/v1/alerts/rules")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        conditionType: "high_usage",
+        name: "Create incident from alert",
+        scopeType: "organization",
+        threshold: 10,
+        utilityType: "water",
+        windowMinutes: 60,
+      })
+      .expect(201);
+    const evaluated = await request(app.getHttpServer())
+      .post("/api/v1/alerts/evaluate")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ now: "2026-06-29T11:00:00.000Z" })
+      .expect(201);
+    const alertId = evaluated.body.events[0].id;
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/alerts/${alertId}/incidents`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        buildingId: building.body.id,
+        description: "Investigate usage reported by this alert.",
+        severity: "warning",
+        title: "Alert-driven investigation",
+      })
+      .expect(201);
+
+    expect(response.body).toMatchObject({
+      alert: {
+        incidentId: response.body.incident.id,
+        organizationId: "org_north",
+      },
+      incident: {
+        buildingId: building.body.id,
+        source: "manual_report",
+        status: "open",
+      },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${response.body.incident.id}`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.relatedAlerts).toEqual([
+          expect.objectContaining({ id: alertId }),
+        ]);
+      });
+  });
 });

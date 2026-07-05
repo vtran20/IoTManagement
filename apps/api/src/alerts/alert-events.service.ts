@@ -1,5 +1,12 @@
-import type { ListAlertsQuery } from "@iot-management/types";
-import { Inject, Injectable } from "@nestjs/common";
+import type {
+  AlertEvent,
+  AlertEventResponse,
+  AlertIncidentSummary,
+  LeakIncident,
+  ListAlertsQuery,
+} from "@iot-management/types";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { ApiError } from "../common/errors/api-error";
 import { StructuredLogger } from "../common/logging/logger";
 import { RequestContext } from "../common/request-context";
 import {
@@ -24,12 +31,21 @@ export class AlertEventsService {
   ) {}
 
   async list(context: RequestContext, query: ListAlertsQuery = {}) {
-    return {
-      items: await this.persistence.listAlertEvents({
+    const [alerts, incidents] = await Promise.all([
+      this.persistence.listAlertEvents({
         organizationId: context.organization.id,
         severity: query.severity,
         status: query.status,
       }),
+      this.persistence.listLeakIncidents({
+        organizationId: context.organization.id,
+      }),
+    ]);
+    const incidentsById = new Map(
+      incidents.map((incident) => [incident.id, incident]),
+    );
+    return {
+      items: alerts.map((alert) => this.enrich(alert, incidentsById)),
     };
   }
 
@@ -75,6 +91,73 @@ export class AlertEventsService {
     await this.auditLifecycle(context, alertId, "alert.resolved");
     this.logLifecycle(context, alertId, "resolved");
     return event;
+  }
+
+  async linkToIncident(
+    context: RequestContext,
+    alertId: string,
+    incidentId: string,
+  ): Promise<AlertEventResponse> {
+    const [alert, incident] = await Promise.all([
+      this.persistence.findAlertEventById(context.organization.id, alertId),
+      this.persistence.findLeakIncidentById(
+        context.organization.id,
+        incidentId,
+      ),
+    ]);
+    if (!alert) throw tenantResourceNotFound("Alert");
+    if (!incident) throw tenantResourceNotFound("Leak incident");
+    if (alert.incidentId) {
+      throw new ApiError(
+        "ALERT_ALREADY_LINKED",
+        "This alert is already linked to an incident",
+        HttpStatus.CONFLICT,
+      );
+    }
+    if (incident.status === "resolved") {
+      throw new ApiError(
+        "INCIDENT_ALREADY_RESOLVED",
+        "A resolved incident cannot receive a new alert link",
+        HttpStatus.CONFLICT,
+      );
+    }
+    const linked = await this.persistence.linkAlertToIncident({
+      alertId,
+      incidentId,
+      organizationId: context.organization.id,
+    });
+    if (!linked) {
+      throw new ApiError(
+        "ALERT_ALREADY_LINKED",
+        "This alert is already linked to an incident",
+        HttpStatus.CONFLICT,
+      );
+    }
+    await this.persistence.createAuditLog({
+      action: "alert.linked_to_incident",
+      actorUserId: context.user.id,
+      metadata: { incidentId },
+      organizationId: context.organization.id,
+      targetId: alertId,
+      targetType: "alert_event",
+    });
+    return this.enrich(linked, new Map([[incident.id, incident]]));
+  }
+
+  private enrich(
+    alert: AlertEvent,
+    incidents: Map<string, LeakIncident>,
+  ): AlertEventResponse {
+    const incident = alert.incidentId
+      ? incidents.get(alert.incidentId)
+      : undefined;
+    const summary: AlertIncidentSummary | undefined = incident
+      ? { id: incident.id, status: incident.status, title: incident.title }
+      : undefined;
+    return {
+      ...alert,
+      incident: summary,
+    };
   }
 
   private async auditLifecycle(

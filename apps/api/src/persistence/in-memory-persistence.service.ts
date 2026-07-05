@@ -1602,6 +1602,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   }): AlertEvent {
     const event: AlertEvent = {
       id: this.nextId("alertEvent", input.ruleId ?? input.title),
+      incidentId: undefined,
       message: input.message,
       organizationId: input.organizationId,
       ruleId: input.ruleId,
@@ -1615,6 +1616,7 @@ export class InMemoryPersistenceService implements PersistenceService {
   }
 
   listAlertEvents(input: {
+    incidentId?: string;
     organizationId: string;
     severity?: AlertSeverity;
     status?: AlertStatus;
@@ -1623,6 +1625,7 @@ export class InMemoryPersistenceService implements PersistenceService {
       .filter(
         (event) =>
           event.organizationId === input.organizationId &&
+          (!input.incidentId || event.incidentId === input.incidentId) &&
           (!input.status || event.status === input.status) &&
           (!input.severity || event.severity === input.severity),
       )
@@ -1649,6 +1652,70 @@ export class InMemoryPersistenceService implements PersistenceService {
         event.ruleId === ruleId &&
         event.status !== "resolved",
     );
+  }
+
+  linkAlertToIncident(input: {
+    alertId: string;
+    incidentId: string;
+    organizationId: string;
+  }): AlertEvent | undefined {
+    const event = this.findAlertEventById(input.organizationId, input.alertId);
+    if (!event || event.incidentId) return undefined;
+    event.incidentId = input.incidentId;
+    return event;
+  }
+
+  createManualIncidentFromAlert(input: {
+    actorUserId: string;
+    alertId: string;
+    buildingId: string;
+    description: string;
+    detectedAt: string;
+    organizationId: string;
+    severity: AlertSeverity;
+    title: string;
+    unitId?: string;
+    meterId?: string;
+  }): { alert: AlertEvent; incident: LeakIncident } | undefined {
+    const alert = this.findAlertEventById(input.organizationId, input.alertId);
+    if (!alert || alert.incidentId) return undefined;
+    const incident = this.createLeakIncident({
+      buildingId: input.buildingId,
+      description: input.description,
+      detectedAt: input.detectedAt,
+      meterId: input.meterId,
+      organizationId: input.organizationId,
+      severity: input.severity,
+      source: "manual_report",
+      title: input.title,
+      unitId: input.unitId,
+    });
+    alert.incidentId = incident.id;
+    this.createIncidentActivity({
+      actorUserId: input.actorUserId,
+      createdAt: input.detectedAt,
+      incidentId: incident.id,
+      organizationId: input.organizationId,
+      summary: "Manual incident opened from alert",
+      type: "opened",
+    });
+    this.createAuditLog({
+      action: "leak_incident.created",
+      actorUserId: input.actorUserId,
+      metadata: { source: "manual_report" },
+      organizationId: input.organizationId,
+      targetId: incident.id,
+      targetType: "leak_incident",
+    });
+    this.createAuditLog({
+      action: "alert.linked_to_incident",
+      actorUserId: input.actorUserId,
+      metadata: { incidentId: incident.id },
+      organizationId: input.organizationId,
+      targetId: alert.id,
+      targetType: "alert_event",
+    });
+    return { alert, incident };
   }
 
   updateAlertEvent(

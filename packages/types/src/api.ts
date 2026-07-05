@@ -1,5 +1,6 @@
 import type {
   AlertEvent,
+  AlertIncidentSummary,
   AlertRule,
   AlertSeverity,
   AlertScopeType,
@@ -315,7 +316,9 @@ export interface ListUsageQuery extends PageRequest {
 export type UsageAggregateResponse = UsageAggregate;
 
 export type AlertRuleResponse = AlertRule;
-export type AlertEventResponse = AlertEvent;
+export interface AlertEventResponse extends AlertEvent {
+  incident?: AlertIncidentSummary;
+}
 
 export interface ListAlertsQuery extends PageRequest {
   status?: AlertStatus;
@@ -329,6 +332,15 @@ export interface CreateManualLeakIncidentRequest {
   severity: AlertSeverity;
   title: string;
   description: string;
+}
+
+export interface LinkAlertIncidentRequest {
+  incidentId: EntityId;
+}
+
+export interface CreateIncidentFromAlertResponse {
+  alert: AlertEventResponse;
+  incident: LeakIncidentResponse;
 }
 
 export interface ListLeakIncidentsQuery extends PageRequest {
@@ -397,6 +409,7 @@ export interface LeakIncidentDetailResponse extends LeakIncident {
   evidence: IncidentEvidence[];
   sensorEvidence: IncidentSensorEvidence[];
   workOrders: WorkOrder[];
+  relatedAlerts: AlertEventResponse[];
 }
 
 export interface CreateMoistureSensorRequest {

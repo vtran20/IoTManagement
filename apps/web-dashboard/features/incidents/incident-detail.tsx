@@ -59,6 +59,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
 
   const data = override ?? incident.data!;
   const nextAction = nextActions[data.status];
+  const relatedAlerts = data.relatedAlerts ?? [];
 
   async function transition(path: string) {
     if (!allowMutations) return;
@@ -201,6 +202,40 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
               </span>
             </div>
           ))}
+        </article>
+        <article className="data-panel">
+          <div className="section-heading">
+            <h3>Related alerts</h3>
+          </div>
+          {relatedAlerts.length === 0 ? (
+            <p className="muted">No alerts are linked to this incident.</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Alert</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th>Triggered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {relatedAlerts.map((alert) => (
+                  <tr key={alert.id}>
+                    <td>
+                      <a className="table-link" href="/alerts">
+                        {alert.title}
+                      </a>
+                      <span>{alert.message}</span>
+                    </td>
+                    <td>{alert.severity}</td>
+                    <td>{alert.status}</td>
+                    <td>{formatDate(alert.triggeredAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </article>
         <article className="data-panel">
           <h3>Response timeline</h3>

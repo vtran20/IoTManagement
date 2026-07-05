@@ -3,7 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import type {
   AlertEvent,
+  AlertEventResponse,
   AlertRule,
+  Building,
+  CreateIncidentFromAlertResponse,
+  LeakIncident,
   PageResponse,
 } from "@iot-management/types";
 import {
@@ -17,27 +21,39 @@ import { useInvalidateDashboardOverview } from "../../lib/dashboard-query";
 export function AlertsTable() {
   const session = useCurrentSession();
   const invalidateDashboardOverview = useInvalidateDashboardOverview();
-  const [alerts, setAlerts] = useState<AlertEvent[]>([]);
+  const [alerts, setAlerts] = useState<AlertEventResponse[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [correlationMode, setCorrelationMode] = useState<
+    "create" | "link" | undefined
+  >();
+  const [incidents, setIncidents] = useState<LeakIncident[]>([]);
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [status, setStatus] = useState<"error" | "loading" | "ready">(
     "loading",
   );
   const [message, setMessage] = useState("");
+  const [selectedAlertId, setSelectedAlertId] = useState<string>();
   const allowMutations = canMutate(session.data?.membership.role);
 
   useEffect(() => {
     let mounted = true;
     setStatus("loading");
     Promise.all([
-      fetchJson<PageResponse<AlertEvent>>("/alerts"),
+      fetchJson<PageResponse<AlertEventResponse>>("/alerts"),
       fetchJson<PageResponse<AlertRule>>("/alerts/rules"),
+      fetchJson<PageResponse<Building>>("/buildings"),
+      fetchJson<PageResponse<LeakIncident>>("/incidents"),
     ])
-      .then(([alertResponse, ruleResponse]) => {
-        if (!mounted) return;
-        setAlerts(alertResponse.items);
-        setRules(ruleResponse.items);
-        setStatus("ready");
-      })
+      .then(
+        ([alertResponse, ruleResponse, buildingResponse, incidentResponse]) => {
+          if (!mounted) return;
+          setAlerts(alertResponse.items);
+          setBuildings(buildingResponse.items);
+          setIncidents(incidentResponse.items);
+          setRules(ruleResponse.items);
+          setStatus("ready");
+        },
+      )
       .catch(() => {
         if (mounted) setStatus("error");
       });
@@ -105,6 +121,70 @@ export function AlertsTable() {
     }
   }
 
+  function openCorrelation(alertId: string, mode: "create" | "link") {
+    setMessage("");
+    setCorrelationMode(mode);
+    setSelectedAlertId(alertId);
+  }
+
+  async function createIncident(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!allowMutations || !selectedAlertId) return;
+    const values = new FormData(event.currentTarget);
+    setMessage("");
+    try {
+      const response = await mutateJson<CreateIncidentFromAlertResponse>(
+        `/alerts/${selectedAlertId}/incidents`,
+        {
+          body: JSON.stringify({
+            buildingId: String(values.get("buildingId")),
+            description: String(values.get("description")).trim(),
+            severity: String(values.get("severity")),
+            title: String(values.get("title")).trim(),
+          }),
+          method: "POST",
+        },
+      );
+      setAlerts((current) =>
+        current.map((alert) =>
+          alert.id === selectedAlertId ? response.alert : alert,
+        ),
+      );
+      invalidateDashboardOverview();
+      window.location.assign(`/incidents/${response.incident.id}`);
+    } catch {
+      setMessage("Incident could not be created from this alert.");
+    }
+  }
+
+  async function linkIncident(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!allowMutations || !selectedAlertId) return;
+    const values = new FormData(event.currentTarget);
+    setMessage("");
+    try {
+      const alert = await mutateJson<AlertEventResponse>(
+        `/alerts/${selectedAlertId}/link-incident`,
+        {
+          body: JSON.stringify({
+            incidentId: String(values.get("incidentId")),
+          }),
+          method: "POST",
+        },
+      );
+      setAlerts((current) =>
+        current.map((item) => (item.id === selectedAlertId ? alert : item)),
+      );
+      setCorrelationMode(undefined);
+      setSelectedAlertId(undefined);
+      invalidateDashboardOverview();
+    } catch {
+      setMessage("Alert could not be linked to this incident.");
+    }
+  }
+
+  const selectedAlert = alerts.find((alert) => alert.id === selectedAlertId);
+
   if (status === "loading" || session.status === "loading") {
     return <section className="state-panel">Loading alerts</section>;
   }
@@ -166,7 +246,6 @@ export function AlertsTable() {
         ) : null}
       </section>
       <div className="data-panel">
-        {message ? <p className="form-error">{message}</p> : null}
         {alerts.length === 0 ? <p>No alerts found.</p> : null}
         <table>
           <thead>
@@ -175,6 +254,7 @@ export function AlertsTable() {
               <th>Severity</th>
               <th>Status</th>
               <th>Triggered</th>
+              <th>Related incident</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -188,6 +268,18 @@ export function AlertsTable() {
                 <td>{alert.severity}</td>
                 <td>{alert.status}</td>
                 <td>{new Date(alert.triggeredAt).toLocaleString("en-US")}</td>
+                <td>
+                  {alert.incident ? (
+                    <a
+                      className="table-link"
+                      href={`/incidents/${alert.incident.id}`}
+                    >
+                      {alert.incident.title}
+                    </a>
+                  ) : (
+                    <span className="muted">Unlinked</span>
+                  )}
+                </td>
                 <td>
                   {alert.status === "open" && allowMutations ? (
                     <div className="table-actions">
@@ -209,12 +301,112 @@ export function AlertsTable() {
                   ) : (
                     <span className="muted">Reviewed</span>
                   )}
+                  {!alert.incidentId && allowMutations ? (
+                    <div className="table-actions">
+                      <button
+                        className="table-button"
+                        onClick={() => openCorrelation(alert.id, "create")}
+                        type="button"
+                      >
+                        Create incident
+                      </button>
+                      <button
+                        className="mode-button"
+                        onClick={() => openCorrelation(alert.id, "link")}
+                        type="button"
+                      >
+                        Link existing incident
+                      </button>
+                    </div>
+                  ) : null}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {correlationMode && selectedAlert ? (
+        <section className="data-panel">
+          <div className="section-heading">
+            <h2>
+              {correlationMode === "create"
+                ? "Create incident from alert"
+                : "Link alert to incident"}
+            </h2>
+            <button
+              className="mode-button"
+              onClick={() => setCorrelationMode(undefined)}
+              type="button"
+            >
+              Close
+            </button>
+          </div>
+          {correlationMode === "create" ? (
+            <form className="inline-form" onSubmit={createIncident}>
+              <label className="field">
+                <span>Building</span>
+                <select name="buildingId" required>
+                  <option value="">Select building</option>
+                  {buildings.map((building) => (
+                    <option key={building.id} value={building.id}>
+                      {building.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Severity</span>
+                <select defaultValue={selectedAlert.severity} name="severity">
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Incident title</span>
+                <input
+                  defaultValue={selectedAlert.title}
+                  name="title"
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Incident details</span>
+                <input
+                  defaultValue={selectedAlert.message}
+                  name="description"
+                  required
+                />
+              </label>
+              <button className="primary-button" type="submit">
+                Create incident
+              </button>
+            </form>
+          ) : (
+            <form className="inline-form" onSubmit={linkIncident}>
+              <label className="field">
+                <span>Incident</span>
+                <select name="incidentId" required>
+                  <option value="">Select active incident</option>
+                  {incidents
+                    .filter((incident) => incident.status !== "resolved")
+                    .map((incident) => (
+                      <option key={incident.id} value={incident.id}>
+                        {incident.title}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <button className="primary-button" type="submit">
+                Link incident
+              </button>
+            </form>
+          )}
+        </section>
+      ) : null}
+      {message ? (
+        <section className="state-panel error-state">{message}</section>
+      ) : null}
     </>
   );
 }

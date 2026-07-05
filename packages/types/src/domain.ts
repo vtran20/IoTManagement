@@ -415,6 +415,7 @@ export interface AlertEvent {
   id: EntityId;
   organizationId: EntityId;
   ruleId?: EntityId;
+  incidentId?: EntityId;
   severity: AlertSeverity;
   status: AlertStatus;
   title: string;
@@ -422,4 +423,10 @@ export interface AlertEvent {
   triggeredAt: ISODateTime;
   acknowledgedAt?: ISODateTime;
   resolvedAt?: ISODateTime;
+}
+
+export interface AlertIncidentSummary {
+  id: EntityId;
+  status: LeakIncidentStatus;
+  title: string;
 }
