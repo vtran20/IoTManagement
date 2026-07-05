@@ -111,7 +111,7 @@ export function WorkOrderDetail({ workOrderId }: { workOrderId: string }) {
         <p>{item.description}</p>
       </section>
       {message ? <p className="form-error">{message}</p> : null}
-      <section className="data-panel detail-grid">
+      <section className="data-panel detail-grid work-order-summary">
         <div>
           <span className="muted">Status</span>
           <strong>{item.status}</strong>
