@@ -347,18 +347,6 @@ export class WorkOrdersService {
       dto.finalCost === undefined
         ? undefined
         : this.normalizeMoney(dto.finalCost, "WORK_ORDER_FINAL_COST_INVALID");
-    if (
-      status === "completed" &&
-      finalCost === undefined &&
-      existing.finalCost === undefined
-    ) {
-      throw new ApiError(
-        "WORK_ORDER_FINAL_COST_REQUIRED",
-        "A final cost is required before completing a work order",
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     const now = new Date().toISOString();
     const updated = await this.persistence.updateWorkOrder(
       context.organization.id,

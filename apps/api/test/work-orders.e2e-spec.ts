@@ -249,28 +249,14 @@ describe("Leak repair work orders API", () => {
           "Replaced the failed washer and confirmed the drip stopped.",
         status: "completed",
       })
-      .expect(400)
-      .expect(({ body }) => {
-        expect(body.error.code).toBe("WORK_ORDER_FINAL_COST_REQUIRED");
-      });
-
-    await request(app.getHttpServer())
-      .patch(`/api/v1/work-orders/${workOrder.body.id}`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({
-        completionNote:
-          "Replaced the failed washer and confirmed the drip stopped.",
-        finalCost: 175.5,
-        status: "completed",
-      })
       .expect(200)
       .expect(({ body }) => {
         expect(body).toMatchObject({
           completionNote:
             "Replaced the failed washer and confirmed the drip stopped.",
-          finalCost: 175.5,
           status: "completed",
         });
+        expect(body.finalCost).toBeUndefined();
         expect(body.completedAt).toEqual(expect.any(String));
         expect(body.isOverdue).toBe(false);
       });
