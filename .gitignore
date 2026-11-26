@@ -16,3 +16,25 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 apps/web-dashboard/next-env.d.ts
+
+# Generated tool caches.
+.vite/
+.vitest/
+.eslintcache
+.prettiercache
+
+# Package-manager diagnostics from commands run at the repository root.
+/npm-debug.log*
+/pnpm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
+
+# Disposable editor/OS files; retain lockfiles and project evidence.
+._*
+Thumbs.db
+*.swp
+~$*
+
+# Brainstorming server runtime markers; keep HTML mockups trackable.
+/.superpowers/brainstorm/**/.server.pid
+/.superpowers/brainstorm/**/.server-stopped

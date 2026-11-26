@@ -7,6 +7,8 @@ Open the repository root (`IoTManagement/`) as the IntelliJ IDEA project, then o
 3. Run `10-portfolio-meters.http` to create and capture `testBuildingId`, `testFloorId`, `testUnitId`, `testMeterId`, and `testMeterExternalId`.
 4. Run the remaining files in numeric order. Requests that mutate data are marked `MUTATES DATA`; they use captured fixture IDs where possible. Run `99-auth-cleanup.http` only when you want to invalidate the owner session.
 
+For a focused alert workflow, use `31-create-alert.http`. It logs in, creates reusable alert rules, evaluates alerts, lists open alerts, and includes acknowledge/resolve examples.
+
 All requests use bearer tokens. Re-run the owner login request whenever a token expires. The password-reset and invitation acceptance requests intentionally require a token copied from the development email outbox.
 
 The suite contains every REST endpoint currently exposed by the API. Run `pnpm validate:http-client` to compare the request files directly with Nest controller decorators after controller changes.

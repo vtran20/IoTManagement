@@ -1,0 +1,102 @@
+### Owner login for alert examples
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}"
+}
+
+> {%
+  client.test("owner login succeeds", () => client.assert(response.status === 201));
+  client.global.set("ownerToken", response.body.accessToken);
+%}
+
+### MUTATES DATA: create organization high water usage alert rule
+POST {{baseUrl}}/alerts/rules
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "Reusable high water usage alert",
+  "conditionType": "high_usage",
+  "scopeType": "organization",
+  "utilityType": "water",
+  "threshold": 10,
+  "windowMinutes": 60,
+  "enabled": true
+}
+
+> {%
+  client.test("alert rule is created", () => client.assert(response.status === 201));
+  client.global.set("createdAlertRuleId", response.body.id);
+%}
+
+### List alert rules
+GET {{baseUrl}}/alerts/rules
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: create building high electric usage alert rule
+# Run http/10-portfolio-meters.http first if you want to use {{testBuildingId}}.
+POST {{baseUrl}}/alerts/rules
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "Reusable building high electric usage alert",
+  "conditionType": "high_usage",
+  "scopeType": "building",
+  "scopeId": "{{testBuildingId}}",
+  "utilityType": "electric",
+  "threshold": 50,
+  "windowMinutes": 60,
+  "enabled": true
+}
+
+> {%
+  client.test("building alert rule is created", () => client.assert(response.status === 201));
+  client.global.set("createdBuildingAlertRuleId", response.body.id);
+%}
+
+### MUTATES DATA: evaluate alert rules
+POST {{baseUrl}}/alerts/evaluate
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "now": "2026-07-07T01:00:00.000Z"
+}
+
+> {%
+  client.test("alert evaluation succeeds", () => client.assert(response.status === 200 || response.status === 201));
+  if (response.body.events && response.body.events.length > 0) {
+    client.global.set("createdAlertId", response.body.events[0].id);
+  }
+%}
+
+### List open alerts
+GET {{baseUrl}}/alerts?status=open
+Authorization: Bearer {{ownerToken}}
+
+> {%
+  if (response.body.items && response.body.items.length > 0) {
+    client.global.set("createdAlertId", response.body.items[0].id);
+  }
+%}
+
+### MUTATES DATA: acknowledge alert
+POST {{baseUrl}}/alerts/{{createdAlertId}}/acknowledge
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: resolve alert
+POST {{baseUrl}}/alerts/{{createdAlertId}}/resolve
+Authorization: Bearer {{ownerToken}}
+
+### MUTATES DATA: disable created organization alert rule
+PATCH {{baseUrl}}/alerts/rules/{{createdAlertRuleId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "enabled": false
+}
